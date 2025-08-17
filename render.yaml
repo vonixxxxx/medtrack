@@ -12,8 +12,9 @@ services:
 
   - type: static
     name: medtrack-frontend
+    env: static
     buildCommand: cd frontend && npm run build
-    staticPublishPath: frontend/dist
+    publishDir: frontend/dist
     routes:
       - type: rewrite
         source: /*
