@@ -13,7 +13,11 @@ services:
   - type: static
     name: medtrack-frontend
     buildCommand: cd frontend && npm run build
-    publishDir: frontend/dist
+    staticPublishPath: frontend/dist
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
     envVars:
       - key: VITE_API_URL
         value: https://medtrack-backend.onrender.com/api
