@@ -1,0 +1,22 @@
+services:
+  - type: web
+    name: medtrack-backend
+    env: node
+    buildCommand: cd backend && npm install
+    startCommand: cd backend && npm start
+    envVars:
+      - key: PORT
+        value: 8000
+      - key: NODE_ENV
+        value: production
+    plan: free
+
+  - type: web
+    name: medtrack-frontend
+    env: static
+    buildCommand: cd frontend && npm run build
+    staticPublishPath: frontend/dist
+    envVars:
+      - key: VITE_API_URL
+        value: https://medtrack-backend.onrender.com/api
+    plan: free
