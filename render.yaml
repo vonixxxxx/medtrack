@@ -10,10 +10,12 @@ services:
       - key: NODE_ENV
         value: production
 
-  - type: web
+  - type: staticSite
     name: medtrack-frontend
-    runtime: static
-    buildCommand: cd frontend && npm run build
+    buildCommand: |
+      cd frontend
+      npm ci
+      npm run build
     staticPublishPath: frontend/dist
     routes:
       - type: rewrite
