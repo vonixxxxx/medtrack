@@ -24,11 +24,21 @@ const prisma = new PrismaClient();
 // Security middleware
 app.use(helmetConfig);
 
-// CORS configuration – adjust origin as needed for deployment
+// REPLACE lines 27-33 with enhanced CORS logic
+const allowedOrigins = (process.env.CORS_ORIGIN || 'http://localhost:3000')
+  .split(',')
+  .map((o) => o.trim());
+
 const corsOptions = {
-  origin: process.env.CORS_ORIGIN || 'http://localhost:3000',
-  credentials: true, // Allow credentials (cookies, authorization headers)
-  optionsSuccessStatus: 200 // Some legacy browsers choke on 204
+  origin: (origin, callback) => {
+    // Allow requests with no origin (e.g. mobile apps, curl) or in the whitelist
+    if (!origin || allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+    return callback(new Error('Not allowed by CORS'));
+  },
+  credentials: true,
+  optionsSuccessStatus: 200,
 };
 app.use(cors(corsOptions));
 
@@ -64,6 +74,16 @@ app.get('/health', async (req, res) => {
       error: 'Database connection failed'
     });
   }
+});
+
+// ADD after the /health endpoint (around line 67)
+app.get('/api/health', async (req, res) => {
+  res.redirect('/health');
+});
+
+// Simple root route for convenience
+app.get('/', (_req, res) => {
+  res.json({ status: 'running', message: 'MedTrack API' });
 });
 
 // API Routes with specific rate limiting
