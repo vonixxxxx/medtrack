@@ -9,7 +9,7 @@ services:
         value: 8000
       - key: NODE_ENV
         value: production
-    plan: free
+    plan: starter
 
   - type: web
     name: medtrack-frontend
@@ -19,4 +19,4 @@ services:
     envVars:
       - key: VITE_API_URL
         value: https://medtrack-backend.onrender.com/api
-    plan: free
+    plan: starter
