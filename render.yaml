@@ -9,14 +9,11 @@ services:
         value: 8000
       - key: NODE_ENV
         value: production
-    plan: starter
 
-  - type: web
+  - type: static
     name: medtrack-frontend
-    env: static
     buildCommand: cd frontend && npm run build
-    staticPublishPath: frontend/dist
+    publishDir: frontend/dist
     envVars:
       - key: VITE_API_URL
         value: https://medtrack-backend.onrender.com/api
-    plan: starter
