@@ -1,7 +1,7 @@
 services:
   - type: web
     name: medtrack-backend
-    env: node
+    runtime: node
     buildCommand: cd backend && npm install
     startCommand: cd backend && npm start
     envVars:
@@ -10,11 +10,11 @@ services:
       - key: NODE_ENV
         value: production
 
-  - type: static
+  - type: web
     name: medtrack-frontend
-    env: static
+    runtime: static
     buildCommand: cd frontend && npm run build
-    publishDir: frontend/dist
+    staticPublishPath: frontend/dist
     routes:
       - type: rewrite
         source: /*
