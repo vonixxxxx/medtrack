@@ -1,0 +1,121 @@
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "darwin-arm64"]
+}
+
+model User {
+  id               Int          @id @default(autoincrement())
+  email            String       @unique
+  password         String
+  name             String?
+  
+  // Password reset fields
+  resetToken       String?
+  resetTokenExpiry DateTime?
+  
+  // 2FA fields
+  is2FAEnabled     Boolean      @default(false)
+  twoFASecret      String?
+  
+  // Relations
+  medications      Medication[]
+  metrics          Metric[]
+  cycles           MedicationCycle[]
+  notifications    Notification[]
+  
+  @@map("users")
+}
+
+model Medication {
+  id          Int             @id @default(autoincrement())
+  userId      Int
+  name        String
+  startDate   DateTime
+  endDate     DateTime
+  dosage      String
+  frequency   String
+  logs        MedicationLog[]
+  user        User            @relation(fields: [userId], references: [id])
+}
+
+model MedicationLog {
+  id           Int        @id @default(autoincrement())
+  medicationId Int
+  date         DateTime
+  dosage       String
+  medication   Medication @relation(fields: [medicationId], references: [id])
+}
+
+model Metric {
+  id               Int      @id @default(autoincrement())
+  userId           Int
+  date             DateTime @default(now())
+  weight           Float
+  height           Float
+  bmi              Float
+  bloodPressure    String
+  hipCircumference Float?
+  user             User     @relation(fields: [userId], references: [id])
+}
+
+/// NEW V2 MODELS ------------------------------------
+
+model MedicationCycle {
+  id            Int          @id @default(autoincrement())
+  userId        Int
+  name          String
+  dosage        String
+  startDate     DateTime
+  endDate       DateTime?
+  frequencyDays Int         // e.g., 1 = daily, 7 = weekly
+  dosesPerDay   Int         @default(1)
+  metricsToMonitor String?  // JSON string of metrics and their frequencies
+
+  metricLogs    MetricLog[]
+  doseLogs      DoseLog[]
+  notifications Notification[]
+
+  user          User         @relation(fields: [userId], references: [id])
+}
+
+model MetricLog {
+  id        Int         @id @default(autoincrement())
+  cycleId   Int
+  date      DateTime     @default(now())
+  kind      String       // e.g., WEIGHT, BLOOD_PRESSURE
+  valueFloat Float?
+  valueText  String?
+  notes      String?
+
+  cycle     MedicationCycle @relation(fields: [cycleId], references: [id])
+}
+
+model DoseLog {
+  id        Int      @id @default(autoincrement())
+  cycleId   Int
+  date      DateTime
+  taken     Boolean @default(false)
+
+  cycle     MedicationCycle @relation(fields: [cycleId], references: [id])
+
+  @@unique([cycleId, date])
+}
+
+model Notification {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  cycleId   Int?
+  date      DateTime
+  message   String
+  sent      Boolean   @default(false)
+
+  user      User      @relation(fields: [userId], references: [id])
+  cycle     MedicationCycle? @relation(fields: [cycleId], references: [id])
+}
+
+/// END V2 MODELS ------------------------------------

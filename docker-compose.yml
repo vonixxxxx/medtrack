@@ -1,0 +1,93 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: medtrack
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-secure_password_123}
+      POSTGRES_DB: medtrack
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backend/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    ports:
+      - "5432:5432"
+    networks:
+      - medtrack-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U medtrack -d medtrack"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Backend API
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      # Database
+      DATABASE_URL: postgresql://medtrack:${DB_PASSWORD:-secure_password_123}@postgres:5432/medtrack?schema=public
+      
+      # Auth
+      JWT_SECRET: ${JWT_SECRET:-your-super-secure-jwt-secret-key}
+      JWT_EXPIRES_IN: 7d
+      
+      # Email (configure for production)
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASS: ${SMTP_PASS:-}
+      SMTP_FROM: ${SMTP_FROM:-MedTrack <noreply@medtrack.com>}
+      
+      # App config
+      PORT: 4000
+      NODE_ENV: production
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3000}
+      
+      # Security
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:3000}
+      
+      # 2FA
+      TOTP_ISSUER: MedTrack
+      TOTP_WINDOW: 2
+      
+      # Rate limiting
+      RATE_LIMIT_WINDOW_MS: 900000
+      RATE_LIMIT_MAX_REQUESTS: 100
+      AUTH_RATE_LIMIT_MAX: 5
+    ports:
+      - "4000:4000"
+    networks:
+      - medtrack-network
+    volumes:
+      - ./backend/uploads:/app/uploads # For file uploads if needed
+    command: sh -c "npx prisma migrate deploy && npm start"
+
+  # Redis for session storage (optional, for production scaling)
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    networks:
+      - medtrack-network
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+
+networks:
+  medtrack-network:
+    driver: bridge

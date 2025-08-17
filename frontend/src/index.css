@@ -1,0 +1,113 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  background-color: #f8fafc; /* Lighter background with a hint of blue-gray */
+}
+
+/* Animated Gradient Title */
+@keyframes gradient-animation {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.animated-gradient-text {
+  background: linear-gradient(45deg, #3b82f6, #60a5fa, #93c5fd);
+  background-size: 200% 200%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: gradient-animation 5s ease infinite;
+}
+
+/* Primary pill button */
+.btn-primary {
+  @apply bg-blue-600 text-white rounded-xl px-4 py-2 hover:bg-blue-700 transition;
+}
+
+/* Secondary outlined button */
+.btn-secondary {
+  @apply border border-gray-300 rounded-xl px-4 py-2 hover:bg-gray-50 transition;
+}
+
+/* Button Gradients */
+.btn-blue-gradient {
+  @apply bg-gradient-to-r from-blue-500 to-blue-600 text-white hover:from-blue-600 hover:to-blue-700 transition-all duration-300 shadow-md hover:shadow-lg;
+}
+
+.btn-red-gradient {
+  @apply bg-gradient-to-r from-red-500 to-red-600 text-white hover:from-red-600 hover:to-red-700 transition-all duration-300 shadow-md hover:shadow-lg;
+}
+
+.btn-green-gradient {
+  @apply bg-gradient-to-r from-green-500 to-green-600 text-white hover:from-green-600 hover:to-green-700 transition-all duration-300 shadow-md hover:shadow-lg;
+}
+
+/* Ensure all blue buttons use the gradient */
+.bg-blue-600 {
+  @apply btn-blue-gradient;
+}
+
+/* Custom scrollbar for dashboard tiles */
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 0, 0, 0.2) transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background-color: rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
+  transition: background-color 0.2s ease;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(0, 0, 0, 0.3);
+}
+
+/* Dashboard tile improvements */
+.dashboard-tile {
+  overflow: hidden;
+  position: relative;
+}
+
+.dashboard-tile-content {
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+/* Prevent hover expansion issues */
+.dashboard-card {
+  transform: none !important;
+  z-index: auto !important;
+}
+
+/* Responsive text truncation */
+.truncate-text {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Ensure proper spacing in summary sections */
+.summary-section {
+  margin-top: 1rem;
+  padding: 1rem;
+}
+
+
