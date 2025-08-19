@@ -88,6 +88,18 @@ exports.update = async (req, res) => {
   const prisma = req.prisma;
   const id = parseInt(req.params.id, 10);
   try {
+    // First verify the cycle belongs to the authenticated user
+    const existingCycle = await prisma.medicationCycle.findFirst({
+      where: { 
+        id,
+        userId: req.user.id 
+      }
+    });
+    
+    if (!existingCycle) {
+      return res.status(404).json({ error: 'Cycle not found or access denied' });
+    }
+
     const cycle = await prisma.medicationCycle.update({
       where: { id },
       data: req.body,
@@ -103,6 +115,18 @@ exports.remove = async (req, res) => {
   const prisma = req.prisma;
   const id = parseInt(req.params.id, 10);
   try {
+    // First verify the cycle belongs to the authenticated user
+    const existingCycle = await prisma.medicationCycle.findFirst({
+      where: { 
+        id,
+        userId: req.user.id 
+      }
+    });
+    
+    if (!existingCycle) {
+      return res.status(404).json({ error: 'Cycle not found or access denied' });
+    }
+
     await prisma.medicationCycle.delete({ where: { id } });
     res.status(204).end();
   } catch (err) {
@@ -117,6 +141,18 @@ exports.addMetric = async (req, res) => {
   const cycleId = parseInt(req.params.id, 10);
   const { kind, valueFloat, valueText, notes, date } = req.body;
   try {
+    // First verify the cycle belongs to the authenticated user
+    const existingCycle = await prisma.medicationCycle.findFirst({
+      where: { 
+        id: cycleId,
+        userId: req.user.id 
+      }
+    });
+    
+    if (!existingCycle) {
+      return res.status(404).json({ error: 'Cycle not found or access denied' });
+    }
+
     const log = await prisma.metricLog.create({
       data: {
         cycleId,
@@ -138,6 +174,18 @@ exports.listMetrics = async (req, res) => {
   const prisma = req.prisma;
   const cycleId = parseInt(req.params.id, 10);
   try {
+    // First verify the cycle belongs to the authenticated user
+    const existingCycle = await prisma.medicationCycle.findFirst({
+      where: { 
+        id: cycleId,
+        userId: req.user.id 
+      }
+    });
+    
+    if (!existingCycle) {
+      return res.status(404).json({ error: 'Cycle not found or access denied' });
+    }
+
     const logs = await prisma.metricLog.findMany({
       where: { cycleId },
       orderBy: { date: 'desc' },
@@ -156,6 +204,18 @@ exports.markDose = async (req, res) => {
   const { date, taken = true } = req.body;
   const d = startOfDay(date ? new Date(date) : new Date());
   try {
+    // First verify the cycle belongs to the authenticated user
+    const existingCycle = await prisma.medicationCycle.findFirst({
+      where: { 
+        id: cycleId,
+        userId: req.user.id 
+      }
+    });
+    
+    if (!existingCycle) {
+      return res.status(404).json({ error: 'Cycle not found or access denied' });
+    }
+
     const log = await prisma.doseLog.upsert({
       where: {
         cycleId_date: {

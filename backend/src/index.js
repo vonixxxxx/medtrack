@@ -119,37 +119,55 @@ cron.schedule('0 8 * * *', async () => {
   today.setHours(0, 0, 0, 0);
 
   try {
-    // Fetch medications active today
-    const medications = await prisma.medication.findMany({
+    // Get all users with active medication cycles
+    const activeCycles = await prisma.medicationCycle.findMany({
       where: {
         startDate: { lte: today },
-        endDate: { gte: today },
+        OR: [
+          { endDate: { gte: today } },
+          { endDate: null } // Cycles without end date
+        ]
       },
+      include: {
+        user: true
+      }
     });
 
-    for (const med of medications) {
-      // Prevent duplicate reminders for the same day
-      const existing = await prisma.reminder.findFirst({
-        where: {
-          userId: med.userId,
-          medicationId: med.id,
-          date: today,
-        },
-      });
+    // Group cycles by user
+    const userCycles = {};
+    activeCycles.forEach(cycle => {
+      if (!userCycles[cycle.userId]) {
+        userCycles[cycle.userId] = [];
+      }
+      userCycles[cycle.userId].push(cycle);
+    });
 
-      if (!existing) {
-        await prisma.reminder.create({
-          data: {
-            userId: med.userId,
-            medicationId: med.id,
+    // Process each user's cycles
+    for (const [userId, cycles] of Object.entries(userCycles)) {
+      for (const cycle of cycles) {
+        // Prevent duplicate reminders for the same day
+        const existing = await prisma.notification.findFirst({
+          where: {
+            userId: parseInt(userId),
+            cycleId: cycle.id,
             date: today,
-            message: `Take ${med.name} today`,
           },
         });
+
+        if (!existing) {
+          await prisma.notification.create({
+            data: {
+              userId: parseInt(userId),
+              cycleId: cycle.id,
+              date: today,
+              message: `Take ${cycle.name} today`,
+            },
+          });
+        }
       }
     }
 
-    console.log('Daily reminders created');
+    console.log('Daily reminders created for active users');
   } catch (err) {
     console.error('Error creating reminders', err);
   }
@@ -170,22 +188,44 @@ const transporter = nodemailer.createTransport({
 cron.schedule('0 7 * * *', async () => {
   console.log('Sending daily medication emails');
   const today = startOfDay(new Date());
-  const due = await prisma.doseLog.findMany({
-    where: { date: today, taken: false },
-    include: { cycle: { include: { user: true } } },
-  });
-  for (const d of due) {
-    if (!d.cycle.user.email) continue;
-    const mailOptions = {
-      from: 'no-reply@medtrack.local',
-      to: d.cycle.user.email,
-      subject: 'Medication Reminder',
-      text: `Hello ${d.cycle.user.name || ''},\nToday is the day to take ${d.cycle.dosage} of ${d.cycle.name}. Did you take it?`,
-    };
-    try {
-      await transporter.sendMail(mailOptions);
-    } catch (err) {
-      console.error('Email error', err);
+  
+  try {
+    // Get all users with due doses today
+    const dueDoses = await prisma.doseLog.findMany({
+      where: { 
+        date: today, 
+        taken: false 
+      },
+      include: { 
+        cycle: { 
+          include: { 
+            user: true 
+          } 
+        } 
+      },
+    });
+
+    // Process each dose and send email if user has email
+    for (const dose of dueDoses) {
+      if (!dose.cycle.user.email) continue;
+      
+      const mailOptions = {
+        from: 'no-reply@medtrack.local',
+        to: dose.cycle.user.email,
+        subject: 'Medication Reminder',
+        text: `Hello ${dose.cycle.user.name || 'there'},\nToday is the day to take ${dose.cycle.dosage} of ${dose.cycle.name}. Did you take it?`,
+      };
+      
+      try {
+        await transporter.sendMail(mailOptions);
+        console.log(`Email sent to ${dose.cycle.user.email} for ${dose.cycle.name}`);
+      } catch (err) {
+        console.error(`Email error for ${dose.cycle.user.email}:`, err);
+      }
     }
+    
+    console.log('Daily medication emails processed');
+  } catch (err) {
+    console.error('Error processing daily emails:', err);
   }
 });

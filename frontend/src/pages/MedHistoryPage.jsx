@@ -149,6 +149,77 @@ export default function MedHistoryPage() {
     );
   }
 
+  // Render empty state when user has no medication cycles
+  if (!cyclesLoading && cycles.length === 0) {
+    return (
+      <div className="min-h-screen bg-gray-100">
+        <Navigation />
+        <div className="max-w-6xl mx-auto p-4">
+          <div className="bg-white rounded-3xl shadow-lg p-6 mb-6">
+            <h1 className="text-2xl font-bold mb-6 text-gray-800">Medication History</h1>
+            
+            <div className="text-center py-12">
+              <div className="text-6xl mb-4">📋</div>
+              <h2 className="text-xl font-semibold text-gray-700 mb-2">No Medications Yet</h2>
+              <p className="text-gray-600 mb-6">
+                You haven't added any medication cycles yet. Start tracking your health by adding your first medication.
+              </p>
+              <a
+                href="/add-medication"
+                className="inline-block bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-6 py-3 rounded-xl font-medium hover:from-blue-700 hover:to-indigo-700 transition-all duration-200"
+              >
+                Add Your First Medication
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Render empty state when user has cycles but no metric logs
+  if (!logsLoading && cycles.length > 0 && logs.length === 0) {
+    return (
+      <div className="min-h-screen bg-gray-100">
+        <Navigation />
+        <div className="max-w-6xl mx-auto p-4">
+          <div className="bg-white rounded-3xl shadow-lg p-6 mb-6">
+            <h1 className="text-2xl font-bold mb-6 text-gray-800">Medication History</h1>
+            
+            <div className="grid md:grid-cols-3 gap-4 mb-6">
+              <select
+                value={selectedCycleId}
+                onChange={handleCycleChange}
+                className="w-full rounded-xl border px-3 py-2 text-sm"
+              >
+                <option value="">All Medication Cycles</option>
+                {cycles.map((cycle) => (
+                  <option key={cycle.id} value={cycle.id}>
+                    {cycle.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            
+            <div className="text-center py-12">
+              <div className="text-6xl mb-4">📊</div>
+              <h2 className="text-xl font-semibold text-gray-700 mb-2">No Health Metrics Yet</h2>
+              <p className="text-gray-600 mb-6">
+                You have medication cycles but haven't logged any health metrics yet. Start tracking your measurements to see your progress over time.
+              </p>
+              <a
+                href="/add-metric"
+                className="inline-block bg-gradient-to-r from-emerald-600 to-teal-600 text-white px-6 py-3 rounded-xl font-medium hover:from-emerald-700 hover:to-teal-700 transition-all duration-200"
+              >
+                Log Your First Metric
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-100">
       <Navigation />

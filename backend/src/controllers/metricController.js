@@ -87,10 +87,17 @@ exports.getMetricLogs = async (req, res) => {
     const prisma = req.prisma;
 
     // Build the query dynamically based on provided parameters
-    const whereCondition = {};
+    const whereCondition = {
+      // CRITICAL: Always filter by the authenticated user's cycles
+      cycle: {
+        userId: req.user.id
+      }
+    };
     
     if (cycleId) {
+      // Additional safety: ensure the cycle belongs to the authenticated user
       whereCondition.cycleId = parseInt(cycleId);
+      whereCondition.cycle.userId = req.user.id;
     }
 
     if (metricType) {
@@ -105,14 +112,18 @@ exports.getMetricLogs = async (req, res) => {
       include: {
         cycle: {
           select: {
-            name: true
+            name: true,
+            userId: true // Include userId for additional verification
           }
         }
       }
     });
 
+    // Additional safety: filter out any logs that don't belong to the user
+    const userLogs = logs.filter(log => log.cycle.userId === req.user.id);
+
     // Transform the data to match frontend expectations
-    const transformedLogs = logs.map(log => ({
+    const transformedLogs = userLogs.map(log => ({
       id: log.id,
       date: log.date,
       cycle: log.cycle?.name || 'Unknown',
