@@ -30,7 +30,7 @@ export default function Dashboard() {
       <MobileNavigation />
       
       <motion.div 
-        className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8"
+        className="max-w-6xl mx-auto p-4"
         variants={containerVariants}
         initial="hidden"
         animate="visible"
@@ -48,40 +48,40 @@ export default function Dashboard() {
           </p>
         </motion.div>
 
-        {/* Responsive Grid Layout */}
+        {/* Original Tile Layout with Responsive Improvements */}
         <motion.div 
-          className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6"
+          className="columns-1 md:columns-2 gap-6 space-y-6"
           variants={containerVariants}
         >
-          <motion.div variants={cardVariants} className="w-full">
+          <motion.div variants={cardVariants} className="mb-6 break-inside-avoid">
             <UpcomingMeasurementsCard />
           </motion.div>
           
-          <motion.div variants={cardVariants} className="w-full">
+          <motion.div variants={cardVariants} className="mb-6 break-inside-avoid">
             <MedicationRemindersCard />
           </motion.div>
           
-          <motion.div variants={cardVariants} className="w-full">
+          <motion.div variants={cardVariants} className="mb-6 break-inside-avoid">
             <MetricRemindersCard />
           </motion.div>
           
-          <motion.div variants={cardVariants} className="w-full lg:col-span-2 xl:col-span-3">
+          <motion.div variants={cardVariants} className="mb-6 break-inside-avoid">
             <MetricHistoryTable />
           </motion.div>
           
-          <motion.div variants={cardVariants} className="w-full">
+          <motion.div variants={cardVariants} className="mb-6 break-inside-avoid">
             <UpcomingIntakeCard />
           </motion.div>
           
-          <motion.div variants={cardVariants} className="w-full">
+          <motion.div variants={cardVariants} className="mb-6 break-inside-avoid">
             <CycleDetailCard />
           </motion.div>
           
-          <motion.div variants={cardVariants} className="w-full">
+          <motion.div variants={cardVariants} className="mb-6 break-inside-avoid">
             <AddMedicationCycleCard />
           </motion.div>
           
-          <motion.div variants={cardVariants} className="w-full lg:col-span-2 xl:col-span-1">
+          <motion.div variants={cardVariants} className="mb-6 break-inside-avoid">
             <AddMetricCard />
           </motion.div>
         </motion.div>
