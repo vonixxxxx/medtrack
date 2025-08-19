@@ -15,10 +15,14 @@ export default function SignUpPage() {
     setError('');
     
     try {
+      console.log('Attempting signup with:', { email, password: '***' });
       const { data } = await api.post('/auth/signup', { email, password });
+      console.log('Signup successful:', data);
       localStorage.setItem('token', data.token);
       navigate('/');
     } catch (err) {
+      console.error('Signup error:', err);
+      console.error('Error response:', err.response);
       setError(err.response?.data?.error || 'Signup failed');
     } finally {
       setIsLoading(false);

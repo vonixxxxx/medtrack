@@ -15,10 +15,14 @@ export default function LoginPage() {
     setError('');
     
     try {
+      console.log('Attempting login with:', { email, password: '***' });
       const { data } = await api.post('/auth/login', { email, password });
+      console.log('Login successful:', data);
       localStorage.setItem('token', data.token);
       navigate('/');
     } catch (err) {
+      console.error('Login error:', err);
+      console.error('Error response:', err.response);
       setError(err.response?.data?.error || 'Invalid credentials');
     } finally {
       setIsLoading(false);
