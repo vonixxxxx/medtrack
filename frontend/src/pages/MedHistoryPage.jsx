@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import MobileMobileNavigation from '../components/MobileMobileNavigation';
+import MobileNavigation from '../components/MobileNavigation';
 import { useQuery } from '@tanstack/react-query';
 import { fetcher } from '../api';
 import { format, parseISO } from 'date-fns';
