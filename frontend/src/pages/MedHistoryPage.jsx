@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useCallback } from 'react';
-import Navigation from '../components/Navigation';
+import { motion } from 'framer-motion';
+import MobileMobileNavigation from '../components/MobileMobileNavigation';
 import { useQuery } from '@tanstack/react-query';
 import { fetcher } from '../api';
 import { format, parseISO } from 'date-fns';
@@ -153,7 +154,7 @@ export default function MedHistoryPage() {
   if (!cyclesLoading && cycles.length === 0) {
     return (
       <div className="min-h-screen bg-gray-100">
-        <Navigation />
+        <MobileNavigation />
         <div className="max-w-6xl mx-auto p-4">
           <div className="bg-white rounded-3xl shadow-lg p-6 mb-6">
             <h1 className="text-2xl font-bold mb-6 text-gray-800">Medication History</h1>
@@ -181,7 +182,7 @@ export default function MedHistoryPage() {
   if (!logsLoading && cycles.length > 0 && logs.length === 0) {
     return (
       <div className="min-h-screen bg-gray-100">
-        <Navigation />
+        <MobileNavigation />
         <div className="max-w-6xl mx-auto p-4">
           <div className="bg-white rounded-3xl shadow-lg p-6 mb-6">
             <h1 className="text-2xl font-bold mb-6 text-gray-800">Medication History</h1>
@@ -221,13 +222,18 @@ export default function MedHistoryPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-100">
-      <Navigation />
-      <div className="max-w-6xl mx-auto p-4">
-        <div className="bg-white rounded-3xl shadow-lg p-6 mb-6">
-          <h1 className="text-2xl font-bold mb-6 text-gray-800">Medication History</h1>
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+      <MobileNavigation />
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+        <motion.div 
+          className="bg-white rounded-2xl sm:rounded-3xl shadow-xl p-4 sm:p-6 mb-6"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3 }}
+        >
+          <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold mb-6 text-gray-800">Medication History</h1>
 
-          <div className="grid md:grid-cols-3 gap-4 mb-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
             <select
               value={selectedCycleId}
               onChange={handleCycleChange}

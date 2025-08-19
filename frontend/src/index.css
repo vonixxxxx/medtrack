@@ -28,14 +28,18 @@ body {
   animation: gradient-animation 5s ease infinite;
 }
 
-/* Primary pill button */
+/* Primary pill button - optimized for touch */
 .btn-primary {
-  @apply bg-blue-600 text-white rounded-xl px-4 py-2 hover:bg-blue-700 transition;
+  @apply bg-blue-600 text-white rounded-xl px-6 py-3 hover:bg-blue-700 transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-[1.02] active:scale-[0.98] font-medium text-sm sm:text-base;
+  min-height: 44px;
+  min-width: 44px;
 }
 
-/* Secondary outlined button */
+/* Secondary outlined button - optimized for touch */
 .btn-secondary {
-  @apply border border-gray-300 rounded-xl px-4 py-2 hover:bg-gray-50 transition;
+  @apply border border-gray-300 rounded-xl px-6 py-3 hover:bg-gray-50 transition-all duration-200 shadow-sm hover:shadow-md transform hover:scale-[1.02] active:scale-[0.98] font-medium text-sm sm:text-base;
+  min-height: 44px;
+  min-width: 44px;
 }
 
 /* Button Gradients */
@@ -108,6 +112,47 @@ body {
 .summary-section {
   margin-top: 1rem;
   padding: 1rem;
+}
+
+/* Mobile-specific optimizations */
+@media (max-width: 768px) {
+  /* Larger touch targets for mobile */
+  .mobile-touch-target {
+    min-height: 48px;
+    min-width: 48px;
+  }
+  
+  /* Better form input spacing on mobile */
+  input[type="text"], input[type="email"], input[type="password"], input[type="date"], input[type="number"], select, textarea {
+    @apply px-4 py-4 text-base;
+    min-height: 48px;
+  }
+  
+  /* Mobile-friendly cards */
+  .mobile-card {
+    @apply rounded-xl shadow-lg;
+    margin: 0.75rem;
+  }
+  
+  /* Prevent zoom on inputs on iOS */
+  input[type="text"], input[type="email"], input[type="password"], input[type="date"], input[type="number"], select, textarea {
+    font-size: 16px;
+  }
+}
+
+/* Focus styles for accessibility */
+.btn-primary:focus, .btn-secondary:focus {
+  @apply ring-2 ring-blue-500 ring-offset-2 outline-none;
+}
+
+/* Loading states */
+.btn-loading {
+  @apply opacity-75 cursor-not-allowed;
+}
+
+.btn-loading::after {
+  content: '';
+  @apply inline-block w-4 h-4 ml-2 border-2 border-current border-t-transparent rounded-full animate-spin;
 }
 
 
