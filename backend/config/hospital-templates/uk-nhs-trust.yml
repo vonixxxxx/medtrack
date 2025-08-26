@@ -1,0 +1,105 @@
+# UK NHS Trust Configuration Template
+# Optimized for NHS digital health systems
+
+medSources:
+  priority: ['dmd', 'bnf', 'snomed', 'rxnorm', 'local']
+  enabled: ['dmd', 'bnf', 'snomed', 'local']
+  region: 'UK'
+  allowClassSearch: true
+  datasetVersion: 'uk-2025-08'
+  weights:
+    dmd: 10      # NHS dm+d is authoritative in UK
+    bnf: 9       # British National Formulary
+    snomed: 8    # SNOMED CT UK Drug Extension
+    rxnorm: 6    # Lower priority for US data
+    local: 9     # Trust-specific formulary
+
+search:
+  minConfidenceDirect: 0.95    # High confidence for NHS
+  minConfidenceSuggest: 0.80   # Conservative suggestions
+  fuzzy:
+    trigramThreshold: 0.40     # Stricter fuzzy matching
+    maxResults: 8              # Limited results for clinical use
+    enablePhonetic: true
+    enableEditDistance: true
+  caching:
+    enabled: true
+    ttl: 900                   # 15 minutes for clinical data
+    maxSize: 5000
+  rateLimit:
+    search: 30                 # Higher limit for clinical staff
+    validate: 15
+
+ui:
+  disableAsNeeded: true        # NHS prefers scheduled dosing
+  preloadAllFieldsInPopup: true
+  showProvenance: true         # Important for clinical audit
+  enterpriseMode: true
+  maxSearchResults: 8
+  enableAutoComplete: true
+  showConfidenceScores: true   # Helpful for clinicians
+
+validation:
+  requireServerConfirmation: true
+  allowCustomDose: true        # With prescriber oversight
+  allowCustomFrequency: true
+  requireExplicitAckForCustom: true
+  strictMode: true
+  enableSafetyRules: true
+  maxDoseMultiplier: 1.5       # Conservative for safety
+  duplicatePreventionEnabled: true
+
+security:
+  redactPiiInLogs: true
+  auditAllActions: true        # NHS audit requirements
+  encryptSensitiveData: true
+  requireMfa: true             # NHS security standards
+  sessionTimeout: 1800         # 30 minutes
+  maxLoginAttempts: 3
+  passwordPolicy:
+    minLength: 14              # NHS password policy
+    requireUppercase: true
+    requireLowercase: true
+    requireNumbers: true
+    requireSpecialChars: true
+
+clinical:
+  enableInteractionChecking: true
+  enableAllergyChecking: true
+  enableDuplicateTherapyChecking: true
+  enableDoseRangeChecking: true
+  enableContraindicationChecking: true
+  defaultUnits:
+    weight: 'kg'
+    volume: 'ml'
+    mass: 'mg'
+
+integrations:
+  fhir:
+    enabled: true
+    version: 'R4'
+    endpoint: '${NHS_FHIR_ENDPOINT}'
+  hl7:
+    enabled: true
+    version: '2.5'
+  emr:
+    enabled: true
+    type: 'epic'              # Common in UK NHS
+    endpoint: '${EMR_ENDPOINT}'
+
+monitoring:
+  metrics:
+    enabled: true
+    interval: 30              # Frequent monitoring for clinical
+    retention: 90
+  logging:
+    level: 'info'
+    retention: 365            # NHS retention requirements
+    structured: true
+  alerts:
+    enabled: true
+    channels: ['email', 'webhook', 'pager']
+    thresholds:
+      errorRate: 0.01         # Very low tolerance
+      responseTime: 2000      # Fast response for clinical
+      availability: 0.999     # High availability requirement

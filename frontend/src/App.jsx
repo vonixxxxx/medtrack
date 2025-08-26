@@ -1,13 +1,16 @@
+import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import LoginPage from './pages/LoginPage';
-import SignUpPage from './pages/SignUpPage';
+import MultiStepSignUpPage from './pages/MultiStepSignUpPage';
 import Dashboard from './pages/Dashboard';
+import ComprehensiveDemographicsPage from './pages/ComprehensiveDemographicsPage';
 import SettingsPage from './pages/SettingsPage';
 import MedHistoryPage from './pages/MedHistoryPage';
 import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import ResetPasswordPage from './pages/ResetPasswordPage';
 import AddMedication from './pages/AddMedication';
 import AddMetric from './pages/AddMetric';
+import PatientInfoPage from './pages/PatientInfoPage';
 
 const PrivateRoute = ({ children }) => {
   const token = localStorage.getItem('token');
@@ -19,7 +22,7 @@ export default function App() {
     <Routes>
       {/* Public routes */}
       <Route path="/login" element={<LoginPage />} />
-      <Route path="/signup" element={<SignUpPage />} />
+      <Route path="/signup" element={<MultiStepSignUpPage />} />
       <Route path="/forgot-password" element={<ForgotPasswordPage />} />
       <Route path="/reset-password" element={<ResetPasswordPage />} />
       
@@ -28,7 +31,7 @@ export default function App() {
         path="/"
         element={
           <PrivateRoute>
-            <Navigate to="/dashboard" />
+            <Dashboard />
           </PrivateRoute>
         }
       />
@@ -37,6 +40,14 @@ export default function App() {
         element={
           <PrivateRoute>
             <Dashboard />
+          </PrivateRoute>
+        }
+      />
+      <Route
+        path="/demographics"
+        element={
+          <PrivateRoute>
+            <ComprehensiveDemographicsPage />
           </PrivateRoute>
         }
       />
@@ -69,6 +80,14 @@ export default function App() {
         element={
           <PrivateRoute>
             <AddMetric />
+          </PrivateRoute>
+        }
+      />
+      <Route
+        path="/patient-info"
+        element={
+          <PrivateRoute>
+            <PatientInfoPage />
           </PrivateRoute>
         }
       />

@@ -1,178 +1,245 @@
-# 🏥 MedTrack - Medication Tracking App
+# 💊 Drug Information Search System
 
-A full-stack Node.js + React application for tracking medications, metrics, and health data.
+A complete full-stack application that provides drug information by searching the OpenFDA database. Built with **FastAPI** backend and **React** frontend.
+
+## 🚀 Features
+
+- **FastAPI Backend**: Modern, fast Python web framework with OpenFDA integration
+- **React Frontend**: Clean, responsive UI with real-time search
+- **OpenFDA Integration**: Access to comprehensive FDA drug database
+- **Real-time Search**: Instant results with loading states and error handling
+- **Professional UI**: Beautiful gradient design with smooth animations
+- **Mobile Responsive**: Works perfectly on all devices
+
+## 🏗️ Architecture
+
+```
+drug-info-system/
+├── backend_fastapi/          # FastAPI backend server
+│   ├── main.py              # Main FastAPI application
+│   ├── requirements.txt     # Python dependencies
+│   ├── Dockerfile          # Docker containerization
+│   └── README.md           # Backend documentation
+├── frontend_fastapi/         # React frontend application
+│   ├── src/
+│   │   ├── App.jsx         # Main React component
+│   │   ├── App.css         # Application styles
+│   │   └── main.jsx        # React entry point
+│   ├── package.json        # Node.js dependencies
+│   ├── vite.config.js      # Vite configuration
+│   └── README.md           # Frontend documentation
+└── README.md               # This file
+```
+
+## 🛠️ Technology Stack
+
+### Backend
+- **FastAPI**: Modern Python web framework
+- **HTTPX**: Async HTTP client for OpenFDA API calls
+- **Uvicorn**: ASGI server for running FastAPI
+- **Python 3.8+**: Modern Python with type hints
+
+### Frontend
+- **React 18**: Modern React with hooks
+- **Vite**: Fast build tool and dev server
+- **CSS3**: Modern styling with animations
+- **Fetch API**: Native browser HTTP client
+
+## 📋 Prerequisites
+
+- **Python 3.8+** and pip
+- **Node.js 16+** and npm
+- **Git** for cloning the repository
 
 ## 🚀 Quick Start
 
-### Prerequisites
-- Node.js 18+ 
-- npm or yarn
-- Git
+### 1. Clone and Setup
 
-### Local Development
 ```bash
 # Clone the repository
-git clone <your-repo-url>
-cd medtrack
+git clone <repository-url>
+cd drug-info-system
 
-# Install backend dependencies
-cd backend
+# Or if you're creating from scratch, the files are already created
+```
+
+### 2. Start the Backend
+
+```bash
+# Navigate to backend directory
+cd backend_fastapi
+
+# Create virtual environment (recommended)
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Start the server
+python main.py
+```
+
+**Backend will be running at**: http://localhost:8000
+
+### 3. Start the Frontend
+
+```bash
+# Open a new terminal and navigate to frontend directory
+cd frontend_fastapi
+
+# Install dependencies
 npm install
 
-# Install frontend dependencies
-cd ../frontend
-npm install
-
-# Start backend (in backend directory)
-npm run dev
-
-# Start frontend (in frontend directory, new terminal)
+# Start the development server
 npm run dev
 ```
 
-## 🌐 Deployment to Render.com
+**Frontend will be running at**: http://localhost:3000
 
-### Step 1: Deploy Backend
+### 4. Test the Application
 
-1. Go to [render.com](https://render.com) and sign up
-2. Click "New +" → "Web Service"
-3. Connect your GitHub repository
-4. Configure the service:
-   - **Name**: `medtrack-backend`
-   - **Environment**: `Node`
-   - **Build Command**: `npm install`
-   - **Start Command**: `npm start`
-   - **Port**: `8000`
+1. Open http://localhost:3000 in your browser
+2. Enter a drug name (e.g., "aspirin", "ibuprofen")
+3. Click Search to see drug information
+4. View comprehensive details including warnings and usage
 
-5. Add Environment Variables:
-   ```
-   PORT=8000
-   FRONTEND_URL=https://your-frontend-url.onrender.com
-   JWT_SECRET=your-secret-key-here
-   ```
+## 🔍 API Endpoints
 
-6. Click "Create Web Service"
+### Backend API (FastAPI)
 
-### Step 2: Deploy Frontend
+- **GET** `/` - Welcome message
+- **GET** `/drug/{name}` - Search for drug information
+- **GET** `/health` - Health check
 
-1. In Render, click "New +" → "Static Site"
-2. Configure the site:
-   - **Name**: `medtrack-frontend`
-   - **Build Command**: `npm run build`
-   - **Publish Directory**: `dist`
+### API Documentation
 
-3. Add Environment Variables:
-   ```
-   VITE_API_URL=https://your-backend-url.onrender.com/api
-   ```
+Once the backend is running, visit:
+- **Interactive Docs**: http://localhost:8000/docs
+- **ReDoc**: http://localhost:8000/redoc
 
-4. Click "Create Static Site"
+## 📱 Frontend Features
 
-### Step 3: Update Configuration
+- **Search Interface**: Clean search form with validation
+- **Loading States**: Animated spinner during API calls
+- **Error Handling**: User-friendly error messages
+- **Responsive Design**: Works on desktop and mobile
+- **Modern UI**: Gradient backgrounds and smooth animations
 
-After both services are deployed, update the frontend environment variable with your actual backend URL.
+## 🧪 Testing Examples
 
-## 📁 Project Structure
+### Test the Backend API
 
-```
-medtrack/
-├── backend/                 # Node.js API server
-│   ├── src/
-│   │   ├── controllers/    # API logic
-│   │   ├── middleware/     # Auth & security
-│   │   ├── routes/         # API endpoints
-│   │   └── index.js        # Server entry point
-│   ├── prisma/             # Database schema & migrations
-│   └── package.json
-├── frontend/               # React application
-│   ├── src/
-│   │   ├── components/     # Reusable UI components
-│   │   ├── pages/          # Application pages
-│   │   └── api.js          # API configuration
-│   └── package.json
-└── README.md
-```
-
-## 🔧 Features
-
-- **User Authentication**: JWT-based login/signup
-- **Medication Management**: Track medications and cycles
-- **Health Metrics**: Log and visualize health data
-- **Reminders**: Automated medication reminders
-- **Responsive Design**: Mobile-first UI with Tailwind CSS
-- **Real-time Updates**: Live data synchronization
-
-## 🛠️ Tech Stack
-
-### Backend
-- **Node.js** + **Express.js**
-- **Prisma** ORM with **SQLite**
-- **JWT** authentication
-- **bcrypt** password hashing
-- **CORS** enabled
-
-### Frontend
-- **React 18** with **Vite**
-- **Tailwind CSS** for styling
-- **React Query** for data fetching
-- **React Router** for navigation
-- **Recharts** for data visualization
-
-## 🔒 Security Features
-
-- Rate limiting on API endpoints
-- Helmet.js security headers
-- Input validation with Joi
-- Secure password hashing
-- CORS configuration
-
-## 📊 API Endpoints
-
-- `POST /api/auth/login` - User login
-- `POST /api/auth/signup` - User registration
-- `GET /api/cycles` - Get medication cycles
-- `GET /api/metrics/logs` - Get health metrics
-- `POST /api/medications` - Create medication
-- `GET /api/reminders` - Get reminders
-
-## 🚨 Environment Variables
-
-### Backend (.env)
 ```bash
-PORT=8000
-JWT_SECRET=your-secret-key
-FRONTEND_URL=http://localhost:3000
+# Health check
+curl http://localhost:8000/health
+
+# Search for aspirin
+curl http://localhost:8000/drug/aspirin
+
+# Search for ibuprofen
+curl http://localhost:8000/drug/ibuprofen
 ```
 
-### Frontend (.env)
+### Test the Frontend
+
+1. Open http://localhost:3000
+2. Try searching for common drugs:
+   - `aspirin`
+   - `ibuprofen`
+   - `acetaminophen`
+   - `metformin`
+
+## 🐳 Docker Support
+
+### Backend with Docker
+
 ```bash
-VITE_API_URL=http://localhost:8000/api
+cd backend_fastapi
+
+# Build the image
+docker build -t drug-api .
+
+# Run the container
+docker run -p 8000:8000 drug-api
 ```
 
-## 📱 Usage
+## 🔧 Development
 
-1. **Sign Up**: Create a new account
-2. **Add Medications**: Create medication cycles with dosages
-3. **Log Metrics**: Track health measurements
-4. **View Dashboard**: Monitor medications and metrics
-5. **Set Reminders**: Configure medication reminders
+### Backend Development
 
-## 🤝 Contributing
+```bash
+cd backend_fastapi
 
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Test thoroughly
-5. Submit a pull request
+# Run with auto-reload
+uvicorn main:app --reload --host 0.0.0.0 --port 8000
+```
+
+### Frontend Development
+
+```bash
+cd frontend_fastapi
+
+# Start dev server with hot reload
+npm run dev
+
+# Build for production
+npm run build
+
+# Preview production build
+npm run preview
+```
+
+## 📚 Learning Resources
+
+This project demonstrates:
+
+- **FastAPI**: Modern Python web framework
+- **React Hooks**: State management with useState
+- **Async Operations**: Handling API calls with async/await
+- **Error Handling**: Graceful error handling in both backend and frontend
+- **Modern CSS**: Flexbox, Grid, and animations
+- **API Integration**: External API integration with proper error handling
+- **Responsive Design**: Mobile-first approach
+
+## 🚨 Troubleshooting
+
+### Common Issues
+
+1. **Backend not starting**: Check if port 8000 is available
+2. **Frontend not starting**: Check if port 3000 is available
+3. **CORS errors**: Ensure backend is running and CORS is configured
+4. **API errors**: Check OpenFDA API status and internet connection
+
+### Port Conflicts
+
+If ports are busy, you can change them:
+
+**Backend**: Modify `main.py` or use uvicorn with different port
+**Frontend**: Modify `vite.config.js` port setting
 
 ## 📄 License
 
-MIT License - see LICENSE file for details
+This project is open source and available under the MIT License.
 
-## 🆘 Support
+## 🤝 Contributing
 
-For issues and questions, please open a GitHub issue or contact the development team.
+Contributions are welcome! Please feel free to:
+- Report bugs
+- Suggest new features
+- Submit pull requests
+- Improve documentation
+
+## 📞 Support
+
+If you encounter any issues:
+1. Check the troubleshooting section
+2. Review the individual README files in each directory
+3. Check the API documentation at http://localhost:8000/docs
+4. Ensure both backend and frontend are running
 
 ---
 
-**MedTrack** - Your health, tracked simply. 🏥✨
+**Happy coding! 🎉**
+
+This project provides a complete example of building a modern full-stack application with FastAPI and React, perfect for learning and extending.

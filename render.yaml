@@ -9,6 +9,12 @@ services:
         value: 8000
       - key: NODE_ENV
         value: production
+      - key: JWT_SECRET
+        value: your-super-secure-secret-key-at-least-256-bits-long
+      - key: DATABASE_URL
+        value: your-postgresql-connection-string-here
+      - key: CORS_ORIGIN
+        value: https://medtrack-frontend.onrender.com
 
   - type: web
     name: medtrack-frontend

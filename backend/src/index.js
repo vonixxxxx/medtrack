@@ -10,10 +10,12 @@ dotenv.config();
 
 // Import routes
 const authRoutes = require('./routes/auth');
+const registrationRoutes = require('./routes/registration');
 const medicationRoutes = require('./routes/medications');
 const cycleRoutes = require('./routes/cycles');
 const reminderRoutes = require('./routes/reminders');
 const metricRoutes = require('./routes/metrics');
+const screeningRoutes = require('./routes/screening');
 
 // Import security middleware
 const { generalLimiter, authLimiter, passwordResetLimiter, helmetConfig } = require('./middleware/security');
@@ -25,7 +27,7 @@ const prisma = new PrismaClient();
 app.use(helmetConfig);
 
 // REPLACE lines 27-33 with enhanced CORS logic
-const allowedOrigins = (process.env.CORS_ORIGIN || 'http://localhost:3000')
+const allowedOrigins = (process.env.CORS_ORIGIN || 'http://localhost:3000,http://localhost:3001,http://localhost:3002,http://localhost:3003,http://localhost:3004,http://localhost:3005')
   .split(',')
   .map((o) => o.trim());
 
@@ -94,11 +96,14 @@ app.use('/api/auth/reset-password', passwordResetLimiter);
 
 // Protected API routes
 app.use('/api/auth', authRoutes);
+app.use('/api/registration', registrationRoutes);
 app.use('/api/medications', medicationRoutes);
+app.use('/api/meds', medicationRoutes); // New medication validation endpoints
 app.use('/api/cycles', cycleRoutes);
 app.use('/api/upcoming', cycleRoutes); // convenience endpoint
 app.use('/api/reminders', reminderRoutes);
 app.use('/api/metrics', metricRoutes);
+app.use('/api/screening', screeningRoutes);
 
 // Global error handler
 app.use((err, _req, res, _next) => {
@@ -107,7 +112,7 @@ app.use((err, _req, res, _next) => {
 });
 
 const PORT = process.env.PORT || 8000;
-app.listen(PORT, () => {
+app.listen(PORT, '0.0.0.0', () => {
   console.log(`Server running on port ${PORT}`);
 });
 

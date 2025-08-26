@@ -103,3 +103,45 @@ Thumbs.db
 *.db-journal
 prisma/dev.db
 prisma/dev.db-journal
+# Virtual environments
+backend_fastapi/venv/
+frontend_fastapi/
+**/venv/
+**/__pycache__/
+**/*.pyc
+**/*.pyo
+
+# Database files
+**/*.db
+**/*.sqlite
+**/*.sqlite3
+
+# Log files
+**/*.log
+**/logs/
+
+# Node modules and build files
+**/node_modules/
+**/dist/
+**/build/
+
+# Environment files (keep templates)
+**/.env
+reset HEAD backend_fastapi/venv/ frontend_fastapi/*/.env.template
+reset HEAD backend_fastapi/venv/ frontend_fastapi/*/env.template
+
+# IDE files
+**/.vscode/
+**/.idea/
+**/*.swp
+**/*.swo
+
+# Coverage and test artifacts
+**/coverage/
+**/test-results/
+**/junit.xml
+
+# Temporary files
+**/tmp/
+**/temp/
+**/*.tmp

@@ -1,0 +1,302 @@
+// Hospital-Grade Medication Knowledge Engine
+// Canonical Schema with Full Provenance Tracking
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql" // Production-grade database
+  url      = env("DATABASE_URL")
+}
+
+// Core User Management
+model User {
+  id                   String                @id @default(uuid())
+  email                String                @unique
+  password             String
+  name                 String?
+  role                 UserRole              @default(USER)
+  hospitalId           String?               @map("hospital_id")
+  permissions          Json                  @default("{}")
+  isActive             Boolean               @default(true) @map("is_active")
+  createdAt            DateTime              @default(now()) @map("created_at")
+  updatedAt            DateTime              @updatedAt @map("updated_at")
+  
+  // Relations
+  hospital             Hospital?             @relation(fields: [hospitalId], references: [id])
+  medicationCycles     UserMedicationCycle[]
+  auditLogs           AuditLog[]
+
+  @@map("users")
+}
+
+enum UserRole {
+  USER
+  CLINICIAN
+  PHARMACIST
+  ADMIN
+  SUPER_ADMIN
+}
+
+model Hospital {
+  id               String   @id @default(uuid())
+  name             String
+  country          String   @default("UK")
+  region           String?
+  formularyConfig  Json     @default("{}") @map("formulary_config")
+  sourceConfig     Json     @default("{}") @map("source_config")
+  isActive         Boolean  @default(true) @map("is_active")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+  
+  // Relations
+  users            User[]
+  
+  @@map("hospitals")
+}
+
+// ============================================================================
+// CANONICAL MEDICATION KNOWLEDGE BASE
+// ============================================================================
+
+// Canonical medication (ingredient-level)
+model Medication {
+  id            String                @id @default(uuid())
+  genericName   String                @unique @map("generic_name")
+  atcCode       String?               @map("atc_code")          // e.g., A10BJ02
+  classHuman    String?               @map("class_human")       // e.g., "GLP-1 receptor agonist"
+  synonyms      String[]              @default([])              // lowercased variants, acronyms
+  sourceRefs    Json                  @map("source_refs")       // {"dmd":["VMP:..."],"rxnorm":["RxCUI:..."], ...}
+  isActive      Boolean               @default(true) @map("is_active")
+  datasetVersion String               @map("dataset_version")   // versioning for updates
+  createdAt     DateTime              @default(now()) @map("created_at")
+  updatedAt     DateTime              @updatedAt @map("updated_at")
+  
+  // Search optimization
+  searchTokens  String[]              @default([]) @map("search_tokens")
+  metaphoneKey  String?               @map("metaphone_key")
+  trigramTokens String[]              @default([]) @map("trigram_tokens")
+  
+  // Relations
+  products      Product[]
+  userCycles    UserMedicationCycle[]
+  
+  @@index([genericName])
+  @@index([searchTokens])
+  @@index([metaphoneKey])
+  @@map("medications")
+}
+
+// Brand/formulation (SKU-level)
+model Product {
+  id               String                @id @default(uuid())
+  medicationId     String                @map("medication_id")
+  brandName        String?               @map("brand_name")        // may be null for generic-only
+  route            String                                          // "oral","subcutaneous","inhalation","topical","ophthalmic","IV",...
+  doseForm         String                @map("dose_form")         // "tablet","capsule","injection-pen","solution","patch","inhaler","drops","gel",...
+  intakeType       String                @map("intake_type")       // canonical UI label: "Pill/Tablet","Injection","Inhaler", ...
+  defaultPlaces    String[]              @default([]) @map("default_places")  // ["at home","at clinic","hospital administration",...]
+  allowedFrequencies String[]            @default([]) @map("allowed_frequencies")
+  isActive         Boolean               @default(true) @map("is_active")
+  provenance       Json                  @map("provenance")        // source record ids & version
+  notes            String?
+  datasetVersion   String                @map("dataset_version")
+  createdAt        DateTime              @default(now()) @map("created_at")
+  updatedAt        DateTime              @updatedAt @map("updated_at")
+  
+  // Relations
+  medication       Medication            @relation(fields: [medicationId], references: [id], onDelete: Cascade)
+  strengths        ProductStrength[]
+  rules            ProductRule[]
+  userCycles       UserMedicationCycle[]
+  
+  @@index([medicationId])
+  @@index([brandName])
+  @@index([route, doseForm])
+  @@map("products")
+}
+
+// Strengths/posology tied to a product
+model ProductStrength {
+  id           String   @id @default(uuid())
+  productId    String   @map("product_id")
+  value        Decimal  @db.Decimal(12,4)
+  unit         String                              // "mg","mcg","mg/mL","IU","puffs","drops"
+  per          String?                             // optional per-dose/volume qualifier
+  frequency    String
+  label        String?
+  isActive     Boolean  @default(true) @map("is_active")
+  provenance   Json                                // source record tracking
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+  
+  // Relations
+  product      Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  
+  @@index([productId])
+  @@index([value, unit])
+  @@map("product_strengths")
+}
+
+// Safety / posology rules
+model ProductRule {
+  id                String   @id @default(uuid())
+  productId         String   @map("product_id")
+  maxDosePerPeriod  String?  @map("max_dose_per_period")  // "2 mg/week", "4 puffs/6h", etc.
+  minDosePerPeriod  String?  @map("min_dose_per_period")
+  ageFlags          Json?    @map("age_flags")            // pediatric/geriatric notes
+  renalFlags        Json?    @map("renal_flags")          // eGFR thresholds
+  hepaticFlags      Json?    @map("hepatic_flags")
+  pregnancyFlags    Json?    @map("pregnancy_flags")
+  interactions      Json?
+  isBlacklisted     Boolean  @default(false) @map("is_blacklisted")
+  version           Int      @default(1)
+  provenance        Json
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+  
+  // Relations
+  product           Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  
+  @@index([productId])
+  @@map("product_rules")
+}
+
+// ============================================================================
+// USER MEDICATION TRACKING
+// ============================================================================
+
+model UserMedicationCycle {
+  id            String       @id @default(uuid())
+  userId        String       @map("user_id")
+  medicationId  String       @map("medication_id")
+  productId     String       @map("product_id")
+  strengthValue Decimal      @map("strength_value") @db.Decimal(12,4)
+  strengthUnit  String       @map("strength_unit")
+  frequency     String
+  intakeType    String       @map("intake_type")
+  intakePlace   String       @map("intake_place")
+  startDate     DateTime     @map("start_date")
+  endDate       DateTime?    @map("end_date")
+  customFlags   Json         @default("{}") @map("custom_flags")  // tracks custom overrides
+  notes         String?
+  isActive      Boolean      @default(true) @map("is_active")
+  
+  // Audit and compliance
+  datasetVersion String      @map("dataset_version")              // data version when created
+  ruleVersion   Int          @default(1) @map("rule_version")     // rule version applied
+  provenance    Json                                              // source tracking
+  prescriberId  String?      @map("prescriber_id")               // prescribing clinician
+  
+  createdAt     DateTime     @default(now()) @map("created_at")
+  updatedAt     DateTime     @updatedAt @map("updated_at")
+  
+  // Relations
+  user          User         @relation(fields: [userId], references: [id])
+  medication    Medication   @relation(fields: [medicationId], references: [id])
+  product       Product      @relation(fields: [productId], references: [id])
+  
+  @@index([userId])
+  @@index([medicationId])
+  @@index([productId])
+  @@index([startDate, endDate])
+  @@map("user_medication_cycles")
+}
+
+// ============================================================================
+// DATA SOURCE MANAGEMENT
+// ============================================================================
+
+model DataSource {
+  id          String   @id @default(uuid())
+  name        String   @unique                   // "dmd", "bnf", "rxnorm", "dailymed", etc.
+  displayName String   @map("display_name")      // "UK dm+d"
+  country     String?
+  version     String
+  isEnabled   Boolean  @default(true) @map("is_enabled")
+  priority    Int      @default(100)             // lower = higher priority
+  config      Json     @default("{}")
+  lastSync    DateTime? @map("last_sync")
+  syncStatus  String   @default("pending") @map("sync_status")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  
+  @@index([priority])
+  @@map("data_sources")
+}
+
+model ETLJob {
+  id          String   @id @default(uuid())
+  sourceName  String   @map("source_name")
+  jobType     String   @map("job_type")         // "full_sync", "incremental", "validation"
+  status      String   @default("pending")     // "pending", "running", "completed", "failed"
+  startedAt   DateTime? @map("started_at")
+  completedAt DateTime? @map("completed_at")
+  recordsProcessed Int? @map("records_processed")
+  recordsSkipped   Int? @map("records_skipped")
+  errors      Json?
+  metadata    Json     @default("{}")
+  createdAt   DateTime @default(now()) @map("created_at")
+  
+  @@index([sourceName])
+  @@index([status])
+  @@map("etl_jobs")
+}
+
+// ============================================================================
+// AUDIT AND COMPLIANCE
+// ============================================================================
+
+model AuditLog {
+  id            String   @id @default(uuid())
+  userId        String?  @map("user_id")
+  action        String                            // "search", "validate", "create_cycle", etc.
+  entityType    String   @map("entity_type")      // "medication", "cycle", etc.
+  entityId      String?  @map("entity_id")
+  details       Json                              // action-specific data (redacted)
+  ipAddress     String?  @map("ip_address")
+  userAgent     String?  @map("user_agent")
+  sessionId     String?  @map("session_id")
+  timestamp     DateTime @default(now())
+  
+  // Relations
+  user          User?    @relation(fields: [userId], references: [id])
+  
+  @@index([userId])
+  @@index([action])
+  @@index([timestamp])
+  @@map("audit_logs")
+}
+
+// ============================================================================
+// SYSTEM CONFIGURATION
+// ============================================================================
+
+model SystemConfig {
+  id        String   @id @default(uuid())
+  key       String   @unique
+  value     Json
+  category  String   @default("general")
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  
+  @@index([category])
+  @@map("system_config")
+}
+
+// Search performance optimization
+model SearchIndex {
+  id           String   @id @default(uuid())
+  term         String   @unique
+  medicationIds String[] @map("medication_ids")
+  tokenType    String   @map("token_type")     // "exact", "metaphone", "trigram", "synonym"
+  frequency    Int      @default(1)           // search frequency for ranking
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+  
+  @@index([term])
+  @@index([tokenType])
+  @@map("search_indexes")
+}

@@ -1,14 +1,21 @@
 const express = require('express');
 const router = express.Router();
-const auth = require('../middleware/authMiddleware');
-const medController = require('../controllers/medicationController');
+const medicationController = require('../controllers/medicationController');
+const { authenticateToken } = require('../middleware/authMiddleware');
 
-router.use(auth);
+// Public routes (for search)
+router.get('/search', medicationController.searchMedications);
+router.get('/product/:productId/options', medicationController.getProductOptions);
 
-router.get('/', medController.getAll);
-router.post('/', medController.create);
-router.put('/:id', medController.update);
-router.delete('/:id', medController.remove);
-router.post('/:id/logs', medController.addLog);
+// Protected routes (require authentication)
+router.use(authenticateToken);
+router.post('/validate', medicationController.validateMedication);
+router.post('/cycles', medicationController.createMedicationCycle);
+router.get('/cycles', medicationController.getUserMedicationCycles);
+router.put('/cycles/:cycleId', medicationController.updateMedicationCycle);
+router.delete('/cycles/:cycleId', medicationController.deleteMedicationCycle);
+
+// Optional Ollama integration
+router.post('/ollama/suggest', medicationController.getOllamaSuggestions);
 
 module.exports = router;

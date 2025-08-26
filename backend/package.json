@@ -5,16 +5,29 @@
   "main": "src/index.js",
   "type": "commonjs",
   "scripts": {
-    "dev": "nodemon src/index.js",
     "start": "node src/index.js",
-    "prisma": "prisma",
-    "seed": "node scripts/seed.js"
+    "dev": "nodemon src/index.js",
+    "test": "jest",
+    "test:unit": "jest --testPathPattern=unit",
+    "test:integration": "jest --testPathPattern=integration",
+    "test:e2e": "playwright test",
+    "test:coverage": "jest --coverage",
+    "test:hospital-grade": "node scripts/run-hospital-grade-tests.js",
+    "seed": "node prisma/seed.js",
+    "seed:nhs": "node scripts/seedNHSData.js",
+    "test:nhs": "node scripts/testNHSSystem.js",
+    "db:migrate": "prisma migrate dev",
+    "db:generate": "prisma generate",
+    "db:studio": "prisma studio"
   },
   "keywords": [],
   "license": "MIT",
   "dependencies": {
+    "@huggingface/inference": "^4.7.1",
     "@prisma/client": "^5.0.0",
+    "axios": "^1.6.0",
     "bcrypt": "^6.0.0",
+    "cheerio": "^1.1.2",
     "cors": "^2.8.5",
     "crypto": "^1.0.1",
     "date-fns": "^4.1.0",
@@ -25,13 +38,23 @@
     "joi": "^18.0.0",
     "json2csv": "^6.0.0-alpha.2",
     "jsonwebtoken": "^9.0.1",
+    "node-cache": "^5.1.2",
     "node-cron": "^3.0.2",
     "nodemailer": "^7.0.5",
+    "openai": "^5.15.0",
     "qrcode": "^1.5.4",
     "speakeasy": "^2.0.0"
   },
   "devDependencies": {
     "nodemon": "^3.0.2",
-    "prisma": "^5.0.0"
+    "prisma": "^5.0.0",
+    "jest": "^29.7.0",
+    "jest-junit": "^16.0.0",
+    "@playwright/test": "^1.40.0",
+    "supertest": "^6.3.0",
+    "babel-jest": "^29.7.0",
+    "@babel/core": "^7.23.0",
+    "@babel/preset-env": "^7.23.0",
+    "axe-core": "^4.8.0"
   }
 }

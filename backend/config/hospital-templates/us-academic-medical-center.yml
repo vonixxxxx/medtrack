@@ -1,0 +1,104 @@
+# US Academic Medical Center Configuration Template
+# Optimized for US healthcare systems with research focus
+
+medSources:
+  priority: ['rxnorm', 'dailymed', 'dmd', 'local']
+  enabled: ['rxnorm', 'dailymed', 'local']
+  region: 'US'
+  allowClassSearch: true
+  datasetVersion: 'us-2025-08'
+  weights:
+    rxnorm: 10      # Primary US source
+    dailymed: 9     # FDA structured labels
+    dmd: 7          # UK data for reference
+    local: 9        # Hospital formulary
+
+search:
+  minConfidenceDirect: 0.90    # Slightly lower for research
+  minConfidenceSuggest: 0.75
+  fuzzy:
+    trigramThreshold: 0.35
+    maxResults: 12             # More results for research
+    enablePhonetic: true
+    enableEditDistance: true
+  caching:
+    enabled: true
+    ttl: 600                   # 10 minutes
+    maxSize: 10000
+  rateLimit:
+    search: 25
+    validate: 12
+
+ui:
+  disableAsNeeded: false       # US allows PRN dosing
+  preloadAllFieldsInPopup: true
+  showProvenance: true
+  enterpriseMode: true
+  maxSearchResults: 12
+  enableAutoComplete: true
+  showConfidenceScores: true
+
+validation:
+  requireServerConfirmation: true
+  allowCustomDose: true
+  allowCustomFrequency: true
+  requireExplicitAckForCustom: true
+  strictMode: true
+  enableSafetyRules: true
+  maxDoseMultiplier: 2.0       # More flexible for research
+  duplicatePreventionEnabled: true
+
+security:
+  redactPiiInLogs: true
+  auditAllActions: true        # HIPAA compliance
+  encryptSensitiveData: true
+  requireMfa: true
+  sessionTimeout: 3600         # 1 hour
+  maxLoginAttempts: 5
+  passwordPolicy:
+    minLength: 12
+    requireUppercase: true
+    requireLowercase: true
+    requireNumbers: true
+    requireSpecialChars: true
+
+clinical:
+  enableInteractionChecking: true
+  enableAllergyChecking: true
+  enableDuplicateTherapyChecking: true
+  enableDoseRangeChecking: true
+  enableContraindicationChecking: true
+  defaultUnits:
+    weight: 'kg'
+    volume: 'mL'
+    mass: 'mg'
+
+integrations:
+  fhir:
+    enabled: true
+    version: 'R4'
+    endpoint: '${FHIR_ENDPOINT}'
+  hl7:
+    enabled: true
+    version: '2.7'             # Newer HL7 version
+  emr:
+    enabled: true
+    type: 'cerner'             # Common in US academic centers
+    endpoint: '${EMR_ENDPOINT}'
+
+monitoring:
+  metrics:
+    enabled: true
+    interval: 60
+    retention: 30
+  logging:
+    level: 'debug'             # More verbose for research
+    retention: 180
+    structured: true
+  alerts:
+    enabled: true
+    channels: ['email', 'slack', 'webhook']
+    thresholds:
+      errorRate: 0.02
+      responseTime: 3000
+      availability: 0.995

@@ -1,121 +1,186 @@
-datasource db {
-  provider = "sqlite"
-  url      = "file:./dev.db"
+generator client {
+  provider = "prisma-client-js"
 }
 
-generator client {
-  provider      = "prisma-client-js"
-  binaryTargets = ["native", "darwin-arm64"]
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
 }
 
 model User {
-  id               Int          @id @default(autoincrement())
-  email            String       @unique
-  password         String
-  name             String?
-  
-  // Password reset fields
-  resetToken       String?
-  resetTokenExpiry DateTime?
-  
-  // 2FA fields
-  is2FAEnabled     Boolean      @default(false)
-  twoFASecret      String?
-  
-  // Relations
-  medications      Medication[]
-  metrics          Metric[]
-  cycles           MedicationCycle[]
-  notifications    Notification[]
-  
-  @@map("users")
+  id                   String                @id @default(cuid())
+  email                String                @unique
+  password             String
+  name                 String?
+  createdAt            DateTime              @default(now())
+  updatedAt            DateTime              @updatedAt
+  medications          Medication[]
+  medicationCycles     MedicationCycle[]
+  medicationLogs       MedicationLog[]
+  metrics              Metric[]
+  notifications        Notification[]
+  screeningResults     ScreeningResult[]
+  userMedicationCycles UserMedicationCycle[]
 }
 
 model Medication {
-  id          Int             @id @default(autoincrement())
-  userId      Int
-  name        String
-  startDate   DateTime
-  endDate     DateTime
-  dosage      String
-  frequency   String
-  logs        MedicationLog[]
-  user        User            @relation(fields: [userId], references: [id])
+  id        String            @id @default(cuid())
+  name      String
+  dosage    String
+  frequency String
+  startDate DateTime
+  endDate   DateTime?
+  isActive  Boolean           @default(true)
+  userId    String
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
+  user      User              @relation(fields: [userId], references: [id])
+  cycles    MedicationCycle[]
+  logs      MedicationLog[]
 }
 
 model MedicationLog {
-  id           Int        @id @default(autoincrement())
-  medicationId Int
-  date         DateTime
-  dosage       String
+  id           String     @id @default(cuid())
+  medicationId String
+  takenAt      DateTime
+  notes        String?
+  createdAt    DateTime   @default(now())
+  userId       String
+  user         User       @relation(fields: [userId], references: [id])
   medication   Medication @relation(fields: [medicationId], references: [id])
 }
 
 model Metric {
-  id               Int      @id @default(autoincrement())
-  userId           Int
-  date             DateTime @default(now())
-  weight           Float
-  height           Float
-  bmi              Float
-  bloodPressure    String
-  hipCircumference Float?
-  user             User     @relation(fields: [userId], references: [id])
-}
-
-/// NEW V2 MODELS ------------------------------------
-
-model MedicationCycle {
-  id            Int          @id @default(autoincrement())
-  userId        Int
-  name          String
-  dosage        String
-  startDate     DateTime
-  endDate       DateTime?
-  frequencyDays Int         // e.g., 1 = daily, 7 = weekly
-  dosesPerDay   Int         @default(1)
-  metricsToMonitor String?  // JSON string of metrics and their frequencies
-
-  metricLogs    MetricLog[]
-  doseLogs      DoseLog[]
-  notifications Notification[]
-
-  user          User         @relation(fields: [userId], references: [id])
-}
-
-model MetricLog {
-  id        Int         @id @default(autoincrement())
-  cycleId   Int
-  date      DateTime     @default(now())
-  kind      String       // e.g., WEIGHT, BLOOD_PRESSURE
-  valueFloat Float?
-  valueText  String?
-  notes      String?
-
-  cycle     MedicationCycle @relation(fields: [cycleId], references: [id])
-}
-
-model DoseLog {
-  id        Int      @id @default(autoincrement())
-  cycleId   Int
-  date      DateTime
-  taken     Boolean @default(false)
-
-  cycle     MedicationCycle @relation(fields: [cycleId], references: [id])
-
-  @@unique([cycleId, date])
+  id        String   @id @default(cuid())
+  name      String   @default("")
+  value     Float    @default(0)
+  unit      String   @default("")
+  userId    String
+  date      DateTime @default(now())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id])
 }
 
 model Notification {
-  id        Int      @id @default(autoincrement())
-  userId    Int
-  cycleId   Int?
-  date      DateTime
+  id        String   @id @default(cuid())
+  type      String   @default("reminder")
+  title     String   @default("")
   message   String
-  sent      Boolean   @default(false)
-
-  user      User      @relation(fields: [userId], references: [id])
-  cycle     MedicationCycle? @relation(fields: [cycleId], references: [id])
+  userId    String
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id])
 }
 
-/// END V2 MODELS ------------------------------------
+model MedicationCycle {
+  id           String     @id @default(cuid())
+  medicationId String
+  startDate    DateTime
+  endDate      DateTime?
+  isActive     Boolean    @default(true)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  userId       String
+  user         User       @relation(fields: [userId], references: [id])
+  medication   Medication @relation(fields: [medicationId], references: [id])
+}
+
+model ScreeningResult {
+  id        String   @id @default(cuid())
+  type      String
+  score     Int
+  result    String
+  userId    String
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id])
+}
+
+model MedicationValidation {
+  id          String                @id @default(uuid())
+  genericName String                @unique @map("generic_name")
+  atcClass    String?               @map("atc_class")
+  classHuman  String?               @map("class_human")
+  synonyms    String                @default("[]")
+  createdAt   DateTime              @default(now()) @map("created_at")
+  updatedAt   DateTime              @updatedAt @map("updated_at")
+  products    MedicationProduct[]
+  userCycles  UserMedicationCycle[]
+
+  @@map("medications")
+}
+
+model MedicationProduct {
+  id                 String                     @id @default(uuid())
+  medicationId       String                     @map("medication_id")
+  brandName          String                     @map("brand_name")
+  route              String
+  form               String
+  allowedIntakeType  String                     @map("allowed_intake_type")
+  defaultPlaces      String                     @default("[]") @map("default_places")
+  allowedFrequencies String                     @default("[]") @map("allowed_frequencies")
+  isActive           Boolean                    @default(true) @map("is_active")
+  notes              String?
+  createdAt          DateTime                   @default(now()) @map("created_at")
+  updatedAt          DateTime                   @updatedAt @map("updated_at")
+  medication         MedicationValidation       @relation(fields: [medicationId], references: [id], onDelete: Cascade)
+  strengths          MedicationStrength[]
+  validationRules    MedicationValidationRule[]
+  userCycles         UserMedicationCycle[]
+
+  @@map("medication_products")
+}
+
+model MedicationStrength {
+  id            String            @id @default(uuid())
+  productId     String            @map("product_id")
+  strengthValue Float             @map("strength_value")
+  strengthUnit  String            @map("strength_unit")
+  frequency     String
+  label         String?
+  isActive      Boolean           @default(true) @map("is_active")
+  createdAt     DateTime          @default(now()) @map("created_at")
+  updatedAt     DateTime          @updatedAt @map("updated_at")
+  product       MedicationProduct @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@map("medication_strengths")
+}
+
+model MedicationValidationRule {
+  id                String            @id @default(uuid())
+  productId         String            @map("product_id")
+  maxDosePerPeriod  String?           @map("max_dose_per_period")
+  minDosePerPeriod  String?           @map("min_dose_per_period")
+  contraindications String?
+  warnings          String?
+  version           Int               @default(1)
+  createdAt         DateTime          @default(now()) @map("created_at")
+  updatedAt         DateTime          @updatedAt @map("updated_at")
+  product           MedicationProduct @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@map("medication_validation_rules")
+}
+
+model UserMedicationCycle {
+  id            String               @id @default(uuid())
+  userId        String               @map("user_id")
+  medicationId  String               @map("medication_id")
+  productId     String               @map("product_id")
+  strengthValue Float                @map("strength_value")
+  strengthUnit  String               @map("strength_unit")
+  frequency     String
+  intakeType    String               @map("intake_type")
+  intakePlace   String               @map("intake_place")
+  startDate     DateTime             @map("start_date")
+  endDate       DateTime?            @map("end_date")
+  customFlags   String               @default("{}") @map("custom_flags")
+  notes         String?
+  isActive      Boolean              @default(true) @map("is_active")
+  createdAt     DateTime             @default(now()) @map("created_at")
+  updatedAt     DateTime             @updatedAt @map("updated_at")
+  product       MedicationProduct    @relation(fields: [productId], references: [id])
+  medication    MedicationValidation @relation(fields: [medicationId], references: [id])
+  user          User                 @relation(fields: [userId], references: [id])
+
+  @@map("user_medication_cycles")
+}
