@@ -2,7 +2,12 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import api from '../../api';
 
-export const MedicalHistoryParser = () => {
+interface MedicalHistoryParserProps {
+  selectedPatientId?: string;
+  onConditionsAdded?: () => void;
+}
+
+export const MedicalHistoryParser = ({ selectedPatientId, onConditionsAdded }: MedicalHistoryParserProps) => {
   const [medicalNotes, setMedicalNotes] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [extractedConditions, setExtractedConditions] = useState<string[]>([]);
@@ -15,16 +20,22 @@ export const MedicalHistoryParser = () => {
       return;
     }
 
+    if (!selectedPatientId) {
+      setError('Please select a patient first');
+      return;
+    }
+
     setIsProcessing(true);
     setError('');
     setSuccess('');
 
     try {
       const { data } = await api.post('doctor/parse-history', {
-        medicalNotes: medicalNotes.trim()
+        patientId: selectedPatientId,
+        medicalHistory: medicalNotes.trim()
       });
 
-      setExtractedConditions(data.conditions);
+      setExtractedConditions(data.conditions.map((c: any) => c.normalized));
       setSuccess(`Successfully extracted ${data.conditions.length} conditions`);
     } catch (err: any) {
       setError(err.response?.data?.error || 'Failed to parse medical history');

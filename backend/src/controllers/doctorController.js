@@ -1,4 +1,7 @@
 const { calculateAdjustedHbA1c } = require('../services/hba1cService');
+const { PrismaClient } = require('@prisma/client');
+
+const prisma = new PrismaClient();
 
 // Get all patients assigned to the clinician's hospital
 exports.getPatients = async (req, res) => {
@@ -14,15 +17,25 @@ exports.getPatients = async (req, res) => {
     }
 
     // Get all patients with the same hospital code
-    const patients = await prisma.user.findMany({
+    const patients = await prisma.patient.findMany({
       where: {
-        role: 'patient',
-        hospitalCode: clinicianHospitalCode
+        user: {
+          hospitalCode: clinicianHospitalCode,
+          role: 'patient'
+        }
       },
       include: {
-        surveyData: true,
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            hospitalCode: true
+          }
+        },
+        conditions: true,
         metrics: {
-          orderBy: { date: 'desc' },
+          orderBy: { timestamp: 'desc' },
           take: 1
         }
       }
@@ -31,21 +44,23 @@ exports.getPatients = async (req, res) => {
     // Transform data for frontend - only include real data
     const transformedPatients = patients.map(patient => {
       const latestMetric = patient.metrics[0];
-      const surveyData = patient.surveyData;
       
       return {
         id: patient.id,
-        name: patient.name || `Patient ${patient.id}`,
-        age: surveyData?.dateOfBirth ? 
-          Math.floor((new Date() - new Date(surveyData.dateOfBirth)) / (365.25 * 24 * 60 * 60 * 1000)) : null,
-        sex: surveyData?.biologicalSex || null,
-        hba1cPercent: null, // Will be populated from actual HbA1c data when available
-        hba1cMmolMol: null, // Will be populated from actual HbA1c data when available
-        mes: null, // Will be calculated from actual medication data
-        conditions: [], // Will be populated from medical history
-        lastVisit: latestMetric?.date?.toISOString().split('T')[0] || null,
+        userId: patient.userId,
+        name: patient.user.name || `Patient ${patient.id}`,
+        email: patient.user.email,
+        age: patient.dob ? 
+          Math.floor((new Date() - new Date(patient.dob)) / (365.25 * 24 * 60 * 60 * 1000)) : null,
+        sex: patient.sex || null,
+        hba1cPercent: patient.hba1c_percent || null,
+        hba1cMmolMol: patient.hba1c_mmol || null,
+        mes: patient.mes || null,
+        conditions: patient.conditions.map(c => c.normalized),
+        lastVisit: latestMetric?.timestamp?.toISOString().split('T')[0] || null,
         changePercent: null, // Will be calculated from historical data
-        ethnicity: surveyData?.ethnicity || null
+        ethnicity: patient.ethnicity || null,
+        diabetesType: patient.diabetes_type || null
       };
     });
 
@@ -247,3 +262,92 @@ exports.exportPatients = async (req, res) => {
     res.status(500).json({ error: 'Failed to export patients' });
   }
 };
+
+// Parse medical history using AI
+exports.parseHistory = async (req, res) => {
+  try {
+    const { patientId, medicalHistory } = req.body;
+    
+    if (!patientId || !medicalHistory) {
+      return res.status(400).json({ error: 'Patient ID and medical history are required' });
+    }
+
+    // For now, implement a simple keyword-based parser
+    // In production, this would call BioGPT or Ollama
+    const conditions = extractConditionsFromText(medicalHistory);
+    
+    // Save conditions to database
+    const savedConditions = await Promise.all(
+      conditions.map(condition => 
+        prisma.condition.create({
+          data: {
+            patientId: patientId,
+            name: condition,
+            normalized: normalizeConditionName(condition)
+          }
+        })
+      )
+    );
+
+    res.json({
+      success: true,
+      conditions: savedConditions.map(c => ({
+        id: c.id,
+        name: c.name,
+        normalized: c.normalized
+      }))
+    });
+  } catch (err) {
+    console.error('Error parsing medical history:', err);
+    res.status(500).json({ error: 'Failed to parse medical history' });
+  }
+};
+
+// Helper function to extract conditions from text
+function extractConditionsFromText(text) {
+  const conditionKeywords = [
+    'diabetes', 'type 1 diabetes', 'type 2 diabetes', 't1dm', 't2dm',
+    'hypertension', 'high blood pressure', 'htn',
+    'dyslipidemia', 'high cholesterol', 'hyperlipidemia',
+    'obesity', 'overweight', 'bmi',
+    'asthma', 'copd', 'chronic obstructive pulmonary disease',
+    'heart disease', 'coronary artery disease', 'cad',
+    'stroke', 'cerebrovascular accident', 'cva',
+    'depression', 'anxiety', 'mental health',
+    'arthritis', 'rheumatoid arthritis', 'osteoarthritis',
+    'kidney disease', 'chronic kidney disease', 'ckd',
+    'liver disease', 'hepatitis', 'cirrhosis'
+  ];
+
+  const foundConditions = [];
+  const lowerText = text.toLowerCase();
+  
+  conditionKeywords.forEach(keyword => {
+    if (lowerText.includes(keyword)) {
+      foundConditions.push(keyword);
+    }
+  });
+
+  return [...new Set(foundConditions)]; // Remove duplicates
+}
+
+// Helper function to normalize condition names
+function normalizeConditionName(condition) {
+  const normalizations = {
+    't1dm': 'Type 1 Diabetes Mellitus',
+    't2dm': 'Type 2 Diabetes Mellitus',
+    'diabetes': 'Diabetes Mellitus',
+    'htn': 'Hypertension',
+    'high blood pressure': 'Hypertension',
+    'high cholesterol': 'Dyslipidemia',
+    'hyperlipidemia': 'Dyslipidemia',
+    'bmi': 'Obesity',
+    'overweight': 'Obesity',
+    'copd': 'Chronic Obstructive Pulmonary Disease',
+    'cad': 'Coronary Artery Disease',
+    'cva': 'Cerebrovascular Accident',
+    'ckd': 'Chronic Kidney Disease'
+  };
+
+  return normalizations[condition.toLowerCase()] || condition;
+}
