@@ -65,9 +65,9 @@ app.post('/api/auth/signup', async (req, res) => {
     });
 
     // Create patient profile if role is patient
-    if (role === 'patient' && patientData) {
+    if (role === 'patient') {
       // Remove name from patientData since it goes in User
-      const { name, ...patientFields } = patientData;
+      const { name, ...patientFields } = patientData || {};
       
       // Convert date strings to Date objects
       if (patientFields.dob) {
@@ -91,6 +91,7 @@ app.post('/api/auth/signup', async (req, res) => {
           ...patientFields
         }
       });
+      console.log('Patient created with ID:', patient.id, 'for user:', user.email);
     }
 
     // Create clinician profile if role is clinician
@@ -165,7 +166,26 @@ app.post('/api/auth/login', async (req, res) => {
 // Get patients for clinician
 app.get('/api/doctor/patients', async (req, res) => {
   try {
+    // For demo purposes, get the most recent clinician's hospital code
+    // In a real app, you'd get this from the JWT token
+    const clinician = await prisma.clinician.findFirst({
+      orderBy: { createdAt: 'desc' }
+    });
+    
+    if (!clinician) {
+      return res.json([]);
+    }
+    
+    const clinicianHospitalCode = clinician.hospitalCode;
+    console.log('Clinician hospital code:', clinicianHospitalCode);
+    
     const patients = await prisma.patient.findMany({
+      where: {
+        user: {
+          hospitalCode: clinicianHospitalCode,
+          role: 'patient'
+        }
+      },
       include: {
         user: {
           select: {
@@ -178,6 +198,13 @@ app.get('/api/doctor/patients', async (req, res) => {
         conditions: true
       }
     });
+    
+    console.log(`Found ${patients.length} patients for hospital code ${clinicianHospitalCode}`);
+    
+    // Debug: Log each patient's hospital code
+    patients.forEach(patient => {
+      console.log(`Patient ${patient.user.email} has hospital code: ${patient.user.hospitalCode}`);
+    });
 
     const transformedPatients = patients.map(patient => {
       const age = patient.dob ? 
@@ -188,6 +215,7 @@ app.get('/api/doctor/patients', async (req, res) => {
         userId: patient.userId,
         name: patient.user.name || `Patient ${patient.id}`,
         email: patient.user.email,
+        hospitalCode: patient.user.hospitalCode,
         age,
         sex: patient.sex || null,
         ethnic_group: patient.ethnic_group || null,
@@ -660,10 +688,15 @@ app.post('/api/auth/survey-data', async (req, res) => {
     });
     
     if (latestPatient) {
+      // Update user name first
+      await prisma.user.update({
+        where: { id: latestPatient.userId },
+        data: { name: surveyData.name }
+      });
+      
       // Update patient record with survey data
       const updateData = {
         // Basic demographics
-        name: surveyData.name,
         dob: surveyData.dateOfBirth ? new Date(surveyData.dateOfBirth) : null,
         sex: surveyData.biologicalSex,
         ethnicity: surveyData.ethnicity,
