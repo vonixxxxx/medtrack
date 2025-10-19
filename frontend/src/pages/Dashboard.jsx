@@ -70,6 +70,12 @@ const Dashboard = () => {
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
           <p className="text-gray-400">Loading...</p>
         </div>
+        {/* Survey popup should still be available during loading */}
+        <PostSignupSurvey
+          isOpen={showSurvey}
+          onComplete={handleSurveyComplete}
+          userEmail={userEmail}
+        />
       </div>
     );
   }

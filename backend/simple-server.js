@@ -18,6 +18,19 @@ app.get('/api/test-public', (req, res) => {
   res.json({ message: 'Backend is running!' });
 });
 
+// Auth endpoints
+app.get('/api/auth/me', (req, res) => {
+  // For demo purposes, return a mock user
+  // In a real app, you'd verify the JWT token and return actual user data
+  res.json({
+    id: 'demo-user-id',
+    email: 'demo@example.com',
+    name: 'Demo User',
+    role: 'patient',
+    hospitalCode: '123456789'
+  });
+});
+
 // Auth routes
 app.post('/api/auth/signup', async (req, res) => {
   try {
@@ -362,14 +375,13 @@ app.get('/api/ai/status', (req, res) => {
 
 app.get('/api/auth/survey-status', (req, res) => {
   try {
-    // For demo purposes, we'll check if there are any users in our store
-    // In a real app, you'd extract user ID from JWT token
-    const hasUsers = surveyCompletionStatus.size > 0;
-    const isCompleted = hasUsers ? Array.from(surveyCompletionStatus.values()).some(status => status === true) : false;
+    // For demo purposes, always return false to show survey
+    // In a real app, you'd check the specific user's survey completion status
+    console.log('Survey status requested - returning false to show survey');
     
     res.json({ 
-      surveyCompleted: isCompleted,
-      lastCompleted: isCompleted ? new Date().toISOString() : null
+      surveyCompleted: false, // Always false for demo to show survey
+      lastCompleted: null
     });
   } catch (error) {
     console.error('Error checking survey status:', error);
