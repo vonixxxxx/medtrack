@@ -94,7 +94,7 @@ exports.validateMedication = async (req, res) => {
     const { medicationName } = req.params;
     
     // Simple validation - in production this would use BioGPT
-    const mockResponse = {
+    const response = {
       success: true,
       data: {
         generic_name: medicationName,
@@ -104,7 +104,7 @@ exports.validateMedication = async (req, res) => {
       }
     };
     
-    res.json(mockResponse);
+    res.json(response);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Failed to validate medication' });

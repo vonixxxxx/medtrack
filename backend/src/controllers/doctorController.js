@@ -137,22 +137,13 @@ exports.parseMedicalHistory = async (req, res) => {
       return res.status(400).json({ error: 'Medical notes are required' });
     }
 
-    // Placeholder for AI processing
-    // In a real implementation, this would call BioGPT or Ollama
-    const mockConditions = [
-      'Type 2 Diabetes Mellitus',
-      'Hypertension',
-      'Dyslipidemia',
-      'Obesity'
-    ];
-
-    // Simulate AI processing delay
-    await new Promise(resolve => setTimeout(resolve, 2000));
-
+    // For now, implement a simple keyword-based parser
+    // In production, this would call BioGPT or Ollama
+    const conditions = extractConditionsFromText(medicalNotes);
+    
     res.json({
-      conditions: mockConditions,
-      processingTime: '2.1s',
-      confidence: 0.95
+      success: true,
+      conditions: conditions
     });
   } catch (err) {
     console.error('Error parsing medical history:', err);

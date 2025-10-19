@@ -146,10 +146,6 @@ app.use((req, res, next) => {
   next();
 });
 
-// Test endpoint
-app.get('/test-public', (req, res) => {
-  res.json({ message: 'Public endpoint working!' });
-});
 
 // Health check endpoint
 app.get('/health', async (req, res) => {

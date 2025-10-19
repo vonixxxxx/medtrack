@@ -11,7 +11,6 @@ import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import ResetPasswordPage from './pages/ResetPasswordPage';
 import AddMedication from './pages/AddMedication';
 import AddMetric from './pages/AddMetric';
-import TestAuth from './pages/TestAuth';
 
 const PrivateRoute = ({ children, requiredRole }) => {
   const token = localStorage.getItem('token');
@@ -71,7 +70,6 @@ export default function App() {
       <Route path="/register" element={<RegistrationPage />} />
       <Route path="/forgot-password" element={<ForgotPasswordPage />} />
       <Route path="/reset-password" element={<ResetPasswordPage />} />
-      <Route path="/test-auth" element={<TestAuth />} />
       
       {/* Protected routes */}
       <Route
