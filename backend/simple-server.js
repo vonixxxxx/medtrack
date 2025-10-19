@@ -687,12 +687,21 @@ app.post('/api/auth/survey-data', async (req, res) => {
       orderBy: { createdAt: 'desc' }
     });
     
+    console.log('Latest patient found:', latestPatient ? latestPatient.id : 'No patient found');
+    
     if (latestPatient) {
       // Update user name first
-      await prisma.user.update({
-        where: { id: latestPatient.userId },
-        data: { name: surveyData.name }
-      });
+      console.log('Updating user name for patient:', latestPatient.userId);
+      try {
+        await prisma.user.update({
+          where: { id: latestPatient.userId },
+          data: { name: surveyData.name }
+        });
+        console.log('User name updated successfully');
+      } catch (userUpdateError) {
+        console.error('Error updating user name:', userUpdateError);
+        throw userUpdateError;
+      }
       
       // Safely convert date
       let dob = null;
@@ -703,6 +712,8 @@ app.post('/api/auth/survey-data', async (req, res) => {
           if (isNaN(dob.getTime())) {
             console.log('Invalid date, using null');
             dob = null;
+          } else {
+            console.log('Date converted successfully:', dob);
           }
         } catch (error) {
           console.log('Date conversion error:', error);
@@ -714,12 +725,12 @@ app.post('/api/auth/survey-data', async (req, res) => {
       const updateData = {
         // Basic demographics
         dob: dob,
-        sex: surveyData.biologicalSex,
-        ethnicity: surveyData.ethnicity,
-        ethnic_group: surveyData.ethnicity,
-        location: surveyData.location,
-        postcode: surveyData.postcode,
-        nhs_number: surveyData.nhsNumber,
+        sex: surveyData.biologicalSex || null,
+        ethnicity: surveyData.ethnicity || null,
+        ethnic_group: surveyData.ethnicity || null,
+        location: surveyData.location || null,
+        postcode: surveyData.postcode || null,
+        nhs_number: surveyData.nhsNumber || null,
         
         // Physical measurements
         height: surveyData.height,
@@ -790,12 +801,23 @@ app.post('/api/auth/survey-data', async (req, res) => {
         criteria_for_wegovy: surveyData.criteriaForWegovy
       };
       
-      await prisma.patient.update({
-        where: { id: latestPatient.id },
-        data: updateData
-      });
+      // Filter out undefined values to prevent database errors
+      const filteredUpdateData = Object.fromEntries(
+        Object.entries(updateData).filter(([key, value]) => value !== undefined)
+      );
       
-      console.log('Survey data saved to patient record:', latestPatient.id);
+      console.log('Updating patient record with filtered data:', filteredUpdateData);
+      try {
+        await prisma.patient.update({
+          where: { id: latestPatient.id },
+          data: filteredUpdateData
+        });
+        console.log('Survey data saved to patient record:', latestPatient.id);
+      } catch (patientUpdateError) {
+        console.error('Error updating patient record:', patientUpdateError);
+        console.error('Update data that caused error:', filteredUpdateData);
+        throw patientUpdateError;
+      }
     }
     
     res.json({ 
