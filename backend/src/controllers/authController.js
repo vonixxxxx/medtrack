@@ -80,11 +80,18 @@ exports.signup = async (req, res) => {
 
     // Create Patient or Clinician profile based on role
     if (role === 'patient') {
+      const patientData = {
+        userId: user.id,
+        // Generate patient audit ID
+        patient_audit_id: `PAT-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        // Calculate IMD decile (placeholder for now)
+        imd_decile: Math.floor(Math.random() * 10) + 1,
+        // Add any additional patient data from request
+        ...(req.body.patientData || {})
+      };
+      
       await prisma.patient.create({
-        data: {
-          userId: user.id,
-          hospitalCode: hospitalCode
-        }
+        data: patientData
       });
     } else if (role === 'clinician') {
       await prisma.clinician.create({

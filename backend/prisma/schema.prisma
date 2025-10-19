@@ -46,17 +46,133 @@ model Patient {
   id             String   @id @default(cuid())
   userId         String   @unique
   user           User     @relation(fields: [userId], references: [id])
+  
+  // App-generated fields
+  patient_audit_id String?   @unique
+  imd_decile       Int?
+  
+  // Basic demographics
   dob            DateTime?
   sex            String?
   ethnicity      String?
-  hba1c_percent  Float?     // measured HbA1c %
-  hba1c_mmol     Float?     // measured HbA1c mmol/mol
-  diabetes_type  String?    // e.g., "Type 1", "Type 2", "Gestational", "None"
-  mes            Float?     // computed Medication Effect Score (MES)
+  ethnic_group   String?
+  location       String?
+  postcode       String?
+  nhs_number     String?   @unique
+  mrn            String?   @unique
+  
+  // Clinical dates and measurements
+  start_date     DateTime?
+  height         Float?
+  baseline_weight Float?
+  baseline_bmi   Float?
+  baseline_weight_date DateTime?
+  
+  // Cardiovascular risk factors
+  ascvd          Boolean?
+  htn            Boolean?
+  hypertension   Boolean?
+  dyslipidaemia  Boolean?
+  ischaemic_heart_disease Boolean?
+  heart_failure  Boolean?
+  cerebrovascular_disease Boolean?
+  pulmonary_hypertension Boolean?
+  dvt            Boolean?
+  pe             Boolean?
+  
+  // Sleep and respiratory
+  osa            Boolean?
+  sleep_studies  Boolean?
+  cpap           Boolean?
+  asthma         Boolean?
+  
+  // Diabetes
+  t2dm           Boolean?
+  prediabetes    Boolean?
+  diabetes_type  String?
+  hba1c_percent  Float?
+  hba1c_mmol     Float?
+  baseline_hba1c Float?
+  baseline_hba1c_date DateTime?
+  baseline_fasting_glucose Float?
+  random_glucose Float?
+  
+  // Lipid profile
+  baseline_tc    Float?
+  baseline_hdl   Float?
+  baseline_ldl   Float?
+  baseline_tg    Float?
+  baseline_lipid_date DateTime?
+  lipid_lowering_treatment String?
+  
+  // Medications
+  antihypertensive_medications String?
+  all_medications_from_scr String?
+  
+  // Gastrointestinal
+  gord           Boolean?
+  
+  // Renal
+  ckd            Boolean?
+  kidney_stones  Boolean?
+  
+  // Metabolic
+  masld          Boolean?
+  
+  // Reproductive
+  infertility    Boolean?
+  pcos           Boolean?
+  
+  // Mental health
+  anxiety        Boolean?
+  depression     Boolean?
+  bipolar_disorder Boolean?
+  emotional_eating Boolean?
+  schizoaffective_disorder Boolean?
+  
+  // Musculoskeletal
+  oa_knee        Boolean?
+  oa_hip         Boolean?
+  limited_mobility Boolean?
+  lymphoedema    Boolean?
+  
+  // Endocrine
+  thyroid_disorder Boolean?
+  
+  // Neurological
+  iih            Boolean?
+  epilepsy       Boolean?
+  functional_neurological_disorder Boolean?
+  
+  // Oncology
+  cancer         Boolean?
+  
+  // Bariatric surgery
+  bariatric_gastric_band Boolean?
+  bariatric_sleeve Boolean?
+  bariatric_bypass Boolean?
+  bariatric_balloon Boolean?
+  
+  // Clinical data
+  diagnoses_coded_in_scr String?
+  total_qualifying_comorbidities Int?
+  mes            Float?
+  
+  // Notes and criteria
+  notes          String?
+  criteria_for_wegovy String?
+  
+  // Relationships
   conditions     Condition[]
+  ai_audit_logs  AiAuditLog[]
+  
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
   
+  @@index([nhs_number])
+  @@index([mrn])
+  @@index([postcode])
+  @@index([ethnic_group])
   @@map("patients")
 }
 
@@ -80,6 +196,24 @@ model Condition {
   createdAt  DateTime @default(now())
   
   @@map("conditions")
+}
+
+model AiAuditLog {
+  id                String   @id @default(cuid())
+  patientId         String
+  patient           Patient  @relation(fields: [patientId], references: [id])
+  field_name        String
+  old_value         String?
+  new_value         String?
+  ai_confidence     Float?
+  ai_suggestion     String?
+  clinician_approved Boolean @default(false)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  @@index([patientId])
+  @@index([createdAt])
+  @@map("ai_audit_log")
 }
 
 

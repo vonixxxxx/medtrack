@@ -162,6 +162,18 @@ export default function SignUpPage() {
             </button>
           </form>
 
+          <div className="mt-4 text-center">
+            <p className="text-sm text-gray-400">
+              For comprehensive medical data collection, use our{' '}
+              <button
+                onClick={() => navigate('/signup/enhanced')}
+                className="text-blue-400 hover:underline font-medium"
+              >
+                Enhanced Patient Registration
+              </button>
+            </p>
+          </div>
+
           <div className="mt-6 text-center">
             <p className="text-sm text-gray-400">
               Already have an account?{' '}
