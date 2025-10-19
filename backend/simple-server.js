@@ -694,10 +694,26 @@ app.post('/api/auth/survey-data', async (req, res) => {
         data: { name: surveyData.name }
       });
       
+      // Safely convert date
+      let dob = null;
+      if (surveyData.dateOfBirth) {
+        try {
+          dob = new Date(surveyData.dateOfBirth);
+          // Check if date is valid
+          if (isNaN(dob.getTime())) {
+            console.log('Invalid date, using null');
+            dob = null;
+          }
+        } catch (error) {
+          console.log('Date conversion error:', error);
+          dob = null;
+        }
+      }
+      
       // Update patient record with survey data
       const updateData = {
         // Basic demographics
-        dob: surveyData.dateOfBirth ? new Date(surveyData.dateOfBirth) : null,
+        dob: dob,
         sex: surveyData.biologicalSex,
         ethnicity: surveyData.ethnicity,
         ethnic_group: surveyData.ethnicity,
@@ -788,9 +804,12 @@ app.post('/api/auth/survey-data', async (req, res) => {
     });
   } catch (error) {
     console.error('Error saving survey data:', error);
+    console.error('Error details:', error.message);
+    console.error('Error stack:', error.stack);
     res.status(500).json({ 
       success: false,
-      error: 'Failed to save survey data'
+      error: 'Failed to save survey data',
+      details: error.message
     });
   }
 });
@@ -834,6 +853,163 @@ app.get('/api/meds/schedule', (req, res) => {
 
 app.get('/api/meds/cycles', (req, res) => {
   res.json([]);
+});
+
+// Medication validation endpoint
+app.post('/api/medications/validateMedication', async (req, res) => {
+  try {
+    const { medication } = req.body;
+    console.log('Validating medication:', medication);
+    
+    // Enhanced medication database with fuzzy matching
+    const medicationDatabase = [
+      {
+        generic_name: 'semaglutide',
+        brand_names: ['Ozempic', 'Wegovy', 'Rybelsus'],
+        drug_class: 'GLP-1 Receptor Agonist',
+        dosage_forms: ['Injection', 'Tablet'],
+        typical_strengths: ['0.25mg', '0.5mg', '1mg', '2.4mg', '3mg', '7mg', '14mg'],
+        description: 'Used for type 2 diabetes and weight management'
+      },
+      {
+        generic_name: 'metformin',
+        brand_names: ['Glucophage', 'Fortamet', 'Glumetza'],
+        drug_class: 'Biguanide',
+        dosage_forms: ['Tablet', 'Extended-release tablet'],
+        typical_strengths: ['500mg', '850mg', '1000mg'],
+        description: 'First-line treatment for type 2 diabetes'
+      },
+      {
+        generic_name: 'insulin glargine',
+        brand_names: ['Lantus', 'Toujeo', 'Basaglar'],
+        drug_class: 'Long-acting Insulin',
+        dosage_forms: ['Injection'],
+        typical_strengths: ['100 units/mL', '300 units/mL'],
+        description: 'Long-acting insulin for diabetes management'
+      },
+      {
+        generic_name: 'liraglutide',
+        brand_names: ['Victoza', 'Saxenda'],
+        drug_class: 'GLP-1 Receptor Agonist',
+        dosage_forms: ['Injection'],
+        typical_strengths: ['0.6mg', '1.2mg', '1.8mg', '3mg'],
+        description: 'GLP-1 agonist for diabetes and weight management'
+      },
+      {
+        generic_name: 'dulaglutide',
+        brand_names: ['Trulicity'],
+        drug_class: 'GLP-1 Receptor Agonist',
+        dosage_forms: ['Injection'],
+        typical_strengths: ['0.75mg', '1.5mg', '3mg', '4.5mg'],
+        description: 'GLP-1 agonist for diabetes management'
+      },
+      {
+        generic_name: 'exenatide',
+        brand_names: ['Byetta', 'Bydureon'],
+        drug_class: 'GLP-1 Receptor Agonist',
+        dosage_forms: ['Injection'],
+        typical_strengths: ['5mcg', '10mcg', '2mg'],
+        description: 'GLP-1 agonist for diabetes management'
+      }
+    ];
+    
+    // Fuzzy matching function
+    function levenshteinDistance(str1, str2) {
+      const matrix = [];
+      for (let i = 0; i <= str2.length; i++) {
+        matrix[i] = [i];
+      }
+      for (let j = 0; j <= str1.length; j++) {
+        matrix[0][j] = j;
+      }
+      for (let i = 1; i <= str2.length; i++) {
+        for (let j = 1; j <= str1.length; j++) {
+          if (str2.charAt(i - 1) === str1.charAt(j - 1)) {
+            matrix[i][j] = matrix[i - 1][j - 1];
+          } else {
+            matrix[i][j] = Math.min(
+              matrix[i - 1][j - 1] + 1,
+              matrix[i][j - 1] + 1,
+              matrix[i - 1][j] + 1
+            );
+          }
+        }
+      }
+      return matrix[str2.length][str1.length];
+    }
+    
+    // Search for medication
+    const searchTerm = medication.toLowerCase();
+    let bestMatch = null;
+    let bestScore = Infinity;
+    
+    for (const med of medicationDatabase) {
+      // Check for exact substring match first (highest priority)
+      if (med.generic_name.toLowerCase().includes(searchTerm) || 
+          med.brand_names.some(brand => brand.toLowerCase().includes(searchTerm))) {
+        bestMatch = med;
+        bestScore = 0; // Perfect match
+        break;
+      }
+      
+      // Check generic name with fuzzy matching
+      const genericDistance = levenshteinDistance(searchTerm, med.generic_name.toLowerCase());
+      if (genericDistance < bestScore) {
+        bestScore = genericDistance;
+        bestMatch = med;
+      }
+      
+      // Check brand names with fuzzy matching
+      for (const brand of med.brand_names) {
+        const brandDistance = levenshteinDistance(searchTerm, brand.toLowerCase());
+        if (brandDistance < bestScore) {
+          bestScore = brandDistance;
+          bestMatch = med;
+        }
+      }
+    }
+    
+    // If we found a good match (distance <= 5), return it
+    if (bestMatch && bestScore <= 5) {
+      res.json({
+        success: true,
+        medication: bestMatch,
+        confidence: Math.max(0, 1 - (bestScore / 10))
+      });
+    } else {
+      res.json({
+        success: false,
+        message: 'Medication not found',
+        suggestions: medicationDatabase.slice(0, 3).map(med => med.generic_name)
+      });
+    }
+  } catch (error) {
+    console.error('Medication validation error:', error);
+    res.status(500).json({ success: false, error: 'Failed to validate medication' });
+  }
+});
+
+// Save medication endpoint
+app.post('/api/meds/user', async (req, res) => {
+  try {
+    const medicationData = req.body;
+    console.log('Saving medication:', medicationData);
+    
+    // For demo purposes, just return success
+    // In a real app, you'd save to the database
+    res.json({
+      success: true,
+      message: 'Medication saved successfully',
+      medication: {
+        id: `med-${Date.now()}`,
+        ...medicationData,
+        createdAt: new Date().toISOString()
+      }
+    });
+  } catch (error) {
+    console.error('Error saving medication:', error);
+    res.status(500).json({ success: false, error: 'Failed to save medication' });
+  }
 });
 
 app.get('/api/metrics/user', (req, res) => {
