@@ -39,26 +39,30 @@ export const AnalyticsPanel = ({ patients, onGenerateGraph }: AnalyticsPanelProp
 
     // Basic demographics
     const totalPatients = patients.length;
-    const averageAge = patients.reduce((sum, p) => sum + p.age, 0) / totalPatients;
+    const averageAge = totalPatients > 0 ? patients.reduce((sum, p) => sum + (p.age || 0), 0) / totalPatients : 0;
     
     const genderDistribution = patients.reduce((acc, p) => {
-      acc[p.sex.toLowerCase()] = (acc[p.sex.toLowerCase()] || 0) + 1;
+      if (p.sex) {
+        acc[p.sex.toLowerCase()] = (acc[p.sex.toLowerCase()] || 0) + 1;
+      }
       return acc;
     }, {} as Record<string, number>);
 
     // Medical metrics
-    const averageHbA1c = patients.reduce((sum, p) => sum + p.hba1cPercent, 0) / totalPatients;
-    const averageMES = patients.reduce((sum, p) => sum + p.mes, 0) / totalPatients;
+    const averageHbA1c = patients.reduce((sum, p) => sum + (p.hba1cPercent || 0), 0) / totalPatients;
+    const averageMES = patients.reduce((sum, p) => sum + (p.mes || 0), 0) / totalPatients;
 
     // Improvement rate (patients with negative change percent)
-    const improvedPatients = patients.filter(p => p.changePercent < 0).length;
-    const improvementRate = (improvedPatients / totalPatients) * 100;
+    const improvedPatients = patients.filter(p => p.changePercent && p.changePercent < 0).length;
+    const improvementRate = totalPatients > 0 ? (improvedPatients / totalPatients) * 100 : 0;
 
     // Top conditions
     const conditionCounts = patients.reduce((acc, p) => {
-      p.conditions.forEach(condition => {
-        acc[condition] = (acc[condition] || 0) + 1;
-      });
+      if (p.conditions && Array.isArray(p.conditions)) {
+        p.conditions.forEach(condition => {
+          acc[condition] = (acc[condition] || 0) + 1;
+        });
+      }
       return acc;
     }, {} as Record<string, number>);
 
@@ -70,10 +74,11 @@ export const AnalyticsPanel = ({ patients, onGenerateGraph }: AnalyticsPanelProp
     // Percentile changes for selected metric
     const percentileChanges = patients
       .map(p => ({
-        name: p.name,
-        value: p[selectedMetric as keyof Patient] as number,
-        change: p.changePercent
+        name: p.name || 'Unknown',
+        value: (p[selectedMetric as keyof Patient] as number) || 0,
+        change: p.changePercent || 0
       }))
+      .filter(p => p.value > 0) // Only include patients with valid values
       .sort((a, b) => b.value - a.value);
 
     return {
