@@ -12,7 +12,7 @@ router.get('/patients/:id', doctorController.getPatient);
 router.post('/patients/:id/conditions', doctorController.addPatientConditions);
 
 // Medical history parsing
-router.post('/parse-history', doctorController.parseHistory);
+router.post('/parse-history', doctorController.parseMedicalHistory);
 
 // HbA1c adjustment calculator
 router.post('/hba1c-adjust', doctorController.calculateHbA1cAdjustment);
