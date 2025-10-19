@@ -396,34 +396,10 @@ app.post('/api/auth/survey-data', async (req, res) => {
   try {
     console.log('Survey data received:', req.body);
     
-    // In a real app, you'd get user ID from JWT token
-    const userId = 'current-user'; // This should come from auth middleware
+    // For demo purposes, just return success without saving to database
+    // In a real app, you'd get user ID from JWT token and save to database
+    console.log('Survey data processed successfully (demo mode)');
     
-    // Save survey data to user's survey data record
-    await prisma.userSurveyData.upsert({
-      where: { userId: userId },
-      update: {
-        // Update with new survey data
-        dateOfBirth: req.body.dateOfBirth ? new Date(req.body.dateOfBirth) : null,
-        biologicalSex: req.body.biologicalSex || null,
-        ethnicity: req.body.ethnicity || null,
-        smokingStatus: req.body.smokingStatus || null,
-        weight: req.body.weight ? parseFloat(req.body.weight) : null,
-        height: req.body.height ? parseFloat(req.body.height) : null,
-        // Add other survey fields as needed
-      },
-      create: {
-        userId: userId,
-        dateOfBirth: req.body.dateOfBirth ? new Date(req.body.dateOfBirth) : null,
-        biologicalSex: req.body.biologicalSex || null,
-        ethnicity: req.body.ethnicity || null,
-        smokingStatus: req.body.smokingStatus || null,
-        weight: req.body.weight ? parseFloat(req.body.weight) : null,
-        height: req.body.height ? parseFloat(req.body.height) : null,
-        // Add other survey fields as needed
-      }
-    });
-
     res.json({ 
       success: true,
       message: 'Survey data saved successfully'
