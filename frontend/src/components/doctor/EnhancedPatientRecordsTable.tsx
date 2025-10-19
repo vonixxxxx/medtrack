@@ -187,7 +187,29 @@ export const EnhancedPatientRecordsTable = ({
   ];
 
   const [selectedColumns, setSelectedColumns] = useState<Set<string>>(new Set([
-    'name', 'age', 'sex', 'ethnic_group', 'baseline_bmi', 'baseline_hba1c', 't2dm', 'ascvd', 'htn', 'mes', 'conditions'
+    // Basic demographics
+    'name', 'email', 'age', 'sex', 'ethnic_group', 'location', 'postcode', 'nhs_number', 'mrn',
+    // Physical measurements
+    'height', 'baseline_weight', 'baseline_bmi', 'baseline_weight_date',
+    // Cardiovascular conditions
+    'ascvd', 'htn', 'dyslipidaemia',
+    // Sleep and respiratory
+    'osa', 'sleep_studies', 'cpap',
+    // Diabetes
+    't2dm', 'prediabetes', 'diabetes_type', 'baseline_hba1c', 'baseline_hba1c_date',
+    // Lipids
+    'baseline_tc', 'baseline_hdl', 'baseline_ldl', 'baseline_tg', 'baseline_lipid_date',
+    // Medications
+    'lipid_lowering_treatment', 'antihypertensive_medications',
+    // Additional conditions
+    'asthma', 'hypertension', 'ischaemic_heart_disease', 'heart_failure', 'cerebrovascular_disease',
+    'pulmonary_hypertension', 'dvt', 'pe', 'gord', 'ckd', 'kidney_stones', 'masld',
+    'infertility', 'pcos', 'anxiety', 'depression', 'bipolar_disorder', 'emotional_eating',
+    'schizoaffective_disorder', 'oa_knee', 'oa_hip', 'limited_mobility', 'lymphoedema',
+    'thyroid_disorder', 'iih', 'epilepsy', 'functional_neurological_disorder', 'cancer',
+    'bariatric_gastric_band', 'bariatric_sleeve', 'bariatric_bypass', 'bariatric_balloon',
+    // Clinical data
+    'total_qualifying_comorbidities', 'mes', 'notes', 'criteria_for_wegovy', 'conditions', 'lastVisit'
   ]));
 
   const handleSort = (key: keyof Patient) => {
