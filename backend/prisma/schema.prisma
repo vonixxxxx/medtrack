@@ -13,6 +13,8 @@ model User {
   email            String       @unique
   password         String
   name             String?
+  role             String       @default("patient") // 'patient' | 'clinician'
+  hospitalCode     String       // required field to link patients to clinicians
   
   // Password reset fields
   resetToken       String?
@@ -22,12 +24,17 @@ model User {
   is2FAEnabled     Boolean      @default(false)
   twoFASecret      String?
   
+  // Survey completion status
+  surveyCompleted  Boolean      @default(false)
+  
   // Relations
   medications      Medication[]
   metrics          Metric[]
   cycles           MedicationCycle[]
   notifications    Notification[]
+  surveyData       UserSurveyData?
   
+  @@index([hospitalCode])
   @@map("users")
 }
 
@@ -119,3 +126,64 @@ model Notification {
 }
 
 /// END V2 MODELS ------------------------------------
+
+model UserSurveyData {
+  id                    Int      @id @default(autoincrement())
+  userId                Int      @unique
+  user                  User     @relation(fields: [userId], references: [id])
+  
+  // Step 1: Basic Demographics & Account Info
+  dateOfBirth           DateTime?
+  biologicalSex         String?  // Male/Female/Other
+  ethnicity             String?  // ONS categories
+  
+  // Step 2: Female-Specific Questions
+  hasMenses             Boolean?
+  ageAtMenarche         Int?
+  menstrualRegularity   String?
+  lastMenstrualPeriod   DateTime?
+  cycleLength           Int?
+  periodDuration        Int?
+  usesContraception     Boolean?
+  contraceptionType     String?
+  hasPreviousPregnancies Boolean?
+  isPerimenopausal      Boolean?
+  isPostmenopausal      Boolean?
+  ageAtMenopause        Int?
+  menopauseType         String?  // natural/surgical
+  isOnHRT               Boolean?
+  hrtType               String?
+  
+  // Step 3: Male-Specific Questions
+  iiefScore             Int?     // IIEF-5 Score
+  lowTestosteroneSymptoms String? // JSON array of symptoms
+  redFlagQuestions      String?  // JSON array of red flags
+  
+  // Step 4: Lifestyle Assessment
+  auditScore            Int?     // AUDIT Questionnaire score
+  smokingStatus         String?
+  smokingStartAge       Int?
+  cigarettesPerDay      Int?
+  vapingDevice          String?
+  nicotineMg            Float?
+  pgVgRatio             String?
+  usagePattern          String?
+  psecdiScore           Int?
+  readinessToQuit       Int?
+  ipaqScore             Int?     // International Physical Activity Questionnaire
+  
+  // Step 5: Anthropometrics & Vitals
+  weight                Float?
+  height                Float?
+  waistCircumference    Float?
+  hipCircumference      Float?
+  neckCircumference     Float?
+  systolicBP            Int?
+  diastolicBP           Int?
+  
+  // Metadata
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+  
+  @@map("user_survey_data")
+}

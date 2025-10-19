@@ -1,37 +1,68 @@
-# Use official Node.js runtime as the base image
-FROM node:18-alpine
+# MedTrack Backend Production Dockerfile
+# Multi-stage build for optimized production image
 
-# Set working directory in the container
+# Build stage
+FROM node:20-alpine AS builder
+
+# Set working directory
 WORKDIR /app
 
 # Copy package files
 COPY package*.json ./
+COPY pnpm-lock.yaml ./
+
+# Install pnpm
+RUN npm install -g pnpm
 
 # Install dependencies
-RUN npm ci --only=production
+RUN pnpm install --frozen-lockfile
 
-# Copy the rest of the application code
+# Copy source code
 COPY . .
 
-# Generate Prisma client
-RUN npx prisma generate
+# Build TypeScript
+RUN pnpm run build
 
-# Create a non-root user for security
-RUN addgroup -g 1001 -S nodejs && \
-    adduser -S medtrack -u 1001
+# Production stage
+FROM node:20-alpine AS production
 
-# Change ownership of the app directory to the nodejs user
-RUN chown -R medtrack:nodejs /app
+# Install dumb-init for proper signal handling
+RUN apk add --no-cache dumb-init
 
-# Switch to the non-root user
+# Create app user
+RUN addgroup -g 1001 -S nodejs
+RUN adduser -S medtrack -u 1001
+
+# Set working directory
+WORKDIR /app
+
+# Copy package files
+COPY package*.json ./
+COPY pnpm-lock.yaml ./
+
+# Install pnpm
+RUN npm install -g pnpm
+
+# Install only production dependencies
+RUN pnpm install --frozen-lockfile --prod
+
+# Copy built application from builder stage
+COPY --from=builder --chown=medtrack:nodejs /app/dist ./dist
+COPY --from=builder --chown=medtrack:nodejs /app/prisma ./prisma
+
+# Create logs directory
+RUN mkdir -p /app/logs && chown medtrack:nodejs /app/logs
+
+# Switch to non-root user
 USER medtrack
 
-# Expose the port the app runs on
+# Expose port
 EXPOSE 4000
 
 # Health check
-HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD curl -f http://localhost:4000/health || exit 1
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+  CMD node -e "require('http').get('http://localhost:4000/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1) })"
 
-# Command to run the application
-CMD ["npm", "start"]
+# Start application
+ENTRYPOINT ["dumb-init", "--"]
+CMD ["node", "dist/index.js"]

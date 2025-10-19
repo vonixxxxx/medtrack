@@ -394,7 +394,7 @@ export default function MedHistoryPage() {
               </div>
             )}
           </div>
-        </div>
+        </motion.div>
       </div>
     </div>
   );

@@ -20,7 +20,7 @@ export default function AddMetric() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      await api.post('/metrics', {
+      await api.post('metrics', {
         ...form,
         weight: parseFloat(form.weight),
         height: parseFloat(form.height),

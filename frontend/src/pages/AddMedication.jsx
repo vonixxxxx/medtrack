@@ -21,7 +21,7 @@ export default function AddMedication() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      await api.post('/medications', form);
+      await api.post('medications', form);
       navigate('/dashboard');
     } catch (err) {
       console.error(err);

@@ -1,231 +1,355 @@
 const express = require('express');
 const cors = require('cors');
+const compression = require('compression');
+const morgan = require('morgan');
 const dotenv = require('dotenv');
 const { PrismaClient } = require('@prisma/client');
+const { createServer } = require('http');
+const { Server } = require('socket.io');
 const cron = require('node-cron');
-const { startOfDay } = require('date-fns');
+const winston = require('winston');
+const Redis = require('ioredis');
 
-// Load environment variables from .env if present
+// Load environment variables
 dotenv.config();
+
+// Import security middleware
+const {
+  securityHeaders,
+  authRateLimit,
+  generalRateLimit,
+  strictRateLimit,
+  sanitizeInput,
+  handleValidationErrors,
+  auditLogger,
+  requestSizeLimit,
+  logger
+} = require('./middleware/security');
 
 // Import routes
 const authRoutes = require('./routes/auth');
 const medicationRoutes = require('./routes/medications');
-const cycleRoutes = require('./routes/cycles');
-const reminderRoutes = require('./routes/reminders');
 const metricRoutes = require('./routes/metrics');
+// const screeningRoutes = require('./routes/screening');
+const reminderRoutes = require('./routes/reminders');
+// const dashboardRoutes = require('./routes/dashboard');
+// const adherenceRoutes = require('./routes/adherence');
+const aiRoutes = require('./routes/ai');
+const enhancedMedicationValidationRoutes = require('./routes/enhancedMedicationValidation');
+const surveyRoutes = require('./routes/survey');
+const doctorRoutes = require('./routes/doctor');
 
-// Import security middleware
-const { generalLimiter, authLimiter, passwordResetLimiter, helmetConfig } = require('./middleware/security');
+// Import services
+// const notificationService = require('./services/notificationService');
+// const reminderService = require('./services/reminderService');
+// const auditService = require('./services/auditService');
 
+// Initialize Prisma
+const prisma = new PrismaClient({
+  log: ['query', 'info', 'warn', 'error'],
+});
+
+// Initialize Redis for caching and sessions (optional)
+const redis = process.env.REDIS_HOST ? new Redis({
+  host: process.env.REDIS_HOST || 'localhost',
+  port: process.env.REDIS_PORT || 6379,
+  password: process.env.REDIS_PASSWORD,
+  retryDelayOnFailover: 100,
+  maxRetriesPerRequest: 3,
+  lazyConnect: true
+}) : null;
+
+// Create Express app
 const app = express();
-const prisma = new PrismaClient();
+const server = createServer(app);
+
+// Initialize Socket.IO for real-time features
+const io = new Server(server, {
+  cors: {
+    origin: process.env.FRONTEND_URL || "http://localhost:3000",
+    methods: ["GET", "POST"],
+    credentials: true
+  }
+});
+
+// Configure Winston logger
+const winstonLogger = winston.createLogger({
+  level: 'info',
+  format: winston.format.combine(
+    winston.format.timestamp(),
+    winston.format.errors({ stack: true }),
+    winston.format.json()
+  ),
+  defaultMeta: { service: 'medtrack-api' },
+  transports: [
+    new winston.transports.File({ filename: 'logs/error.log', level: 'error' }),
+    new winston.transports.File({ filename: 'logs/combined.log' }),
+    new winston.transports.Console({
+      format: winston.format.combine(
+        winston.format.colorize(),
+        winston.format.simple()
+      )
+    })
+  ]
+});
+
+// Make logger available globally
+global.logger = winstonLogger;
 
 // Security middleware
-app.use(helmetConfig);
+app.use(securityHeaders);
+app.use(compression());
+app.use(requestSizeLimit(10 * 1024 * 1024)); // 10MB limit
 
-// REPLACE lines 27-33 with enhanced CORS logic
+// CORS configuration
 const allowedOrigins = (process.env.CORS_ORIGIN || 'http://localhost:3000')
   .split(',')
-  .map((o) => o.trim());
+  .map(origin => origin.trim());
 
 const corsOptions = {
   origin: (origin, callback) => {
-    // Allow requests with no origin (e.g. mobile apps, curl) or in the whitelist
     if (!origin || allowedOrigins.includes(origin)) {
-      return callback(null, true);
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
     }
-    return callback(new Error('Not allowed by CORS'));
   },
   credentials: true,
   optionsSuccessStatus: 200,
 };
+
 app.use(cors(corsOptions));
+
+// Request logging
+app.use(morgan('combined', {
+  stream: {
+    write: (message) => winstonLogger.info(message.trim())
+  }
+}));
 
 // Body parsing middleware
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// General rate limiting for all routes
-app.use(generalLimiter);
+// Input sanitization
+app.use(sanitizeInput);
 
-// Attach Prisma instance to each request for easy access in controllers
-app.use((req, _res, next) => {
+// Rate limiting
+app.use('/api/auth', authRateLimit);
+app.use('/api', generalRateLimit);
+
+// Make Prisma and Redis available to routes
+app.use((req, res, next) => {
   req.prisma = prisma;
+  req.redis = redis;
+  req.io = io;
   next();
 });
 
-// Health check endpoint (before rate limiting)
+// Test endpoint
+app.get('/test-public', (req, res) => {
+  res.json({ message: 'Public endpoint working!' });
+});
+
+// Health check endpoint
 app.get('/health', async (req, res) => {
   try {
     // Check database connection
     await prisma.$queryRaw`SELECT 1`;
-    res.status(200).json({ 
-      status: 'healthy', 
-      timestamp: new Date().toISOString(),
-      environment: process.env.NODE_ENV || 'development',
-      version: process.env.npm_package_version || '1.0.0'
-    });
-  } catch (error) {
-    console.error('Health check failed:', error);
-    res.status(503).json({ 
-      status: 'unhealthy', 
-      timestamp: new Date().toISOString(),
-      error: 'Database connection failed'
-    });
-  }
-});
-
-// ADD after the /health endpoint (around line 67)
-app.get('/api/health', async (req, res) => {
-  res.redirect('/health');
-});
-
-// Simple root route for convenience
-app.get('/', (_req, res) => {
-  res.json({ status: 'running', message: 'MedTrack API' });
-});
-
-// API Routes with specific rate limiting
-app.use('/api/auth/login', authLimiter);
-app.use('/api/auth/signup', authLimiter);
-app.use('/api/auth/forgot-password', passwordResetLimiter);
-app.use('/api/auth/reset-password', passwordResetLimiter);
-
-// Protected API routes
-app.use('/api/auth', authRoutes);
-app.use('/api/medications', medicationRoutes);
-app.use('/api/cycles', cycleRoutes);
-app.use('/api/upcoming', cycleRoutes); // convenience endpoint
-app.use('/api/reminders', reminderRoutes);
-app.use('/api/metrics', metricRoutes);
-
-// Global error handler
-app.use((err, _req, res, _next) => {
-  console.error(err);
-  res.status(500).json({ error: 'Internal Server Error' });
-});
-
-const PORT = process.env.PORT || 8000;
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
-
-// Cron job: run every day at 08:00 server time to create daily reminders
-cron.schedule('0 8 * * *', async () => {
-  console.log('Running daily medication reminder check');
-
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-
-  try {
-    // Get all users with active medication cycles
-    const activeCycles = await prisma.medicationCycle.findMany({
-      where: {
-        startDate: { lte: today },
-        OR: [
-          { endDate: { gte: today } },
-          { endDate: null } // Cycles without end date
-        ]
-      },
-      include: {
-        user: true
-      }
-    });
-
-    // Group cycles by user
-    const userCycles = {};
-    activeCycles.forEach(cycle => {
-      if (!userCycles[cycle.userId]) {
-        userCycles[cycle.userId] = [];
-      }
-      userCycles[cycle.userId].push(cycle);
-    });
-
-    // Process each user's cycles
-    for (const [userId, cycles] of Object.entries(userCycles)) {
-      for (const cycle of cycles) {
-        // Prevent duplicate reminders for the same day
-        const existing = await prisma.notification.findFirst({
-          where: {
-            userId: parseInt(userId),
-            cycleId: cycle.id,
-            date: today,
-          },
-        });
-
-        if (!existing) {
-          await prisma.notification.create({
-            data: {
-              userId: parseInt(userId),
-              cycleId: cycle.id,
-              date: today,
-              message: `Take ${cycle.name} today`,
-            },
-          });
-        }
-      }
-    }
-
-    console.log('Daily reminders created for active users');
-  } catch (err) {
-    console.error('Error creating reminders', err);
-  }
-});
-
-// Daily email at 7am
-const nodemailer = require('nodemailer');
-const transporter = nodemailer.createTransport({
-  // For demo use Ethereal; replace with real SMTP in prod
-  host: 'smtp.ethereal.email',
-  port: 587,
-  auth: {
-    user: process.env.ETHEREAL_USER,
-    pass: process.env.ETHEREAL_PASS,
-  },
-});
-
-cron.schedule('0 7 * * *', async () => {
-  console.log('Sending daily medication emails');
-  const today = startOfDay(new Date());
-  
-  try {
-    // Get all users with due doses today
-    const dueDoses = await prisma.doseLog.findMany({
-      where: { 
-        date: today, 
-        taken: false 
-      },
-      include: { 
-        cycle: { 
-          include: { 
-            user: true 
-          } 
-        } 
-      },
-    });
-
-    // Process each dose and send email if user has email
-    for (const dose of dueDoses) {
-      if (!dose.cycle.user.email) continue;
-      
-      const mailOptions = {
-        from: 'no-reply@medtrack.local',
-        to: dose.cycle.user.email,
-        subject: 'Medication Reminder',
-        text: `Hello ${dose.cycle.user.name || 'there'},\nToday is the day to take ${dose.cycle.dosage} of ${dose.cycle.name}. Did you take it?`,
-      };
-      
+    
+    // Check Redis connection (if available) - don't fail if Redis is not available
+    let redisStatus = 'not configured';
+    if (redis) {
       try {
-        await transporter.sendMail(mailOptions);
-        console.log(`Email sent to ${dose.cycle.user.email} for ${dose.cycle.name}`);
-      } catch (err) {
-        console.error(`Email error for ${dose.cycle.user.email}:`, err);
+        await redis.ping();
+        redisStatus = 'connected';
+      } catch (redisError) {
+        winstonLogger.warn('Redis connection failed', { error: redisError.message });
+        redisStatus = 'disconnected';
       }
     }
     
-    console.log('Daily medication emails processed');
-  } catch (err) {
-    console.error('Error processing daily emails:', err);
+    res.json({
+      status: 'healthy',
+      timestamp: new Date().toISOString(),
+      services: {
+        database: 'connected',
+        redis: redisStatus,
+        socketio: 'connected'
+      }
+    });
+  } catch (error) {
+    winstonLogger.error('Health check failed', { error: error.message });
+    res.status(503).json({
+      status: 'unhealthy',
+      timestamp: new Date().toISOString(),
+      error: error.message
+    });
   }
 });
+
+// API routes
+app.use('/api/auth', authRoutes);
+app.use('/api/meds', medicationRoutes);
+app.use('/api/metrics', metricRoutes);
+// app.use('/api/screening', screeningRoutes);
+app.use('/api/reminders', reminderRoutes);
+// app.use('/api/dashboard', dashboardRoutes);
+// app.use('/api/adherence', adherenceRoutes);
+app.use('/api/ai', aiRoutes);
+app.use('/api/medications', enhancedMedicationValidationRoutes);
+app.use('/api/auth', surveyRoutes);
+app.use('/api/doctor', doctorRoutes);
+
+// Socket.IO connection handling
+io.on('connection', (socket) => {
+  winstonLogger.info('Client connected', { socketId: socket.id });
+
+  // Join user-specific room for notifications
+  socket.on('join-user-room', (userId) => {
+    socket.join(`user-${userId}`);
+    winstonLogger.info('User joined room', { userId, socketId: socket.id });
+  });
+
+  // Handle medication reminders
+  socket.on('medication-reminder-response', async (data) => {
+    try {
+      const { medicationId, response, userId } = data;
+      
+      // Log the response
+      await prisma.medicationLog.create({
+        data: {
+          medicationId,
+          userId,
+          takenAt: new Date(),
+          notes: `Reminder response: ${response}`,
+          verified: true
+        }
+      });
+
+      // Notify other connected devices
+      socket.to(`user-${userId}`).emit('medication-taken', {
+        medicationId,
+        timestamp: new Date()
+      });
+
+      winstonLogger.info('Medication reminder response', { 
+        userId, 
+        medicationId, 
+        response 
+      });
+    } catch (error) {
+      winstonLogger.error('Error handling medication reminder response', { 
+        error: error.message 
+      });
+    }
+  });
+
+  socket.on('disconnect', () => {
+    winstonLogger.info('Client disconnected', { socketId: socket.id });
+  });
+});
+
+// Error handling middleware
+app.use((error, req, res, next) => {
+  winstonLogger.error('Unhandled error', {
+    error: error.message,
+    stack: error.stack,
+    url: req.url,
+    method: req.method,
+    ip: req.ip
+  });
+
+  res.status(error.status || 500).json({
+    error: process.env.NODE_ENV === 'production' 
+      ? 'Internal server error' 
+      : error.message,
+    ...(process.env.NODE_ENV !== 'production' && { stack: error.stack })
+  });
+});
+
+// 404 handler
+app.use('*', (req, res) => {
+  res.status(404).json({
+    error: 'Endpoint not found',
+    path: req.originalUrl,
+    method: req.method
+  });
+});
+
+// Scheduled tasks
+cron.schedule('0 8 * * *', async () => {
+  // Daily medication reminders at 8 AM
+  try {
+    await reminderService.sendDailyReminders(prisma, io);
+    winstonLogger.info('Daily medication reminders sent');
+  } catch (error) {
+    winstonLogger.error('Error sending daily reminders', { error: error.message });
+  }
+});
+
+cron.schedule('0 0 * * 0', async () => {
+  // Weekly health metric reminders on Sundays
+  try {
+    await reminderService.sendWeeklyMetricReminders(prisma, io);
+    winstonLogger.info('Weekly metric reminders sent');
+  } catch (error) {
+    winstonLogger.error('Error sending weekly reminders', { error: error.message });
+  }
+});
+
+cron.schedule('0 2 * * *', async () => {
+  // Daily cleanup of expired sessions at 2 AM
+  try {
+    const result = await prisma.userSession.deleteMany({
+      where: {
+        expiresAt: {
+          lt: new Date()
+        }
+      }
+    });
+    winstonLogger.info('Expired sessions cleaned up', { count: result.count });
+  } catch (error) {
+    winstonLogger.error('Error cleaning up expired sessions', { error: error.message });
+  }
+});
+
+// Graceful shutdown
+process.on('SIGTERM', async () => {
+  winstonLogger.info('SIGTERM received, shutting down gracefully');
+  
+  server.close(() => {
+    winstonLogger.info('HTTP server closed');
+  });
+
+  await prisma.$disconnect();
+  await redis.disconnect();
+  
+  process.exit(0);
+});
+
+process.on('SIGINT', async () => {
+  winstonLogger.info('SIGINT received, shutting down gracefully');
+  
+  server.close(() => {
+    winstonLogger.info('HTTP server closed');
+  });
+
+  await prisma.$disconnect();
+  await redis.disconnect();
+  
+  process.exit(0);
+});
+
+// Start server
+const PORT = process.env.PORT || 4000;
+const HOST = process.env.HOST || '0.0.0.0';
+
+server.listen(PORT, HOST, () => {
+  winstonLogger.info(`MedTrack API server running on ${HOST}:${PORT}`);
+  winstonLogger.info(`Environment: ${process.env.NODE_ENV || 'development'}`);
+  winstonLogger.info(`Database: ${process.env.DATABASE_URL ? 'Connected' : 'Not configured'}`);
+  winstonLogger.info(`Redis: ${process.env.REDIS_HOST || 'localhost'}:${process.env.REDIS_PORT || 6379}`);
+});
+
+module.exports = { app, server, io };

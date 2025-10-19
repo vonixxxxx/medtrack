@@ -28,10 +28,27 @@ const createEmailTransporter = () => {
 
 exports.signup = async (req, res) => {
   console.log('Signup request received:', req.body);
-  const { email, password } = req.body;
+  const { email, password, role = 'patient', hospitalCode } = req.body;
+  
   if (!email || !password) {
     console.log('Missing email or password');
     return res.status(400).json({ error: 'Email and password required' });
+  }
+
+  // Validate role
+  if (role && !['patient', 'clinician'].includes(role)) {
+    return res.status(400).json({ error: 'Invalid role. Must be "patient" or "clinician"' });
+  }
+
+  // Validate hospitalCode - now required for both patients and clinicians
+  if (!hospitalCode) {
+    return res.status(400).json({ error: 'Hospital code is required.' });
+  }
+
+  // Validate hospital code format (must be exactly 123456789 for now)
+  const VALID_HOSPITAL_CODE = '123456789';
+  if (hospitalCode !== VALID_HOSPITAL_CODE) {
+    return res.status(400).json({ error: 'Invalid hospital code. Please contact your institution.' });
   }
 
   const prisma = req.prisma;
@@ -44,19 +61,39 @@ exports.signup = async (req, res) => {
     }
 
     const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
-    console.log('Creating user with email:', email);
+    console.log('Creating user with email:', email, 'role:', role, 'hospitalCode:', hospitalCode);
+    console.log('hospitalCode type:', typeof hospitalCode, 'value:', hospitalCode);
+    console.log('hospitalCode is null?', hospitalCode === null);
+    console.log('hospitalCode is undefined?', hospitalCode === undefined);
+    
+    const userData = { 
+      email, 
+      password: hashedPassword, 
+      role,
+      hospitalCode: hospitalCode
+    };
+    console.log('User data to create:', userData);
+    
     const user = await prisma.user.create({
-      data: { email, password: hashedPassword },
+      data: userData,
     });
 
     const token = jwt.sign(
-      { id: user.id, email: user.email },
+      { id: user.id, email: user.email, role: user.role, hospitalCode: user.hospitalCode },
       process.env.JWT_SECRET || 'supersecret',
       { expiresIn: '7d' }
     );
 
     console.log('User created successfully:', user.id);
-    res.status(201).json({ token });
+    res.status(201).json({ 
+      token, 
+      user: { 
+        id: user.id, 
+        email: user.email, 
+        role: user.role, 
+        hospitalCode: user.hospitalCode 
+      } 
+    });
   } catch (err) {
     console.error('Signup error:', err);
     res.status(500).json({ error: 'Signup failed', details: err.message });
@@ -79,12 +116,21 @@ exports.login = async (req, res) => {
     }
 
     const token = jwt.sign(
-      { id: user.id, email: user.email },
+      { id: user.id, email: user.email, role: user.role, hospitalCode: user.hospitalCode },
       process.env.JWT_SECRET || 'supersecret',
       { expiresIn: '7d' }
     );
 
-    res.json({ token, user: { id: user.id, email: user.email, is2FAEnabled: user.is2FAEnabled || false } });
+    res.json({ 
+      token, 
+      user: { 
+        id: user.id, 
+        email: user.email, 
+        role: user.role, 
+        hospitalCode: user.hospitalCode,
+        is2FAEnabled: user.is2FAEnabled || false 
+      } 
+    });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Login failed' });
@@ -387,7 +433,10 @@ exports.getCurrentUser = async (req, res) => {
         id: true,
         email: true,
         name: true,
+        role: true,
+        hospitalCode: true,
         is2FAEnabled: true,
+        surveyCompleted: true,
         // Don't include sensitive fields like password, resetToken, etc.
       }
     });
@@ -395,6 +444,7 @@ exports.getCurrentUser = async (req, res) => {
     if (user) {
       // Ensure boolean fields have defaults
       user.is2FAEnabled = user.is2FAEnabled || false;
+      user.surveyCompleted = user.surveyCompleted || false;
     }
     
     if (!user) {
@@ -407,3 +457,6 @@ exports.getCurrentUser = async (req, res) => {
     res.status(500).json({ error: 'Failed to get user info' });
   }
 };
+
+// Alias for getCurrentUser (for compatibility)
+exports.me = exports.getCurrentUser;

@@ -1,0 +1,23 @@
+Server running on port 4000
+Loaded 89458 medications from enhanced dataset
+📋 Fetching user medications
+✅ User medications fetched successfully: 0 medications
+info: Audit log {"action":"READ","ipAddress":"127.0.0.1","resource":"Medication","service":"medtrack-security","statusCode":200,"timestamp":"2025-10-15T12:00:32.088Z","userAgent":"curl/8.7.1"}
+📋 Fetching user medications
+✅ User medications fetched successfully: 0 medications
+info: Audit log {"action":"READ","ipAddress":"127.0.0.1","resource":"Medication","service":"medtrack-security","statusCode":200,"timestamp":"2025-10-15T12:03:48.090Z","userAgent":"curl/8.7.1"}
+📋 Fetching user medications
+✅ User medications fetched successfully: 0 medications
+info: Audit log {"action":"READ","ipAddress":"127.0.0.1","resource":"Medication","service":"medtrack-security","statusCode":200,"timestamp":"2025-10-15T12:08:36.214Z","userAgent":"curl/8.7.1"}
+📋 Fetching user medications
+✅ User medications fetched successfully: 0 medications
+info: Audit log {"action":"READ","ipAddress":"127.0.0.1","resource":"Medication","service":"medtrack-security","statusCode":200,"timestamp":"2025-10-15T12:09:36.440Z","userAgent":"curl/8.7.1"}
+📋 Fetching user medications
+✅ User medications fetched successfully: 0 medications
+info: Audit log {"action":"READ","ipAddress":"127.0.0.1","resource":"Medication","service":"medtrack-security","statusCode":200,"timestamp":"2025-10-15T12:27:19.931Z","userAgent":"curl/8.7.1"}
+📋 Fetching user medications
+✅ User medications fetched successfully: 0 medications
+info: Audit log {"action":"READ","ipAddress":"127.0.0.1","resource":"Medication","service":"medtrack-security","statusCode":200,"timestamp":"2025-10-15T12:29:01.440Z","userAgent":"curl/8.7.1"}
+📋 Fetching user medications
+✅ User medications fetched successfully: 0 medications
+info: Audit log {"action":"READ","ipAddress":"127.0.0.1","resource":"Medication","service":"medtrack-security","statusCode":200,"timestamp":"2025-10-15T12:30:27.264Z","userAgent":"curl/8.7.1"}
