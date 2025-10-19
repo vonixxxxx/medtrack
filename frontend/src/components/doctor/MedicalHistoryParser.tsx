@@ -32,11 +32,11 @@ export const MedicalHistoryParser = ({ selectedPatientId, onConditionsAdded }: M
     try {
       const { data } = await api.post('doctor/parse-history', {
         patientId: selectedPatientId,
-        medicalHistory: medicalNotes.trim()
+        medicalNotes: medicalNotes.trim()
       });
 
       setExtractedConditions(data.conditions.map((c: any) => c.normalized));
-      setSuccess(`Successfully extracted ${data.conditions.length} conditions`);
+      setSuccess(`AI successfully extracted ${data.parsedData ? Object.keys(data.parsedData).length : 0} data points and ${data.conditions.length} conditions. ${data.auditLogs} updates require review.`);
     } catch (err: any) {
       setError(err.response?.data?.error || 'Failed to parse medical history');
     } finally {

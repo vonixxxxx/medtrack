@@ -304,212 +304,20 @@ app.post('/api/doctor/parse-history', async (req, res) => {
     const { patientId, medicalNotes } = req.body;
     
     if (!patientId || !medicalNotes) {
-      return res.status(400).json({ error: 'Patient ID and medical notes are required' });
+      return res.status(400).json({ 
+        error: 'Missing required fields: patientId or medicalNotes',
+        success: false 
+      });
     }
 
     console.log(`🔍 Parsing medical history for patient ${patientId}`);
     console.log(`📝 Medical notes: ${medicalNotes.substring(0, 100)}...`);
 
-    // Enhanced AI parsing with comprehensive condition detection
-    const text = medicalNotes.toLowerCase();
-    const parsedData = {};
+    // Use Ollama parser for AI-powered extraction
+    const { runOllamaParser } = require('./utils/ollamaParser');
+    const parsedData = await runOllamaParser(medicalNotes);
 
-    // Diabetes detection
-    if (text.includes('type 2 diabetes') || text.includes('t2dm') || text.includes('diabetes mellitus type 2')) {
-      parsedData.t2dm = true;
-      parsedData.diabetes_type = 'Type 2';
-    }
-    if (text.includes('type 1 diabetes') || text.includes('t1dm') || text.includes('diabetes mellitus type 1')) {
-      parsedData.diabetes_type = 'Type 1';
-    }
-    if (text.includes('prediabetes') || text.includes('impaired glucose tolerance') || text.includes('impaired fasting glucose')) {
-      parsedData.prediabetes = true;
-    }
-
-    // Cardiovascular conditions
-    if (text.includes('ascvd') || text.includes('atherosclerotic') || text.includes('cardiovascular disease')) {
-      parsedData.ascvd = true;
-    }
-    if (text.includes('hypertension') || text.includes('htn') || text.includes('high blood pressure')) {
-      parsedData.htn = true;
-      parsedData.hypertension = true;
-    }
-    if (text.includes('dyslipidaemia') || text.includes('cholesterol') || text.includes('hyperlipidemia') || text.includes('hypercholesterolemia')) {
-      parsedData.dyslipidaemia = true;
-    }
-    if (text.includes('ischaemic heart disease') || text.includes('coronary artery disease') || text.includes('cad')) {
-      parsedData.ischaemic_heart_disease = true;
-    }
-    if (text.includes('heart failure') || text.includes('congestive heart failure') || text.includes('chf')) {
-      parsedData.heart_failure = true;
-    }
-    if (text.includes('cerebrovascular disease') || text.includes('stroke') || text.includes('cva')) {
-      parsedData.cerebrovascular_disease = true;
-    }
-    if (text.includes('pulmonary hypertension') || text.includes('pah')) {
-      parsedData.pulmonary_hypertension = true;
-    }
-    if (text.includes('dvt') || text.includes('deep vein thrombosis')) {
-      parsedData.dvt = true;
-    }
-    if (text.includes('pe') || text.includes('pulmonary embolism')) {
-      parsedData.pe = true;
-    }
-
-    // Sleep and respiratory conditions
-    if (text.includes('osa') || text.includes('sleep apnoea') || text.includes('obstructive sleep apnea')) {
-      parsedData.osa = true;
-    }
-    if (text.includes('sleep studies') || text.includes('polysomnography')) {
-      parsedData.sleep_studies = true;
-    }
-    if (text.includes('cpap') || text.includes('continuous positive airway pressure')) {
-      parsedData.cpap = true;
-    }
-    if (text.includes('asthma') || text.includes('bronchial asthma')) {
-      parsedData.asthma = true;
-    }
-
-    // Gastrointestinal conditions
-    if (text.includes('gord') || text.includes('gerd') || text.includes('gastroesophageal reflux')) {
-      parsedData.gord = true;
-    }
-
-    // Renal conditions
-    if (text.includes('ckd') || text.includes('chronic kidney disease') || text.includes('renal failure')) {
-      parsedData.ckd = true;
-    }
-    if (text.includes('kidney stones') || text.includes('nephrolithiasis') || text.includes('renal calculi')) {
-      parsedData.kidney_stones = true;
-    }
-
-    // Metabolic conditions
-    if (text.includes('masld') || text.includes('nafld') || text.includes('fatty liver') || text.includes('steatohepatitis')) {
-      parsedData.masld = true;
-    }
-
-    // Reproductive conditions
-    if (text.includes('infertility') || text.includes('infertile')) {
-      parsedData.infertility = true;
-    }
-    if (text.includes('pcos') || text.includes('polycystic ovary syndrome')) {
-      parsedData.pcos = true;
-    }
-
-    // Mental health conditions
-    if (text.includes('anxiety') || text.includes('anxious') || text.includes('panic')) {
-      parsedData.anxiety = true;
-    }
-    if (text.includes('depression') || text.includes('depressed') || text.includes('mood disorder')) {
-      parsedData.depression = true;
-    }
-    if (text.includes('bipolar') || text.includes('manic depression')) {
-      parsedData.bipolar_disorder = true;
-    }
-    if (text.includes('emotional eating') || text.includes('binge eating')) {
-      parsedData.emotional_eating = true;
-    }
-    if (text.includes('schizoaffective')) {
-      parsedData.schizoaffective_disorder = true;
-    }
-
-    // Musculoskeletal conditions
-    if (text.includes('osteoarthritis knee') || text.includes('oa knee') || text.includes('knee arthritis')) {
-      parsedData.oa_knee = true;
-    }
-    if (text.includes('osteoarthritis hip') || text.includes('oa hip') || text.includes('hip arthritis')) {
-      parsedData.oa_hip = true;
-    }
-    if (text.includes('limited mobility') || text.includes('mobility issues')) {
-      parsedData.limited_mobility = true;
-    }
-    if (text.includes('lymphoedema') || text.includes('lymphedema')) {
-      parsedData.lymphoedema = true;
-    }
-
-    // Endocrine conditions
-    if (text.includes('thyroid') || text.includes('hypothyroidism') || text.includes('hyperthyroidism')) {
-      parsedData.thyroid_disorder = true;
-    }
-
-    // Neurological conditions
-    if (text.includes('iih') || text.includes('idiopathic intracranial hypertension') || text.includes('pseudotumor cerebri')) {
-      parsedData.iih = true;
-    }
-    if (text.includes('epilepsy') || text.includes('seizure')) {
-      parsedData.epilepsy = true;
-    }
-    if (text.includes('functional neurological disorder') || text.includes('fnd')) {
-      parsedData.functional_neurological_disorder = true;
-    }
-
-    // Oncology
-    if (text.includes('cancer') || text.includes('malignancy') || text.includes('tumor') || text.includes('neoplasm')) {
-      parsedData.cancer = true;
-    }
-
-    // Bariatric surgery
-    if (text.includes('gastric band') || text.includes('lap band')) {
-      parsedData.bariatric_gastric_band = true;
-    }
-    if (text.includes('sleeve') || text.includes('sleeve gastrectomy')) {
-      parsedData.bariatric_sleeve = true;
-    }
-    if (text.includes('bypass') || text.includes('gastric bypass') || text.includes('roux-en-y')) {
-      parsedData.bariatric_bypass = true;
-    }
-    if (text.includes('balloon') || text.includes('gastric balloon')) {
-      parsedData.bariatric_balloon = true;
-    }
-
-    // Extract numerical values with improved patterns
-    const hba1cMatch = text.match(/hba1c[:\s]*([0-9.]+)(?:\s*%)?/i);
-    if (hba1cMatch) {
-      parsedData.baseline_hba1c = parseFloat(hba1cMatch[1]);
-    }
-
-    const bmiMatch = text.match(/bmi[:\s]*([0-9.]+)/i);
-    if (bmiMatch) {
-      parsedData.baseline_bmi = parseFloat(bmiMatch[1]);
-    }
-
-    const weightMatch = text.match(/weight[:\s]*([0-9.]+)\s*kg/i);
-    if (weightMatch) {
-      parsedData.baseline_weight = parseFloat(weightMatch[1]);
-    }
-
-    const heightMatch = text.match(/height[:\s]*([0-9.]+)\s*cm/i);
-    if (heightMatch) {
-      parsedData.height = parseFloat(heightMatch[1]);
-    }
-
-    // Blood pressure
-    const bpMatch = text.match(/blood pressure[:\s]*([0-9]+)\/([0-9]+)/i);
-    if (bpMatch) {
-      parsedData.systolic_bp = parseInt(bpMatch[1]);
-      parsedData.diastolic_bp = parseInt(bpMatch[2]);
-    }
-
-    // Lipid values
-    const tcMatch = text.match(/total cholesterol[:\s]*([0-9.]+)/i);
-    if (tcMatch) {
-      parsedData.baseline_tc = parseFloat(tcMatch[1]);
-    }
-
-    const hdlMatch = text.match(/hdl[:\s]*([0-9.]+)/i);
-    if (hdlMatch) {
-      parsedData.baseline_hdl = parseFloat(hdlMatch[1]);
-    }
-
-    const ldlMatch = text.match(/ldl[:\s]*([0-9.]+)/i);
-    if (ldlMatch) {
-      parsedData.baseline_ldl = parseFloat(ldlMatch[1]);
-    }
-
-    const tgMatch = text.match(/triglycerides?[:\s]*([0-9.]+)/i);
-    if (tgMatch) {
-      parsedData.baseline_tg = parseFloat(tgMatch[1]);
-    }
+    console.log('📊 Parsed data from AI:', Object.keys(parsedData));
 
     // Get current patient data for comparison
     const currentPatient = await prisma.patient.findUnique({
@@ -517,28 +325,81 @@ app.post('/api/doctor/parse-history', async (req, res) => {
     });
 
     if (!currentPatient) {
-      return res.status(404).json({ error: 'Patient not found' });
+      return res.status(404).json({ 
+        error: 'Patient not found',
+        success: false 
+      });
     }
 
     const auditLogs = [];
     const updates = {};
 
-    // Compare parsed data with current data
-    for (const [field, value] of Object.entries(parsedData)) {
-      if (value !== null && value !== undefined) {
-        const currentValue = currentPatient[field];
-        if (currentValue !== value) {
+    // Map AI parsed data to database fields
+    const fieldMapping = {
+      age: 'age',
+      sex: 'sex',
+      height: 'height',
+      weight: 'baseline_weight',
+      bmi: 'baseline_bmi',
+      systolic_bp: 'systolic_bp',
+      diastolic_bp: 'diastolic_bp',
+      hba1c_percent: 'hba1c_percent',
+      baseline_hba1c: 'baseline_hba1c',
+      baseline_tc: 'baseline_tc',
+      baseline_hdl: 'baseline_hdl',
+      baseline_ldl: 'baseline_ldl',
+      baseline_tg: 'baseline_tg',
+      creatinine: 'creatinine',
+      egfr: 'egfr',
+      t2dm: 't2dm',
+      prediabetes: 'prediabetes',
+      diabetes_type: 'diabetes_type',
+      htn: 'htn',
+      hypertension: 'hypertension',
+      dyslipidaemia: 'dyslipidaemia',
+      ascvd: 'ascvd',
+      ckd: 'ckd',
+      osa: 'osa',
+      obesity: 'obesity',
+      notes: 'notes',
+      comorbidities_count: 'total_qualifying_comorbidities'
+    };
+
+    // Compare parsed data with current data and create updates
+    for (const [aiField, dbField] of Object.entries(fieldMapping)) {
+      if (parsedData[aiField] !== null && parsedData[aiField] !== undefined) {
+        const currentValue = currentPatient[dbField];
+        const newValue = parsedData[aiField];
+        
+        if (currentValue !== newValue) {
           auditLogs.push({
             patientId,
-            field_name: field,
+            field_name: dbField,
             old_value: currentValue?.toString() || null,
-            new_value: value.toString(),
-            ai_confidence: 0.85,
-            ai_suggestion: `AI detected: ${value}`,
+            new_value: newValue.toString(),
+            ai_confidence: 0.9,
+            ai_suggestion: `AI detected: ${newValue}`,
             clinician_approved: false
           });
-          updates[field] = value;
+          updates[dbField] = newValue;
         }
+      }
+    }
+
+    // Handle medications separately
+    if (parsedData.medications && Array.isArray(parsedData.medications)) {
+      const medicationsString = parsedData.medications.join(', ');
+      if (currentPatient.all_medications_from_scr !== medicationsString) {
+        auditLogs.push({
+          patientId,
+          field_name: 'all_medications_from_scr',
+          old_value: currentPatient.all_medications_from_scr || null,
+          new_value: medicationsString,
+          ai_confidence: 0.9,
+          ai_suggestion: `AI detected medications: ${medicationsString}`,
+          clinician_approved: false
+        });
+        updates.all_medications_from_scr = medicationsString;
       }
     }
 
@@ -551,13 +412,25 @@ app.post('/api/doctor/parse-history', async (req, res) => {
 
     // Extract conditions for the conditions table
     const conditions = [];
-    const conditionKeywords = [
-      'diabetes', 'hypertension', 'asthma', 'anxiety', 'depression', 'arthritis', 'thyroid', 'cancer'
-    ];
+    if (parsedData.medications && Array.isArray(parsedData.medications)) {
+      conditions.push(...parsedData.medications);
+    }
     
-    for (const keyword of conditionKeywords) {
-      if (text.includes(keyword)) {
-        conditions.push(keyword);
+    // Add conditions based on boolean flags
+    const conditionFlags = {
+      t2dm: 'Type 2 Diabetes',
+      prediabetes: 'Prediabetes',
+      htn: 'Hypertension',
+      dyslipidaemia: 'Dyslipidemia',
+      ascvd: 'ASCVD',
+      ckd: 'Chronic Kidney Disease',
+      osa: 'Obstructive Sleep Apnea',
+      obesity: 'Obesity'
+    };
+
+    for (const [flag, conditionName] of Object.entries(conditionFlags)) {
+      if (parsedData[flag]) {
+        conditions.push(conditionName);
       }
     }
 
@@ -574,7 +447,7 @@ app.post('/api/doctor/parse-history', async (req, res) => {
       )
     );
 
-    console.log(`✅ Parsed ${Object.keys(parsedData).length} fields, found ${auditLogs.length} updates`);
+    console.log(`✅ AI parsed ${Object.keys(parsedData).length} fields, found ${auditLogs.length} updates`);
 
     res.json({
       success: true,
@@ -586,7 +459,7 @@ app.post('/api/doctor/parse-history', async (req, res) => {
         name: c.name,
         normalized: c.normalized
       })),
-      message: `Found ${auditLogs.length} potential updates requiring review`
+      message: `AI successfully extracted ${Object.keys(parsedData).length} data points, ${auditLogs.length} updates require review`
     });
   } catch (error) {
     console.error('Error parsing medical history:', error);
