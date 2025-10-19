@@ -23,16 +23,29 @@ app.get('/api/test-public', (req, res) => {
 });
 
 // Auth endpoints
-app.get('/api/auth/me', (req, res) => {
-  // For demo purposes, return a mock user
-  // In a real app, you'd verify the JWT token and return actual user data
-  res.json({
-    id: 'demo-user-id',
-    email: 'demo@example.com',
-    name: 'Demo User',
-    role: 'patient',
-    hospitalCode: '123456789'
-  });
+app.get('/api/auth/me', async (req, res) => {
+  try {
+    // For demo purposes, get the most recent user
+    // In a real app, you'd verify the JWT token and return actual user data
+    const user = await prisma.user.findFirst({
+      orderBy: { createdAt: 'desc' }
+    });
+    
+    if (user) {
+      res.json({
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        role: user.role,
+        hospitalCode: user.hospitalCode
+      });
+    } else {
+      res.status(404).json({ error: 'User not found' });
+    }
+  } catch (error) {
+    console.error('Error getting user data:', error);
+    res.status(500).json({ error: 'Failed to get user data' });
+  }
 });
 
 // Auth routes
@@ -600,13 +613,24 @@ app.get('/api/ai/status', (req, res) => {
   });
 });
 
-app.get('/api/auth/survey-status', (req, res) => {
+app.get('/api/auth/survey-status', async (req, res) => {
   try {
-    // For demo purposes, check if any user has completed the survey
+    // For demo purposes, get the most recent user and check their survey status
     // In a real app, you'd get specific user ID from JWT token
-    const hasCompletedSurvey = Array.from(surveyCompletionStatus.values()).some(status => status === true);
+    const user = await prisma.user.findFirst({
+      orderBy: { createdAt: 'desc' }
+    });
     
-    console.log('Survey status requested - completed:', hasCompletedSurvey);
+    if (!user) {
+      return res.json({ 
+        surveyCompleted: false,
+        lastCompleted: null
+      });
+    }
+    
+    const hasCompletedSurvey = surveyCompletionStatus.get(user.id) || false;
+    
+    console.log('Survey status requested for user:', user.email, '- completed:', hasCompletedSurvey);
     console.log('Survey completion status map:', Object.fromEntries(surveyCompletionStatus));
     
     res.json({ 

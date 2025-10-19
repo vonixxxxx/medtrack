@@ -17,6 +17,9 @@ const PostSignupSurvey = ({ isOpen, onComplete, userEmail }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
+  // Debug logging
+  console.log('PostSignupSurvey rendered with props:', { isOpen, userEmail });
+
   // Survey data state
   const [formData, setFormData] = useState({
     // Step 1: Basic Demographics (Required)
@@ -1447,7 +1450,12 @@ const PostSignupSurvey = ({ isOpen, onComplete, userEmail }) => {
     }
   };
 
-  if (!isOpen) return null;
+  if (!isOpen) {
+    console.log('PostSignupSurvey not showing because isOpen is false');
+    return null;
+  }
+  
+  console.log('PostSignupSurvey is showing!');
 
   return (
     <motion.div
