@@ -31,22 +31,44 @@ const DoctorDashboard = () => {
 
   const loadUserData = async () => {
     try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        console.log('No token found, redirecting to login');
+        window.location.href = '/login';
+        return;
+      }
+      
       const { data } = await api.get('auth/me');
       setUser(data);
     } catch (error) {
       console.error('Error loading user data:', error);
+      // If auth fails, redirect to login
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      window.location.href = '/login';
     }
   };
 
   const loadPatients = async () => {
     try {
       setIsLoading(true);
-      // This will be implemented to fetch patients by hospital code
+      const token = localStorage.getItem('token');
+      if (!token) {
+        console.log('No token found, skipping patient load');
+        return;
+      }
+      
       const { data } = await api.get('doctor/patients');
       setPatients(data);
       setFilteredPatients(data);
     } catch (error) {
       console.error('Error loading patients:', error);
+      // If auth fails, redirect to login
+      if (error.response?.status === 401) {
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        window.location.href = '/login';
+      }
     } finally {
       setIsLoading(false);
     }
@@ -86,6 +108,19 @@ const DoctorDashboard = () => {
     // Refresh patients data to show updated conditions
     loadPatients();
   };
+
+  // Check if user is authenticated
+  const token = localStorage.getItem('token');
+  if (!token) {
+    return (
+      <div className="min-h-screen bg-background text-foreground flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
+          <p className="text-gray-400">Redirecting to login...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (isLoading) {
     return (
