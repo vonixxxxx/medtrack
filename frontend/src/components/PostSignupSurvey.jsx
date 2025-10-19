@@ -19,12 +19,16 @@ const PostSignupSurvey = ({ isOpen, onComplete, userEmail }) => {
 
   // Survey data state
   const [formData, setFormData] = useState({
-    // Step 1: Basic Demographics
+    // Step 1: Basic Demographics (Required)
+    name: '',
     dateOfBirth: '',
     biologicalSex: '',
     ethnicity: '',
+    location: '',
+    postcode: '',
+    nhsNumber: '',
 
-    // Step 2: Female-Specific Questions
+    // Step 2: Medical History (Optional)
     hasMenses: null,
     ageAtMenarche: '',
     menstrualRegularity: '',
@@ -59,14 +63,83 @@ const PostSignupSurvey = ({ isOpen, onComplete, userEmail }) => {
     readinessToQuit: 0,
     ipaqScore: 0,
 
-    // Step 5: Anthropometrics & Vitals
+    // Step 5: Physical Measurements & Medical Data (Optional)
     weight: '',
     height: '',
     waistCircumference: '',
     hipCircumference: '',
     neckCircumference: '',
     systolicBP: '',
-    diastolicBP: ''
+    diastolicBP: '',
+    
+    // Additional medical fields
+    baselineWeight: '',
+    baselineWeightDate: '',
+    baselineBMI: '',
+    baselineHbA1c: '',
+    baselineHbA1cDate: '',
+    baselineFastingGlucose: '',
+    randomGlucose: '',
+    baselineTC: '',
+    baselineHDL: '',
+    baselineLDL: '',
+    baselineTG: '',
+    baselineLipidDate: '',
+    
+    // Medical conditions (optional checkboxes)
+    ascvd: false,
+    htn: false,
+    hypertension: false,
+    dyslipidaemia: false,
+    ischaemicHeartDisease: false,
+    heartFailure: false,
+    cerebrovascularDisease: false,
+    pulmonaryHypertension: false,
+    dvt: false,
+    pe: false,
+    osa: false,
+    sleepStudies: false,
+    cpap: false,
+    asthma: false,
+    t2dm: false,
+    prediabetes: false,
+    diabetesType: '',
+    gord: false,
+    ckd: false,
+    kidneyStones: false,
+    masld: false,
+    infertility: false,
+    pcos: false,
+    anxiety: false,
+    depression: false,
+    bipolarDisorder: false,
+    emotionalEating: false,
+    schizoaffectiveDisorder: false,
+    oaKnee: false,
+    oaHip: false,
+    limitedMobility: false,
+    lymphoedema: false,
+    thyroidDisorder: false,
+    iih: false,
+    epilepsy: false,
+    functionalNeurologicalDisorder: false,
+    cancer: false,
+    bariatricGastricBand: false,
+    bariatricSleeve: false,
+    bariatricBypass: false,
+    bariatricBalloon: false,
+    
+    // Medications
+    lipidLoweringTreatment: '',
+    antihypertensiveMedications: '',
+    allMedicationsFromSCR: '',
+    
+    // Clinical data
+    diagnosesCodedInSCR: '',
+    totalQualifyingComorbidities: '',
+    mes: '',
+    notes: '',
+    criteriaForWegovy: ''
   });
 
   const steps = [
@@ -74,7 +147,8 @@ const PostSignupSurvey = ({ isOpen, onComplete, userEmail }) => {
     { number: 2, title: 'Health Profile', description: 'Your health information' },
     { number: 3, title: 'Lifestyle Assessment', description: 'Your daily habits and activities' },
     { number: 4, title: 'Physical Measurements', description: 'Your current health metrics' },
-    { number: 5, title: 'Review & Complete', description: 'Review your information' }
+    { number: 5, title: 'Medical Conditions', description: 'Your medical history (optional)' },
+    { number: 6, title: 'Review & Complete', description: 'Review your information' }
   ];
 
   const totalSteps = steps.length;
@@ -143,8 +217,8 @@ const PostSignupSurvey = ({ isOpen, onComplete, userEmail }) => {
   const validateStep = (step) => {
     switch (step) {
       case 1:
-        if (!formData.dateOfBirth || !formData.biologicalSex || !formData.ethnicity) {
-          setError('Date of birth, biological sex, and ethnicity are required');
+        if (!formData.name || !formData.dateOfBirth || !formData.biologicalSex || !formData.ethnicity) {
+          setError('Name, date of birth, biological sex, and ethnicity are required');
           return false;
         }
         return true;
@@ -194,6 +268,9 @@ const PostSignupSurvey = ({ isOpen, onComplete, userEmail }) => {
         return true;
       
       case 5:
+        return true; // Medical conditions step - all optional
+      
+      case 6:
         return true; // Review step
       
       default:
@@ -220,9 +297,16 @@ const PostSignupSurvey = ({ isOpen, onComplete, userEmail }) => {
     try {
       // Save survey data
       const surveyData = {
+        // Basic demographics
+        name: formData.name,
         dateOfBirth: new Date(formData.dateOfBirth),
         biologicalSex: formData.biologicalSex,
         ethnicity: formData.ethnicity,
+        location: formData.location || '',
+        postcode: formData.postcode || '',
+        nhsNumber: formData.nhsNumber || '',
+        
+        // Medical history
         hasMenses: formData.hasMenses,
         ageAtMenarche: formData.ageAtMenarche ? parseInt(formData.ageAtMenarche) : null,
         menstrualRegularity: formData.menstrualRegularity || '',
@@ -252,13 +336,82 @@ const PostSignupSurvey = ({ isOpen, onComplete, userEmail }) => {
         psecdiScore: formData.psecdiScore || 0,
         readinessToQuit: formData.readinessToQuit || 0,
         ipaqScore: formData.ipaqScore || 0,
+        
+        // Physical measurements
         weight: parseFloat(formData.weight),
         height: parseFloat(formData.height),
         waistCircumference: formData.waistCircumference ? parseFloat(formData.waistCircumference) : null,
         hipCircumference: formData.hipCircumference ? parseFloat(formData.hipCircumference) : null,
         neckCircumference: formData.neckCircumference ? parseFloat(formData.neckCircumference) : null,
         systolicBP: formData.systolicBP ? parseInt(formData.systolicBP) : null,
-        diastolicBP: formData.diastolicBP ? parseInt(formData.diastolicBP) : null
+        diastolicBP: formData.diastolicBP ? parseInt(formData.diastolicBP) : null,
+        
+        // Additional medical fields
+        baselineWeight: formData.baselineWeight ? parseFloat(formData.baselineWeight) : null,
+        baselineWeightDate: formData.baselineWeightDate ? new Date(formData.baselineWeightDate) : null,
+        baselineBMI: formData.baselineBMI ? parseFloat(formData.baselineBMI) : null,
+        baselineHbA1c: formData.baselineHbA1c ? parseFloat(formData.baselineHbA1c) : null,
+        baselineHbA1cDate: formData.baselineHbA1cDate ? new Date(formData.baselineHbA1cDate) : null,
+        baselineFastingGlucose: formData.baselineFastingGlucose ? parseFloat(formData.baselineFastingGlucose) : null,
+        randomGlucose: formData.randomGlucose ? parseFloat(formData.randomGlucose) : null,
+        baselineTC: formData.baselineTC ? parseFloat(formData.baselineTC) : null,
+        baselineHDL: formData.baselineHDL ? parseFloat(formData.baselineHDL) : null,
+        baselineLDL: formData.baselineLDL ? parseFloat(formData.baselineLDL) : null,
+        baselineTG: formData.baselineTG ? parseFloat(formData.baselineTG) : null,
+        baselineLipidDate: formData.baselineLipidDate ? new Date(formData.baselineLipidDate) : null,
+        
+        // Medical conditions
+        ascvd: formData.ascvd,
+        htn: formData.htn,
+        hypertension: formData.hypertension,
+        dyslipidaemia: formData.dyslipidaemia,
+        ischaemicHeartDisease: formData.ischaemicHeartDisease,
+        heartFailure: formData.heartFailure,
+        cerebrovascularDisease: formData.cerebrovascularDisease,
+        pulmonaryHypertension: formData.pulmonaryHypertension,
+        dvt: formData.dvt,
+        pe: formData.pe,
+        osa: formData.osa,
+        sleepStudies: formData.sleepStudies,
+        cpap: formData.cpap,
+        asthma: formData.asthma,
+        t2dm: formData.t2dm,
+        prediabetes: formData.prediabetes,
+        diabetesType: formData.diabetesType || '',
+        gord: formData.gord,
+        ckd: formData.ckd,
+        kidneyStones: formData.kidneyStones,
+        masld: formData.masld,
+        infertility: formData.infertility,
+        pcos: formData.pcos,
+        anxiety: formData.anxiety,
+        depression: formData.depression,
+        bipolarDisorder: formData.bipolarDisorder,
+        emotionalEating: formData.emotionalEating,
+        schizoaffectiveDisorder: formData.schizoaffectiveDisorder,
+        oaKnee: formData.oaKnee,
+        oaHip: formData.oaHip,
+        limitedMobility: formData.limitedMobility,
+        lymphoedema: formData.lymphoedema,
+        thyroidDisorder: formData.thyroidDisorder,
+        iih: formData.iih,
+        epilepsy: formData.epilepsy,
+        functionalNeurologicalDisorder: formData.functionalNeurologicalDisorder,
+        cancer: formData.cancer,
+        bariatricGastricBand: formData.bariatricGastricBand,
+        bariatricSleeve: formData.bariatricSleeve,
+        bariatricBypass: formData.bariatricBypass,
+        bariatricBalloon: formData.bariatricBalloon,
+        
+        // Medications and clinical data
+        lipidLoweringTreatment: formData.lipidLoweringTreatment || '',
+        antihypertensiveMedications: formData.antihypertensiveMedications || '',
+        allMedicationsFromSCR: formData.allMedicationsFromSCR || '',
+        diagnosesCodedInSCR: formData.diagnosesCodedInSCR || '',
+        totalQualifyingComorbidities: formData.totalQualifyingComorbidities ? parseInt(formData.totalQualifyingComorbidities) : null,
+        mes: formData.mes ? parseFloat(formData.mes) : null,
+        notes: formData.notes || '',
+        criteriaForWegovy: formData.criteriaForWegovy || ''
       };
 
       console.log('Sending survey data:', surveyData);
@@ -296,6 +449,19 @@ const PostSignupSurvey = ({ isOpen, onComplete, userEmail }) => {
               <p className="text-gray-400 text-sm">
                 Let's complete your health profile to provide you with personalized medication tracking and insights.
               </p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-white mb-2">
+                Full Name *
+              </label>
+              <Input
+                type="text"
+                value={formData.name}
+                onChange={(e) => handleInputChange('name', e.target.value)}
+                placeholder="Enter your full name"
+                className="bg-gray-900 border-gray-800 text-white placeholder-gray-400 focus:border-white focus:ring-1 focus:ring-white"
+              />
             </div>
 
             <div>
@@ -343,6 +509,45 @@ const PostSignupSurvey = ({ isOpen, onComplete, userEmail }) => {
                   <option key={index} value={option}>{option}</option>
                 ))}
               </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-white mb-2">
+                Location (optional)
+              </label>
+              <Input
+                type="text"
+                value={formData.location}
+                onChange={(e) => handleInputChange('location', e.target.value)}
+                placeholder="e.g., London, Manchester, Birmingham"
+                className="bg-gray-900 border-gray-800 text-white placeholder-gray-400 focus:border-white focus:ring-1 focus:ring-white"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-white mb-2">
+                Postcode (optional)
+              </label>
+              <Input
+                type="text"
+                value={formData.postcode}
+                onChange={(e) => handleInputChange('postcode', e.target.value)}
+                placeholder="e.g., SW1A 1AA"
+                className="bg-gray-900 border-gray-800 text-white placeholder-gray-400 focus:border-white focus:ring-1 focus:ring-white"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-white mb-2">
+                NHS Number (optional)
+              </label>
+              <Input
+                type="text"
+                value={formData.nhsNumber}
+                onChange={(e) => handleInputChange('nhsNumber', e.target.value)}
+                placeholder="10-digit NHS number"
+                className="bg-gray-900 border-gray-800 text-white placeholder-gray-400 focus:border-white focus:ring-1 focus:ring-white"
+              />
             </div>
           </div>
         );
@@ -1004,6 +1209,175 @@ const PostSignupSurvey = ({ isOpen, onComplete, userEmail }) => {
         );
 
       case 5:
+        return (
+          <div className="space-y-6">
+            <div className="text-center mb-6">
+              <h3 className="text-xl font-semibold text-white mb-2">Medical Conditions (Optional)</h3>
+              <p className="text-gray-400">Please indicate any medical conditions you have. All fields are optional.</p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-4">
+                <h4 className="text-white font-medium mb-3">Cardiovascular</h4>
+                {[
+                  { key: 'ascvd', label: 'ASCVD' },
+                  { key: 'htn', label: 'Hypertension' },
+                  { key: 'dyslipidaemia', label: 'Dyslipidaemia' },
+                  { key: 'ischaemicHeartDisease', label: 'Ischaemic Heart Disease' },
+                  { key: 'heartFailure', label: 'Heart Failure' },
+                  { key: 'cerebrovascularDisease', label: 'Cerebrovascular Disease' },
+                  { key: 'pulmonaryHypertension', label: 'Pulmonary Hypertension' },
+                  { key: 'dvt', label: 'DVT' },
+                  { key: 'pe', label: 'PE' }
+                ].map((condition) => (
+                  <label key={condition.key} className="flex items-center space-x-3 p-3 bg-gray-800 rounded-xl hover:bg-gray-700 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={formData[condition.key]}
+                      onChange={(e) => handleInputChange(condition.key, e.target.checked)}
+                      className="w-4 h-4 text-white bg-gray-900 border-gray-600 rounded focus:ring-white focus:ring-2"
+                    />
+                    <span className="text-white text-sm">{condition.label}</span>
+                  </label>
+                ))}
+              </div>
+
+              <div className="space-y-4">
+                <h4 className="text-white font-medium mb-3">Metabolic & Endocrine</h4>
+                {[
+                  { key: 't2dm', label: 'Type 2 Diabetes' },
+                  { key: 'prediabetes', label: 'Prediabetes' },
+                  { key: 'thyroidDisorder', label: 'Thyroid Disorder' },
+                  { key: 'masld', label: 'MASLD' },
+                  { key: 'pcos', label: 'PCOS' },
+                  { key: 'infertility', label: 'Infertility' }
+                ].map((condition) => (
+                  <label key={condition.key} className="flex items-center space-x-3 p-3 bg-gray-800 rounded-xl hover:bg-gray-700 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={formData[condition.key]}
+                      onChange={(e) => handleInputChange(condition.key, e.target.checked)}
+                      className="w-4 h-4 text-white bg-gray-900 border-gray-600 rounded focus:ring-white focus:ring-2"
+                    />
+                    <span className="text-white text-sm">{condition.label}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-4">
+                <h4 className="text-white font-medium mb-3">Respiratory & Sleep</h4>
+                {[
+                  { key: 'asthma', label: 'Asthma' },
+                  { key: 'osa', label: 'OSA' },
+                  { key: 'sleepStudies', label: 'Sleep Studies' },
+                  { key: 'cpap', label: 'CPAP' }
+                ].map((condition) => (
+                  <label key={condition.key} className="flex items-center space-x-3 p-3 bg-gray-800 rounded-xl hover:bg-gray-700 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={formData[condition.key]}
+                      onChange={(e) => handleInputChange(condition.key, e.target.checked)}
+                      className="w-4 h-4 text-white bg-gray-900 border-gray-600 rounded focus:ring-white focus:ring-2"
+                    />
+                    <span className="text-white text-sm">{condition.label}</span>
+                  </label>
+                ))}
+              </div>
+
+              <div className="space-y-4">
+                <h4 className="text-white font-medium mb-3">Mental Health</h4>
+                {[
+                  { key: 'anxiety', label: 'Anxiety' },
+                  { key: 'depression', label: 'Depression' },
+                  { key: 'bipolarDisorder', label: 'Bipolar Disorder' },
+                  { key: 'emotionalEating', label: 'Emotional Eating' },
+                  { key: 'schizoaffectiveDisorder', label: 'Schizoaffective Disorder' }
+                ].map((condition) => (
+                  <label key={condition.key} className="flex items-center space-x-3 p-3 bg-gray-800 rounded-xl hover:bg-gray-700 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={formData[condition.key]}
+                      onChange={(e) => handleInputChange(condition.key, e.target.checked)}
+                      className="w-4 h-4 text-white bg-gray-900 border-gray-600 rounded focus:ring-white focus:ring-2"
+                    />
+                    <span className="text-white text-sm">{condition.label}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-4">
+                <h4 className="text-white font-medium mb-3">Musculoskeletal</h4>
+                {[
+                  { key: 'oaKnee', label: 'OA Knee' },
+                  { key: 'oaHip', label: 'OA Hip' },
+                  { key: 'limitedMobility', label: 'Limited Mobility' },
+                  { key: 'lymphoedema', label: 'Lymphoedema' }
+                ].map((condition) => (
+                  <label key={condition.key} className="flex items-center space-x-3 p-3 bg-gray-800 rounded-xl hover:bg-gray-700 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={formData[condition.key]}
+                      onChange={(e) => handleInputChange(condition.key, e.target.checked)}
+                      className="w-4 h-4 text-white bg-gray-900 border-gray-600 rounded focus:ring-white focus:ring-2"
+                    />
+                    <span className="text-white text-sm">{condition.label}</span>
+                  </label>
+                ))}
+              </div>
+
+              <div className="space-y-4">
+                <h4 className="text-white font-medium mb-3">Other Conditions</h4>
+                {[
+                  { key: 'gord', label: 'GORD' },
+                  { key: 'ckd', label: 'CKD' },
+                  { key: 'kidneyStones', label: 'Kidney Stones' },
+                  { key: 'iih', label: 'IIH' },
+                  { key: 'epilepsy', label: 'Epilepsy' },
+                  { key: 'functionalNeurologicalDisorder', label: 'Functional Neurological Disorder' },
+                  { key: 'cancer', label: 'Cancer' }
+                ].map((condition) => (
+                  <label key={condition.key} className="flex items-center space-x-3 p-3 bg-gray-800 rounded-xl hover:bg-gray-700 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={formData[condition.key]}
+                      onChange={(e) => handleInputChange(condition.key, e.target.checked)}
+                      className="w-4 h-4 text-white bg-gray-900 border-gray-600 rounded focus:ring-white focus:ring-2"
+                    />
+                    <span className="text-white text-sm">{condition.label}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <h4 className="text-white font-medium mb-3">Bariatric Surgery (if applicable)</h4>
+              <div className="grid grid-cols-2 gap-4">
+                {[
+                  { key: 'bariatricGastricBand', label: 'Gastric Band' },
+                  { key: 'bariatricSleeve', label: 'Sleeve' },
+                  { key: 'bariatricBypass', label: 'Bypass' },
+                  { key: 'bariatricBalloon', label: 'Balloon' }
+                ].map((condition) => (
+                  <label key={condition.key} className="flex items-center space-x-3 p-3 bg-gray-800 rounded-xl hover:bg-gray-700 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={formData[condition.key]}
+                      onChange={(e) => handleInputChange(condition.key, e.target.checked)}
+                      className="w-4 h-4 text-white bg-gray-900 border-gray-600 rounded focus:ring-white focus:ring-2"
+                    />
+                    <span className="text-white text-sm">{condition.label}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+          </div>
+        );
+
+      case 6:
         return (
           <div className="space-y-6">
             <div className="text-center mb-6">

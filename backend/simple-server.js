@@ -219,69 +219,218 @@ app.post('/api/doctor/parse-history', async (req, res) => {
       return res.status(400).json({ error: 'Patient ID and medical notes are required' });
     }
 
-    // Simple AI parsing simulation
+    console.log(`🔍 Parsing medical history for patient ${patientId}`);
+    console.log(`📝 Medical notes: ${medicalNotes.substring(0, 100)}...`);
+
+    // Enhanced AI parsing with comprehensive condition detection
     const text = medicalNotes.toLowerCase();
     const parsedData = {};
 
     // Diabetes detection
-    if (text.includes('type 2 diabetes') || text.includes('t2dm')) {
+    if (text.includes('type 2 diabetes') || text.includes('t2dm') || text.includes('diabetes mellitus type 2')) {
       parsedData.t2dm = true;
       parsedData.diabetes_type = 'Type 2';
     }
-    if (text.includes('prediabetes')) {
+    if (text.includes('type 1 diabetes') || text.includes('t1dm') || text.includes('diabetes mellitus type 1')) {
+      parsedData.diabetes_type = 'Type 1';
+    }
+    if (text.includes('prediabetes') || text.includes('impaired glucose tolerance') || text.includes('impaired fasting glucose')) {
       parsedData.prediabetes = true;
     }
 
     // Cardiovascular conditions
-    if (text.includes('ascvd') || text.includes('atherosclerotic')) {
+    if (text.includes('ascvd') || text.includes('atherosclerotic') || text.includes('cardiovascular disease')) {
       parsedData.ascvd = true;
     }
-    if (text.includes('hypertension') || text.includes('htn')) {
+    if (text.includes('hypertension') || text.includes('htn') || text.includes('high blood pressure')) {
       parsedData.htn = true;
       parsedData.hypertension = true;
     }
-    if (text.includes('dyslipidaemia') || text.includes('cholesterol')) {
+    if (text.includes('dyslipidaemia') || text.includes('cholesterol') || text.includes('hyperlipidemia') || text.includes('hypercholesterolemia')) {
       parsedData.dyslipidaemia = true;
     }
+    if (text.includes('ischaemic heart disease') || text.includes('coronary artery disease') || text.includes('cad')) {
+      parsedData.ischaemic_heart_disease = true;
+    }
+    if (text.includes('heart failure') || text.includes('congestive heart failure') || text.includes('chf')) {
+      parsedData.heart_failure = true;
+    }
+    if (text.includes('cerebrovascular disease') || text.includes('stroke') || text.includes('cva')) {
+      parsedData.cerebrovascular_disease = true;
+    }
+    if (text.includes('pulmonary hypertension') || text.includes('pah')) {
+      parsedData.pulmonary_hypertension = true;
+    }
+    if (text.includes('dvt') || text.includes('deep vein thrombosis')) {
+      parsedData.dvt = true;
+    }
+    if (text.includes('pe') || text.includes('pulmonary embolism')) {
+      parsedData.pe = true;
+    }
 
-    // Sleep conditions
-    if (text.includes('osa') || text.includes('sleep apnoea')) {
+    // Sleep and respiratory conditions
+    if (text.includes('osa') || text.includes('sleep apnoea') || text.includes('obstructive sleep apnea')) {
       parsedData.osa = true;
     }
-    if (text.includes('cpap')) {
+    if (text.includes('sleep studies') || text.includes('polysomnography')) {
+      parsedData.sleep_studies = true;
+    }
+    if (text.includes('cpap') || text.includes('continuous positive airway pressure')) {
       parsedData.cpap = true;
     }
+    if (text.includes('asthma') || text.includes('bronchial asthma')) {
+      parsedData.asthma = true;
+    }
 
-    // Other conditions
-    if (text.includes('asthma')) parsedData.asthma = true;
-    if (text.includes('anxiety')) parsedData.anxiety = true;
-    if (text.includes('depression')) parsedData.depression = true;
+    // Gastrointestinal conditions
+    if (text.includes('gord') || text.includes('gerd') || text.includes('gastroesophageal reflux')) {
+      parsedData.gord = true;
+    }
 
-    // Extract numerical values
-    const hba1cMatch = text.match(/hba1c[:\s]*([0-9.]+)/);
+    // Renal conditions
+    if (text.includes('ckd') || text.includes('chronic kidney disease') || text.includes('renal failure')) {
+      parsedData.ckd = true;
+    }
+    if (text.includes('kidney stones') || text.includes('nephrolithiasis') || text.includes('renal calculi')) {
+      parsedData.kidney_stones = true;
+    }
+
+    // Metabolic conditions
+    if (text.includes('masld') || text.includes('nafld') || text.includes('fatty liver') || text.includes('steatohepatitis')) {
+      parsedData.masld = true;
+    }
+
+    // Reproductive conditions
+    if (text.includes('infertility') || text.includes('infertile')) {
+      parsedData.infertility = true;
+    }
+    if (text.includes('pcos') || text.includes('polycystic ovary syndrome')) {
+      parsedData.pcos = true;
+    }
+
+    // Mental health conditions
+    if (text.includes('anxiety') || text.includes('anxious') || text.includes('panic')) {
+      parsedData.anxiety = true;
+    }
+    if (text.includes('depression') || text.includes('depressed') || text.includes('mood disorder')) {
+      parsedData.depression = true;
+    }
+    if (text.includes('bipolar') || text.includes('manic depression')) {
+      parsedData.bipolar_disorder = true;
+    }
+    if (text.includes('emotional eating') || text.includes('binge eating')) {
+      parsedData.emotional_eating = true;
+    }
+    if (text.includes('schizoaffective')) {
+      parsedData.schizoaffective_disorder = true;
+    }
+
+    // Musculoskeletal conditions
+    if (text.includes('osteoarthritis knee') || text.includes('oa knee') || text.includes('knee arthritis')) {
+      parsedData.oa_knee = true;
+    }
+    if (text.includes('osteoarthritis hip') || text.includes('oa hip') || text.includes('hip arthritis')) {
+      parsedData.oa_hip = true;
+    }
+    if (text.includes('limited mobility') || text.includes('mobility issues')) {
+      parsedData.limited_mobility = true;
+    }
+    if (text.includes('lymphoedema') || text.includes('lymphedema')) {
+      parsedData.lymphoedema = true;
+    }
+
+    // Endocrine conditions
+    if (text.includes('thyroid') || text.includes('hypothyroidism') || text.includes('hyperthyroidism')) {
+      parsedData.thyroid_disorder = true;
+    }
+
+    // Neurological conditions
+    if (text.includes('iih') || text.includes('idiopathic intracranial hypertension') || text.includes('pseudotumor cerebri')) {
+      parsedData.iih = true;
+    }
+    if (text.includes('epilepsy') || text.includes('seizure')) {
+      parsedData.epilepsy = true;
+    }
+    if (text.includes('functional neurological disorder') || text.includes('fnd')) {
+      parsedData.functional_neurological_disorder = true;
+    }
+
+    // Oncology
+    if (text.includes('cancer') || text.includes('malignancy') || text.includes('tumor') || text.includes('neoplasm')) {
+      parsedData.cancer = true;
+    }
+
+    // Bariatric surgery
+    if (text.includes('gastric band') || text.includes('lap band')) {
+      parsedData.bariatric_gastric_band = true;
+    }
+    if (text.includes('sleeve') || text.includes('sleeve gastrectomy')) {
+      parsedData.bariatric_sleeve = true;
+    }
+    if (text.includes('bypass') || text.includes('gastric bypass') || text.includes('roux-en-y')) {
+      parsedData.bariatric_bypass = true;
+    }
+    if (text.includes('balloon') || text.includes('gastric balloon')) {
+      parsedData.bariatric_balloon = true;
+    }
+
+    // Extract numerical values with improved patterns
+    const hba1cMatch = text.match(/hba1c[:\s]*([0-9.]+)(?:\s*%)?/i);
     if (hba1cMatch) {
       parsedData.baseline_hba1c = parseFloat(hba1cMatch[1]);
     }
 
-    const bmiMatch = text.match(/bmi[:\s]*([0-9.]+)/);
+    const bmiMatch = text.match(/bmi[:\s]*([0-9.]+)/i);
     if (bmiMatch) {
       parsedData.baseline_bmi = parseFloat(bmiMatch[1]);
     }
 
-    const weightMatch = text.match(/weight[:\s]*([0-9.]+)\s*kg/);
+    const weightMatch = text.match(/weight[:\s]*([0-9.]+)\s*kg/i);
     if (weightMatch) {
       parsedData.baseline_weight = parseFloat(weightMatch[1]);
     }
 
-    const heightMatch = text.match(/height[:\s]*([0-9.]+)\s*cm/);
+    const heightMatch = text.match(/height[:\s]*([0-9.]+)\s*cm/i);
     if (heightMatch) {
       parsedData.height = parseFloat(heightMatch[1]);
+    }
+
+    // Blood pressure
+    const bpMatch = text.match(/blood pressure[:\s]*([0-9]+)\/([0-9]+)/i);
+    if (bpMatch) {
+      parsedData.systolic_bp = parseInt(bpMatch[1]);
+      parsedData.diastolic_bp = parseInt(bpMatch[2]);
+    }
+
+    // Lipid values
+    const tcMatch = text.match(/total cholesterol[:\s]*([0-9.]+)/i);
+    if (tcMatch) {
+      parsedData.baseline_tc = parseFloat(tcMatch[1]);
+    }
+
+    const hdlMatch = text.match(/hdl[:\s]*([0-9.]+)/i);
+    if (hdlMatch) {
+      parsedData.baseline_hdl = parseFloat(hdlMatch[1]);
+    }
+
+    const ldlMatch = text.match(/ldl[:\s]*([0-9.]+)/i);
+    if (ldlMatch) {
+      parsedData.baseline_ldl = parseFloat(ldlMatch[1]);
+    }
+
+    const tgMatch = text.match(/triglycerides?[:\s]*([0-9.]+)/i);
+    if (tgMatch) {
+      parsedData.baseline_tg = parseFloat(tgMatch[1]);
     }
 
     // Get current patient data for comparison
     const currentPatient = await prisma.patient.findUnique({
       where: { id: patientId }
     });
+
+    if (!currentPatient) {
+      return res.status(404).json({ error: 'Patient not found' });
+    }
 
     const auditLogs = [];
     const updates = {};
@@ -312,12 +461,43 @@ app.post('/api/doctor/parse-history', async (req, res) => {
       });
     }
 
+    // Extract conditions for the conditions table
+    const conditions = [];
+    const conditionKeywords = [
+      'diabetes', 'hypertension', 'asthma', 'anxiety', 'depression', 'arthritis', 'thyroid', 'cancer'
+    ];
+    
+    for (const keyword of conditionKeywords) {
+      if (text.includes(keyword)) {
+        conditions.push(keyword);
+      }
+    }
+
+    // Save conditions
+    const savedConditions = await Promise.all(
+      conditions.map(condition => 
+        prisma.condition.create({
+          data: {
+            patientId: patientId,
+            name: condition,
+            normalized: condition.toLowerCase()
+          }
+        }).catch(() => null) // Ignore duplicates
+      )
+    );
+
+    console.log(`✅ Parsed ${Object.keys(parsedData).length} fields, found ${auditLogs.length} updates`);
+
     res.json({
       success: true,
       parsedData,
       updates,
       auditLogs: auditLogs.length,
-      conditions: [],
+      conditions: savedConditions.filter(c => c).map(c => ({
+        id: c.id,
+        name: c.name,
+        normalized: c.normalized
+      })),
       message: `Found ${auditLogs.length} potential updates requiring review`
     });
   } catch (error) {
@@ -399,9 +579,104 @@ app.post('/api/auth/survey-data', async (req, res) => {
   try {
     console.log('Survey data received:', req.body);
     
-    // For demo purposes, just return success without saving to database
-    // In a real app, you'd get user ID from JWT token and save to database
-    console.log('Survey data processed successfully (demo mode)');
+    // For demo purposes, update the most recent patient record
+    // In a real app, you'd get user ID from JWT token and save to specific patient
+    const surveyData = req.body;
+    
+    // Find the most recent patient (for demo purposes)
+    const latestPatient = await prisma.patient.findFirst({
+      orderBy: { createdAt: 'desc' }
+    });
+    
+    if (latestPatient) {
+      // Update patient record with survey data
+      const updateData = {
+        // Basic demographics
+        name: surveyData.name,
+        dob: surveyData.dateOfBirth ? new Date(surveyData.dateOfBirth) : null,
+        sex: surveyData.biologicalSex,
+        ethnicity: surveyData.ethnicity,
+        ethnic_group: surveyData.ethnicity,
+        location: surveyData.location,
+        postcode: surveyData.postcode,
+        nhs_number: surveyData.nhsNumber,
+        
+        // Physical measurements
+        height: surveyData.height,
+        baseline_weight: surveyData.weight,
+        baseline_bmi: surveyData.baselineBMI,
+        baseline_weight_date: surveyData.baselineWeightDate ? new Date(surveyData.baselineWeightDate) : null,
+        
+        // Medical conditions
+        ascvd: surveyData.ascvd,
+        htn: surveyData.htn,
+        hypertension: surveyData.hypertension,
+        dyslipidaemia: surveyData.dyslipidaemia,
+        ischaemic_heart_disease: surveyData.ischaemicHeartDisease,
+        heart_failure: surveyData.heartFailure,
+        cerebrovascular_disease: surveyData.cerebrovascularDisease,
+        pulmonary_hypertension: surveyData.pulmonaryHypertension,
+        dvt: surveyData.dvt,
+        pe: surveyData.pe,
+        osa: surveyData.osa,
+        sleep_studies: surveyData.sleepStudies,
+        cpap: surveyData.cpap,
+        asthma: surveyData.asthma,
+        t2dm: surveyData.t2dm,
+        prediabetes: surveyData.prediabetes,
+        diabetes_type: surveyData.diabetesType,
+        gord: surveyData.gord,
+        ckd: surveyData.ckd,
+        kidney_stones: surveyData.kidneyStones,
+        masld: surveyData.masld,
+        infertility: surveyData.infertility,
+        pcos: surveyData.pcos,
+        anxiety: surveyData.anxiety,
+        depression: surveyData.depression,
+        bipolar_disorder: surveyData.bipolarDisorder,
+        emotional_eating: surveyData.emotionalEating,
+        schizoaffective_disorder: surveyData.schizoaffectiveDisorder,
+        oa_knee: surveyData.oaKnee,
+        oa_hip: surveyData.oaHip,
+        limited_mobility: surveyData.limitedMobility,
+        lymphoedema: surveyData.lymphoedema,
+        thyroid_disorder: surveyData.thyroidDisorder,
+        iih: surveyData.iih,
+        epilepsy: surveyData.epilepsy,
+        functional_neurological_disorder: surveyData.functionalNeurologicalDisorder,
+        cancer: surveyData.cancer,
+        bariatric_gastric_band: surveyData.bariatricGastricBand,
+        bariatric_sleeve: surveyData.bariatricSleeve,
+        bariatric_bypass: surveyData.bariatricBypass,
+        bariatric_balloon: surveyData.bariatricBalloon,
+        
+        // Medical data
+        baseline_hba1c: surveyData.baselineHbA1c,
+        baseline_hba1c_date: surveyData.baselineHbA1cDate ? new Date(surveyData.baselineHbA1cDate) : null,
+        baseline_fasting_glucose: surveyData.baselineFastingGlucose,
+        random_glucose: surveyData.randomGlucose,
+        baseline_tc: surveyData.baselineTC,
+        baseline_hdl: surveyData.baselineHDL,
+        baseline_ldl: surveyData.baselineLDL,
+        baseline_tg: surveyData.baselineTG,
+        baseline_lipid_date: surveyData.baselineLipidDate ? new Date(surveyData.baselineLipidDate) : null,
+        lipid_lowering_treatment: surveyData.lipidLoweringTreatment,
+        antihypertensive_medications: surveyData.antihypertensiveMedications,
+        all_medications_from_scr: surveyData.allMedicationsFromSCR,
+        diagnoses_coded_in_scr: surveyData.diagnosesCodedInSCR,
+        total_qualifying_comorbidities: surveyData.totalQualifyingComorbidities,
+        mes: surveyData.mes,
+        notes: surveyData.notes,
+        criteria_for_wegovy: surveyData.criteriaForWegovy
+      };
+      
+      await prisma.patient.update({
+        where: { id: latestPatient.id },
+        data: updateData
+      });
+      
+      console.log('Survey data saved to patient record:', latestPatient.id);
+    }
     
     res.json({ 
       success: true,
