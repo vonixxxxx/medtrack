@@ -30,16 +30,11 @@ const Dashboard = () => {
   const checkSurveyStatus = async () => {
     try {
       const { data } = await api.get('auth/survey-status');
-      console.log('Survey status response:', data);
       if (!data.surveyCompleted) {
         // Get user email for survey
         const { data: userData } = await api.get('auth/me');
-        console.log('User data response:', userData);
         setUserEmail(userData.email);
         setShowSurvey(true);
-        console.log('Survey should now be visible');
-      } else {
-        console.log('Survey already completed, not showing');
       }
     } catch (error) {
       console.error('Error checking survey status:', error);
