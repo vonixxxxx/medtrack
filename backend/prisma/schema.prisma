@@ -9,12 +9,14 @@ generator client {
 }
 
 model User {
-  id               Int          @id @default(autoincrement())
+  id               String       @id @default(cuid())
   email            String       @unique
   password         String
   name             String?
   role             String       @default("patient") // 'patient' | 'clinician'
   hospitalCode     String       // required field to link patients to clinicians
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
   
   // Password reset fields
   resetToken       String?
@@ -28,6 +30,8 @@ model User {
   surveyCompleted  Boolean      @default(false)
   
   // Relations
+  patientProfile   Patient?
+  clinicianProfile Clinician?
   medications      Medication[]
   metrics          Metric[]
   cycles           MedicationCycle[]
@@ -38,9 +42,50 @@ model User {
   @@map("users")
 }
 
+model Patient {
+  id             String   @id @default(cuid())
+  userId         String   @unique
+  user           User     @relation(fields: [userId], references: [id])
+  dob            DateTime?
+  sex            String?
+  ethnicity      String?
+  hba1c_percent  Float?     // measured HbA1c %
+  hba1c_mmol     Float?     // measured HbA1c mmol/mol
+  diabetes_type  String?    // e.g., "Type 1", "Type 2", "Gestational", "None"
+  mes            Float?     // computed Medication Effect Score (MES)
+  conditions     Condition[]
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  
+  @@map("patients")
+}
+
+model Clinician {
+  id         String @id @default(cuid())
+  userId     String @unique
+  user       User   @relation(fields: [userId], references: [id])
+  hospitalCode String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  
+  @@map("clinicians")
+}
+
+model Condition {
+  id         String @id @default(cuid())
+  patientId  String
+  patient    Patient @relation(fields: [patientId], references: [id])
+  name       String
+  normalized String
+  createdAt  DateTime @default(now())
+  
+  @@map("conditions")
+}
+
+
 model Medication {
-  id          Int             @id @default(autoincrement())
-  userId      Int
+  id          String          @id @default(cuid())
+  userId      String
   name        String
   startDate   DateTime
   endDate     DateTime
@@ -51,16 +96,16 @@ model Medication {
 }
 
 model MedicationLog {
-  id           Int        @id @default(autoincrement())
-  medicationId Int
+  id           String     @id @default(cuid())
+  medicationId String
   date         DateTime
   dosage       String
   medication   Medication @relation(fields: [medicationId], references: [id])
 }
 
 model Metric {
-  id               Int      @id @default(autoincrement())
-  userId           Int
+  id               String   @id @default(cuid())
+  userId           String
   date             DateTime @default(now())
   weight           Float
   height           Float
@@ -73,8 +118,8 @@ model Metric {
 /// NEW V2 MODELS ------------------------------------
 
 model MedicationCycle {
-  id            Int          @id @default(autoincrement())
-  userId        Int
+  id            String       @id @default(cuid())
+  userId        String
   name          String
   dosage        String
   startDate     DateTime
@@ -91,8 +136,8 @@ model MedicationCycle {
 }
 
 model MetricLog {
-  id        Int         @id @default(autoincrement())
-  cycleId   Int
+  id        String      @id @default(cuid())
+  cycleId   String
   date      DateTime     @default(now())
   kind      String       // e.g., WEIGHT, BLOOD_PRESSURE
   valueFloat Float?
@@ -103,8 +148,8 @@ model MetricLog {
 }
 
 model DoseLog {
-  id        Int      @id @default(autoincrement())
-  cycleId   Int
+  id        String   @id @default(cuid())
+  cycleId   String
   date      DateTime
   taken     Boolean @default(false)
 
@@ -114,9 +159,9 @@ model DoseLog {
 }
 
 model Notification {
-  id        Int      @id @default(autoincrement())
-  userId    Int
-  cycleId   Int?
+  id        String   @id @default(cuid())
+  userId    String
+  cycleId   String?
   date      DateTime
   message   String
   sent      Boolean   @default(false)
@@ -128,8 +173,8 @@ model Notification {
 /// END V2 MODELS ------------------------------------
 
 model UserSurveyData {
-  id                    Int      @id @default(autoincrement())
-  userId                Int      @unique
+  id                    String   @id @default(cuid())
+  userId                String   @unique
   user                  User     @relation(fields: [userId], references: [id])
   
   // Step 1: Basic Demographics & Account Info
