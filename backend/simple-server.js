@@ -375,13 +375,16 @@ app.get('/api/ai/status', (req, res) => {
 
 app.get('/api/auth/survey-status', (req, res) => {
   try {
-    // For demo purposes, always return false to show survey
-    // In a real app, you'd check the specific user's survey completion status
-    console.log('Survey status requested - returning false to show survey');
+    // For demo purposes, check if any user has completed the survey
+    // In a real app, you'd get specific user ID from JWT token
+    const hasCompletedSurvey = Array.from(surveyCompletionStatus.values()).some(status => status === true);
+    
+    console.log('Survey status requested - completed:', hasCompletedSurvey);
+    console.log('Survey completion status map:', Object.fromEntries(surveyCompletionStatus));
     
     res.json({ 
-      surveyCompleted: false, // Always false for demo to show survey
-      lastCompleted: null
+      surveyCompleted: hasCompletedSurvey,
+      lastCompleted: hasCompletedSurvey ? new Date().toISOString() : null
     });
   } catch (error) {
     console.error('Error checking survey status:', error);
@@ -422,6 +425,12 @@ app.put('/api/auth/complete-survey', (req, res) => {
     for (const [userId, status] of surveyCompletionStatus.entries()) {
       surveyCompletionStatus.set(userId, true);
     }
+    
+    // Also add a global completion flag for demo purposes
+    surveyCompletionStatus.set('global', true);
+
+    console.log('Survey marked as completed for all users');
+    console.log('Updated survey completion status map:', Object.fromEntries(surveyCompletionStatus));
 
     res.json({ 
       success: true,
