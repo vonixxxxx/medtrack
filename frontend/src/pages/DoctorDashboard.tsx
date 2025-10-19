@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Header } from '../components/Header';
-import { PatientRecordsTable } from '../components/doctor/PatientRecordsTable';
+import { EnhancedPatientRecordsTable } from '../components/doctor/EnhancedPatientRecordsTable';
 import { FilterSystem } from '../components/doctor/FilterSystem';
 import { GraphBuilder } from '../components/doctor/GraphBuilder';
 import { MedicalHistoryParser } from '../components/doctor/MedicalHistoryParser';
@@ -191,13 +191,13 @@ const DoctorDashboard = () => {
 
         {/* Patient Records Table */}
         <div className="mb-6">
-          <PatientRecordsTable 
-            patients={filteredPatients}
-            onRefresh={loadPatients}
-            onHbA1cAdjustment={() => setIsHbA1cModalOpen(true)}
-            onPatientSelect={handlePatientSelect}
-            selectedPatientId={selectedPatient?.id}
-          />
+        <EnhancedPatientRecordsTable 
+          patients={filteredPatients}
+          onRefresh={loadPatients}
+          onHbA1cAdjustment={() => setIsHbA1cModalOpen(true)}
+          onPatientSelect={handlePatientSelect}
+          selectedPatientId={selectedPatient?.id}
+        />
         </div>
 
         {/* Graph Builder */}
