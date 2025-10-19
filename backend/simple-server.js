@@ -6,6 +6,9 @@ require('dotenv').config();
 const app = express();
 const prisma = new PrismaClient();
 
+// Simple in-memory store for survey completion status
+const surveyCompletionStatus = new Map();
+
 // Middleware
 app.use(cors());
 app.use(express.json());
@@ -69,6 +72,9 @@ app.post('/api/auth/signup', async (req, res) => {
         }
       });
     }
+
+    // Initialize survey completion status for new user
+    surveyCompletionStatus.set(user.id, false);
 
     res.json({
       success: true,
@@ -355,26 +361,91 @@ app.get('/api/ai/status', (req, res) => {
 });
 
 app.get('/api/auth/survey-status', (req, res) => {
-  res.json({ 
-    surveyCompleted: false,
-    lastCompleted: null
-  });
+  try {
+    // For demo purposes, we'll check if there are any users in our store
+    // In a real app, you'd extract user ID from JWT token
+    const hasUsers = surveyCompletionStatus.size > 0;
+    const isCompleted = hasUsers ? Array.from(surveyCompletionStatus.values()).some(status => status === true) : false;
+    
+    res.json({ 
+      surveyCompleted: isCompleted,
+      lastCompleted: isCompleted ? new Date().toISOString() : null
+    });
+  } catch (error) {
+    console.error('Error checking survey status:', error);
+    res.json({ 
+      surveyCompleted: false,
+      lastCompleted: null
+    });
+  }
 });
 
-app.post('/api/auth/survey-data', (req, res) => {
-  console.log('Survey data received:', req.body);
-  res.json({ 
-    success: true,
-    message: 'Survey data saved successfully'
-  });
+app.post('/api/auth/survey-data', async (req, res) => {
+  try {
+    console.log('Survey data received:', req.body);
+    
+    // In a real app, you'd get user ID from JWT token
+    const userId = 'current-user'; // This should come from auth middleware
+    
+    // Save survey data to user's survey data record
+    await prisma.userSurveyData.upsert({
+      where: { userId: userId },
+      update: {
+        // Update with new survey data
+        dateOfBirth: req.body.dateOfBirth ? new Date(req.body.dateOfBirth) : null,
+        biologicalSex: req.body.biologicalSex || null,
+        ethnicity: req.body.ethnicity || null,
+        smokingStatus: req.body.smokingStatus || null,
+        weight: req.body.weight ? parseFloat(req.body.weight) : null,
+        height: req.body.height ? parseFloat(req.body.height) : null,
+        // Add other survey fields as needed
+      },
+      create: {
+        userId: userId,
+        dateOfBirth: req.body.dateOfBirth ? new Date(req.body.dateOfBirth) : null,
+        biologicalSex: req.body.biologicalSex || null,
+        ethnicity: req.body.ethnicity || null,
+        smokingStatus: req.body.smokingStatus || null,
+        weight: req.body.weight ? parseFloat(req.body.weight) : null,
+        height: req.body.height ? parseFloat(req.body.height) : null,
+        // Add other survey fields as needed
+      }
+    });
+
+    res.json({ 
+      success: true,
+      message: 'Survey data saved successfully'
+    });
+  } catch (error) {
+    console.error('Error saving survey data:', error);
+    res.status(500).json({ 
+      success: false,
+      error: 'Failed to save survey data'
+    });
+  }
 });
 
 app.put('/api/auth/complete-survey', (req, res) => {
-  console.log('Survey completion requested');
-  res.json({ 
-    success: true,
-    message: 'Survey marked as completed'
-  });
+  try {
+    console.log('Survey completion requested');
+    
+    // Mark survey as completed for all users (demo purposes)
+    // In a real app, you'd get specific user ID from JWT token
+    for (const [userId, status] of surveyCompletionStatus.entries()) {
+      surveyCompletionStatus.set(userId, true);
+    }
+
+    res.json({ 
+      success: true,
+      message: 'Survey marked as completed'
+    });
+  } catch (error) {
+    console.error('Error completing survey:', error);
+    res.status(500).json({ 
+      success: false,
+      error: 'Failed to mark survey as completed'
+    });
+  }
 });
 
 app.get('/api/meds/user', (req, res) => {
