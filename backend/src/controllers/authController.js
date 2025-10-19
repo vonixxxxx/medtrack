@@ -78,6 +78,23 @@ exports.signup = async (req, res) => {
       data: userData,
     });
 
+    // Create Patient or Clinician profile based on role
+    if (role === 'patient') {
+      await prisma.patient.create({
+        data: {
+          userId: user.id,
+          hospitalCode: hospitalCode
+        }
+      });
+    } else if (role === 'clinician') {
+      await prisma.clinician.create({
+        data: {
+          userId: user.id,
+          hospitalCode: hospitalCode
+        }
+      });
+    }
+
     const token = jwt.sign(
       { id: user.id, email: user.email, role: user.role, hospitalCode: user.hospitalCode },
       process.env.JWT_SECRET || 'supersecret',

@@ -19,9 +19,11 @@ interface PatientRecordsTableProps {
   patients: Patient[];
   onRefresh: () => void;
   onHbA1cAdjustment: () => void;
+  onPatientSelect?: (patient: Patient) => void;
+  selectedPatientId?: string;
 }
 
-export const PatientRecordsTable = ({ patients, onRefresh, onHbA1cAdjustment }: PatientRecordsTableProps) => {
+export const PatientRecordsTable = ({ patients, onRefresh, onHbA1cAdjustment, onPatientSelect, selectedPatientId }: PatientRecordsTableProps) => {
   const [sortConfig, setSortConfig] = useState<{ key: keyof Patient; direction: 'asc' | 'desc' } | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedColumns, setSelectedColumns] = useState<Set<string>>(new Set([
@@ -233,7 +235,13 @@ export const PatientRecordsTable = ({ patients, onRefresh, onHbA1cAdjustment }: 
           </thead>
           <tbody>
             {filteredData.map((patient, index) => (
-              <tr key={patient.id} className="border-b border-gray-800 hover:bg-gray-800/50">
+              <tr 
+                key={patient.id} 
+                className={`border-b border-gray-800 hover:bg-gray-800/50 cursor-pointer ${
+                  selectedPatientId === patient.id ? 'bg-blue-900/20 border-blue-500' : ''
+                }`}
+                onClick={() => onPatientSelect?.(patient)}
+              >
                 {columns
                   .filter(col => selectedColumns.has(col.key))
                   .map(column => (

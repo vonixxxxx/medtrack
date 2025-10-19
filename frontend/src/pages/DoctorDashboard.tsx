@@ -14,6 +14,7 @@ const DoctorDashboard = () => {
   const [isHbA1cModalOpen, setIsHbA1cModalOpen] = useState(false);
   const [patients, setPatients] = useState([]);
   const [filteredPatients, setFilteredPatients] = useState([]);
+  const [selectedPatient, setSelectedPatient] = useState(null);
   const [filters, setFilters] = useState({
     metric: 'all',
     dateRange: 'all',
@@ -77,6 +78,15 @@ const DoctorDashboard = () => {
     setFilteredPatients(filtered);
   };
 
+  const handlePatientSelect = (patient) => {
+    setSelectedPatient(patient);
+  };
+
+  const handleConditionsAdded = () => {
+    // Refresh patients data to show updated conditions
+    loadPatients();
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background text-foreground flex items-center justify-center">
@@ -105,6 +115,19 @@ const DoctorDashboard = () => {
             Manage patient records and generate analytics
             {user?.hospitalCode && ` • Hospital Code: ${user.hospitalCode}`}
           </p>
+          {selectedPatient && (
+            <div className="mt-3 p-3 bg-blue-900/20 border border-blue-800 rounded-xl">
+              <p className="text-sm text-blue-300">
+                <strong>Selected Patient:</strong> {selectedPatient.name} 
+                {selectedPatient.email && ` (${selectedPatient.email})`}
+                {selectedPatient.conditions && selectedPatient.conditions.length > 0 && (
+                  <span className="ml-2">
+                    • {selectedPatient.conditions.length} condition{selectedPatient.conditions.length !== 1 ? 's' : ''}
+                  </span>
+                )}
+              </p>
+            </div>
+          )}
         </div>
 
         {/* Filter System */}
@@ -125,7 +148,10 @@ const DoctorDashboard = () => {
 
         {/* Medical History Parser */}
         <div className="mb-6">
-          <MedicalHistoryParser />
+          <MedicalHistoryParser 
+            selectedPatientId={selectedPatient?.id}
+            onConditionsAdded={handleConditionsAdded}
+          />
         </div>
 
         {/* Patient Records Table */}
@@ -134,6 +160,8 @@ const DoctorDashboard = () => {
             patients={filteredPatients}
             onRefresh={loadPatients}
             onHbA1cAdjustment={() => setIsHbA1cModalOpen(true)}
+            onPatientSelect={handlePatientSelect}
+            selectedPatientId={selectedPatient?.id}
           />
         </div>
 
