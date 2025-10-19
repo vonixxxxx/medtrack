@@ -345,6 +345,108 @@ app.get('/api/doctor/patients/:patientId/audit-logs', async (req, res) => {
   }
 });
 
+// Missing endpoints that the frontend expects
+app.get('/api/ai/status', (req, res) => {
+  res.json({ 
+    status: 'available',
+    model: 'mock-ai-model',
+    version: '1.0.0'
+  });
+});
+
+app.get('/api/auth/survey-status', (req, res) => {
+  res.json({ 
+    surveyCompleted: false,
+    lastCompleted: null
+  });
+});
+
+app.post('/api/auth/survey-data', (req, res) => {
+  console.log('Survey data received:', req.body);
+  res.json({ 
+    success: true,
+    message: 'Survey data saved successfully'
+  });
+});
+
+app.put('/api/auth/complete-survey', (req, res) => {
+  console.log('Survey completion requested');
+  res.json({ 
+    success: true,
+    message: 'Survey marked as completed'
+  });
+});
+
+app.get('/api/meds/user', (req, res) => {
+  res.json([]);
+});
+
+app.get('/api/meds/schedule', (req, res) => {
+  res.json([]);
+});
+
+app.get('/api/meds/cycles', (req, res) => {
+  res.json([]);
+});
+
+app.get('/api/metrics/user', (req, res) => {
+  res.json([]);
+});
+
+app.get('/api/health-metrics', (req, res) => {
+  res.json([]);
+});
+
+app.get('/api/medication-schedules', (req, res) => {
+  res.json([]);
+});
+
+app.get('/api/ai/health-report', (req, res) => {
+  res.json({
+    status: 'success',
+    report: {
+      summary: 'AI health analysis not available in demo mode',
+      recommendations: [],
+      riskFactors: [],
+      lastUpdated: new Date().toISOString()
+    }
+  });
+});
+
+app.get('/api/ai/assistant/status', (req, res) => {
+  res.json({
+    status: 'available',
+    capabilities: ['health_analysis', 'medication_review', 'symptom_assessment']
+  });
+});
+
+app.get('/api/ai/models', (req, res) => {
+  res.json([
+    {
+      id: 'mock-model-1',
+      name: 'Health Analysis Model',
+      status: 'available',
+      description: 'Mock AI model for health analysis'
+    }
+  ]);
+});
+
+app.get('/api/ai/assistant', (req, res) => {
+  res.json({
+    status: 'available',
+    message: 'AI Assistant is ready to help with your health questions'
+  });
+});
+
+// Add any other missing endpoints that might be called
+app.get('/api/*', (req, res) => {
+  res.json({ 
+    message: 'Endpoint not implemented in demo mode',
+    path: req.path,
+    method: req.method
+  });
+});
+
 const PORT = process.env.PORT || 4000;
 
 app.listen(PORT, () => {
