@@ -13,6 +13,10 @@ const surveyCompletionStatus = new Map();
 app.use(cors());
 app.use(express.json());
 
+// Import and use AI routes
+const aiRoutes = require('./src/routes/ai');
+app.use('/api/ai', aiRoutes);
+
 // Test endpoint
 app.get('/api/test-public', (req, res) => {
   res.json({ message: 'Backend is running!' });
@@ -99,6 +103,49 @@ app.post('/api/auth/signup', async (req, res) => {
     console.error('Error details:', error.message);
     console.error('Stack trace:', error.stack);
     res.status(500).json({ error: 'Signup failed', details: error.message });
+  }
+});
+
+app.post('/api/auth/login', async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    
+    if (!email || !password) {
+      return res.status(400).json({ error: 'Email and password are required' });
+    }
+
+    // Find user
+    const user = await prisma.user.findUnique({
+      where: { email }
+    });
+
+    if (!user) {
+      return res.status(401).json({ error: 'Invalid credentials' });
+    }
+
+    // In production, verify password hash
+    if (user.password !== password) {
+      return res.status(401).json({ error: 'Invalid credentials' });
+    }
+
+    // Generate JWT token (simplified for demo)
+    const token = `demo-token-${user.id}-${Date.now()}`;
+
+    res.json({ 
+      success: true, 
+      message: 'Login successful',
+      token: token,
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        role: user.role,
+        hospitalCode: user.hospitalCode
+      }
+    });
+  } catch (error) {
+    console.error('Login error:', error);
+    res.status(500).json({ error: 'Failed to login' });
   }
 });
 
