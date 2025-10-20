@@ -165,6 +165,11 @@ model Patient {
   // Relationships
   conditions     Condition[]
   ai_audit_logs  AiAuditLog[]
+  medical_notes  MedicalNote[]
+  lab_results    LabResult[]
+  vital_signs    VitalSign[]
+  medications    PatientMedication[]
+  metric_trends  MetricTrend[]
   
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
@@ -365,4 +370,165 @@ model UserSurveyData {
   updatedAt             DateTime @updatedAt
   
   @@map("user_survey_data")
+}
+
+// Medical Notes and AI Processing Models
+model MedicalNote {
+  id                String   @id @default(cuid())
+  patientId         String
+  patient           Patient  @relation(fields: [patientId], references: [id])
+  
+  // Raw note data
+  raw_text          String
+  note_type         String?  // "consultation", "discharge", "lab_report", etc.
+  source            String?  // "manual_entry", "ai_parsed", "imported"
+  
+  // AI Processing
+  ai_processed      Boolean  @default(false)
+  ai_confidence     Float?
+  ai_model_used     String?
+  processing_errors String?  // JSON array of any processing errors
+  
+  // Extracted structured data
+  extracted_data    String?  // JSON string of all extracted fields
+  patient_name      String?  // Extracted patient name for matching
+  age               Int?
+  sex               String?
+  conditions        String?  // JSON array of conditions
+  medications       String?  // JSON array of medications
+  allergies         String?  // JSON array of allergies
+  lab_results       String?  // JSON array of lab results
+  vital_signs       String?  // JSON array of vital signs
+  impression        String?
+  plan              String?
+  
+  // Metadata
+  created_by        String?  // User ID who created/processed this note
+  created_at        DateTime @default(now())
+  updated_at        DateTime @updatedAt
+  
+  @@index([patientId])
+  @@index([created_at])
+  @@index([ai_processed])
+  @@map("medical_notes")
+}
+
+model LabResult {
+  id          String   @id @default(cuid())
+  patientId   String
+  patient     Patient  @relation(fields: [patientId], references: [id])
+  
+  metric_name String   // e.g., "HbA1c", "LDL", "HDL", "eGFR"
+  value       Float
+  unit        String   // e.g., "%", "mg/dL", "mL/min/1.73m²"
+  date        DateTime
+  reference_range String? // e.g., "4.0-6.0%"
+  status      String?  // "normal", "high", "low", "critical"
+  
+  // Source tracking
+  source_note_id String? // Link to MedicalNote if extracted from note
+  manually_entered Boolean @default(false)
+  
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+  
+  @@index([patientId])
+  @@index([metric_name])
+  @@index([date])
+  @@map("lab_results")
+}
+
+model VitalSign {
+  id          String   @id @default(cuid())
+  patientId   String
+  patient     Patient  @relation(fields: [patientId], references: [id])
+  
+  vital_type  String   // e.g., "blood_pressure", "heart_rate", "temperature", "weight", "height"
+  value       Float
+  unit        String   // e.g., "mmHg", "bpm", "°C", "kg", "cm"
+  date        DateTime
+  
+  // For blood pressure, store both values
+  value_secondary Float? // For diastolic BP when vital_type is "blood_pressure"
+  
+  // Source tracking
+  source_note_id String? // Link to MedicalNote if extracted from note
+  manually_entered Boolean @default(false)
+  
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+  
+  @@index([patientId])
+  @@index([vital_type])
+  @@index([date])
+  @@map("vital_signs")
+}
+
+model PatientMedication {
+  id          String   @id @default(cuid())
+  patientId   String
+  patient     Patient  @relation(fields: [patientId], references: [id])
+  
+  name        String
+  dosage      String
+  frequency   String
+  route       String?  // e.g., "oral", "injection", "topical"
+  start_date  DateTime
+  end_date    DateTime?
+  status      String   @default("active") // "active", "discontinued", "on_hold"
+  
+  // Source tracking
+  source_note_id String? // Link to MedicalNote if extracted from note
+  manually_entered Boolean @default(false)
+  
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+  
+  @@index([patientId])
+  @@index([status])
+  @@index([start_date])
+  @@map("patient_medications")
+}
+
+model MetricTrend {
+  id          String   @id @default(cuid())
+  patientId   String
+  patient     Patient  @relation(fields: [patientId], references: [id])
+  
+  metric_name String   // e.g., "HbA1c", "BMI", "Weight", "Blood Pressure"
+  value       Float
+  unit        String
+  date        DateTime
+  
+  // Trend analysis
+  change_from_previous Float? // Change from previous measurement
+  change_percentage    Float? // Percentage change
+  trend_direction      String? // "improving", "worsening", "stable"
+  
+  // Source tracking
+  source_type String   // "lab_result", "vital_sign", "manual_entry"
+  source_id   String?  // ID of the source record
+  
+  created_at  DateTime @default(now())
+  
+  @@index([patientId])
+  @@index([metric_name])
+  @@index([date])
+  @@map("metric_trends")
+}
+
+// AI Processing Configuration
+model AIProcessingConfig {
+  id                String   @id @default(cuid())
+  model_name        String   // e.g., "llama3.2:latest", "mistral-7b-instruct"
+  model_provider    String   // "ollama", "huggingface", "openai"
+  system_prompt     String   // The system prompt for medical note parsing
+  max_tokens        Int      @default(2048)
+  temperature       Float    @default(0.1)
+  is_active         Boolean  @default(true)
+  
+  created_at        DateTime @default(now())
+  updated_at        DateTime @updatedAt
+  
+  @@map("ai_processing_config")
 }

@@ -6,12 +6,16 @@ import { GraphBuilder } from '../components/doctor/GraphBuilder';
 import { MedicalHistoryParser } from '../components/doctor/MedicalHistoryParser';
 import { HbA1cAdjustmentModal } from '../components/doctor/HbA1cAdjustmentModal';
 import { AnalyticsPanel } from '../components/doctor/AnalyticsPanel';
+import { MetricsAnalytics } from '../components/doctor/MetricsAnalytics';
+import { AIValidationPanel } from '../components/doctor/AIValidationPanel';
 import api from '../api';
 
 const DoctorDashboard = () => {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isHbA1cModalOpen, setIsHbA1cModalOpen] = useState(false);
+  const [isAIValidationOpen, setIsAIValidationOpen] = useState(false);
+  const [showMetricsAnalytics, setShowMetricsAnalytics] = useState(false);
   const [patients, setPatients] = useState([]);
   const [filteredPatients, setFilteredPatients] = useState([]);
   const [selectedPatient, setSelectedPatient] = useState(null);
@@ -189,6 +193,34 @@ const DoctorDashboard = () => {
           />
         </div>
 
+        {/* AI Features */}
+        <div className="mb-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+          <button
+            onClick={() => setIsAIValidationOpen(true)}
+            className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-3 rounded-lg flex items-center space-x-2"
+          >
+            <span>🤖</span>
+            <span>AI Data Validation</span>
+          </button>
+          <button
+            onClick={() => setShowMetricsAnalytics(!showMetricsAnalytics)}
+            className="bg-green-600 hover:bg-green-700 text-white px-4 py-3 rounded-lg flex items-center space-x-2"
+          >
+            <span>📊</span>
+            <span>{showMetricsAnalytics ? 'Hide' : 'Show'} Metrics Analytics</span>
+          </button>
+        </div>
+
+        {/* Metrics Analytics */}
+        {showMetricsAnalytics && selectedPatient && (
+          <div className="mb-6">
+            <MetricsAnalytics 
+              patientId={selectedPatient.id}
+              patientName={selectedPatient.name}
+            />
+          </div>
+        )}
+
         {/* Patient Records Table */}
         <div className="mb-6">
         <EnhancedPatientRecordsTable 
@@ -214,6 +246,20 @@ const DoctorDashboard = () => {
         isOpen={isHbA1cModalOpen}
         onClose={() => setIsHbA1cModalOpen(false)}
       />
+
+      {/* AI Validation Panel */}
+      {isAIValidationOpen && (
+        <AIValidationPanel
+          patientId={selectedPatient?.id}
+          onClose={() => setIsAIValidationOpen(false)}
+          onPatientSelected={(patientId) => {
+            const patient = patients.find(p => p.id === patientId);
+            if (patient) {
+              setSelectedPatient(patient);
+            }
+          }}
+        />
+      )}
     </div>
   );
 };

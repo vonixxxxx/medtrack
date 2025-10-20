@@ -3,6 +3,13 @@ const cors = require('cors');
 const { PrismaClient } = require('@prisma/client');
 require('dotenv').config();
 
+// Import intelligent medical parser
+const { 
+  runIntelligentMedicalParser, 
+  findPatientByName, 
+  mapExtractedDataToDatabase 
+} = require('./utils/intelligentMedicalParser.js');
+
 const app = express();
 const prisma = new PrismaClient();
 
@@ -464,6 +471,333 @@ app.post('/api/doctor/parse-history', async (req, res) => {
   } catch (error) {
     console.error('Error parsing medical history:', error);
     res.status(500).json({ error: 'Failed to parse medical history' });
+  }
+});
+
+// Intelligent Medical Parsing with Patient Matching
+app.post('/api/doctor/intelligent-parse', async (req, res) => {
+  try {
+    const { medicalNotes, hospitalCode } = req.body;
+    
+    if (!medicalNotes) {
+      return res.status(400).json({ 
+        error: 'Missing required field: medicalNotes',
+        success: false 
+      });
+    }
+
+    console.log('🔍 Starting intelligent medical parsing...');
+    console.log('📝 Medical notes:', medicalNotes.substring(0, 200) + '...');
+
+    // Step 1: Parse medical notes with LLM
+    const parseResult = await runIntelligentMedicalParser(medicalNotes);
+    
+    if (!parseResult.success) {
+      return res.status(500).json({
+        error: 'Failed to parse medical notes',
+        success: false
+      });
+    }
+
+    const extractedData = parseResult.data;
+    console.log('✅ Extracted data:', extractedData);
+
+    // Step 2: Find patients by name
+    const patients = await prisma.patient.findMany({
+      where: {
+        user: {
+          hospitalCode: hospitalCode || '123456789' // Default hospital code for demo
+        }
+      },
+      include: {
+        user: true
+      }
+    });
+
+    const patientMatch = findPatientByName(extractedData.Patient_Name, patients);
+    
+    let targetPatient = null;
+    let patientAction = 'none';
+
+    if (patientMatch.found) {
+      if (patientMatch.matches.length === 1) {
+        // Single match - use it
+        targetPatient = patientMatch.matches[0].patient;
+        patientAction = 'matched';
+        console.log(`✅ Single patient match found: ${targetPatient.user.name}`);
+      } else {
+        // Multiple matches - return for clinician selection
+        return res.json({
+          success: true,
+          action: 'select_patient',
+          extractedData,
+          patientMatches: patientMatch.matches.map(match => ({
+            id: match.patient.id,
+            name: match.patient.user.name,
+            email: match.patient.user.email,
+            nhsNumber: match.patient.nhs_number,
+            mrn: match.patient.mrn,
+            confidence: match.confidence
+          })),
+          message: `Found ${patientMatch.matches.length} potential patient matches. Please select the correct patient.`
+        });
+      }
+    } else {
+      // No match - create new patient
+      patientAction = 'create_new';
+      console.log('🆕 No patient match found, will create new patient');
+    }
+
+    // Step 3: Process the patient data
+    if (patientAction === 'create_new') {
+      // Create new patient
+      const mappedData = mapExtractedDataToDatabase(extractedData);
+      
+      // Create user first
+      const newUser = await prisma.user.create({
+        data: {
+          email: `patient-${Date.now()}@example.com`,
+          password: 'temp-password',
+          name: extractedData.Patient_Name || 'Unknown Patient',
+          role: 'patient',
+          hospitalCode: hospitalCode || '123456789',
+          surveyCompleted: true
+        }
+      });
+
+      // Create patient record
+      const newPatient = await prisma.patient.create({
+        data: {
+          userId: newUser.id,
+          ...mappedData
+        }
+      });
+
+      targetPatient = newPatient;
+      console.log(`✅ Created new patient: ${newUser.name} (ID: ${newPatient.id})`);
+    }
+
+    // Step 4: Update existing patient with extracted data
+    if (targetPatient && patientAction !== 'create_new') {
+      const mappedData = mapExtractedDataToDatabase(extractedData);
+      
+      // Create audit logs for changes
+      const auditLogs = [];
+      const updates = {};
+
+      // Compare and track changes
+      Object.entries(mappedData).forEach(([field, value]) => {
+        const currentValue = targetPatient[field];
+        if (currentValue !== value && value !== null && value !== undefined) {
+          auditLogs.push({
+            patientId: targetPatient.id,
+            field_name: field,
+            old_value: currentValue?.toString() || null,
+            new_value: value.toString(),
+            ai_confidence: parseResult.confidence,
+            ai_suggestion: `AI extracted: ${value}`,
+            clinician_approved: false
+          });
+          updates[field] = value;
+        }
+      });
+
+      // Save audit logs
+      if (auditLogs.length > 0) {
+        await prisma.aiAuditLog.createMany({
+          data: auditLogs
+        });
+      }
+
+      // Update patient data
+      if (Object.keys(updates).length > 0) {
+        await prisma.patient.update({
+          where: { id: targetPatient.id },
+          data: updates
+        });
+      }
+
+      console.log(`✅ Updated patient ${targetPatient.id} with ${Object.keys(updates).length} changes`);
+    }
+
+    // Step 5: Create medical note record
+    const medicalNote = await prisma.medicalNote.create({
+      data: {
+        patientId: targetPatient.id,
+        raw_text: medicalNotes,
+        note_type: 'consultation',
+        source: 'ai_parsed',
+        ai_processed: true,
+        ai_confidence: parseResult.confidence,
+        ai_model_used: parseResult.model_used,
+        extracted_data: JSON.stringify(extractedData),
+        patient_name: extractedData.Patient_Name,
+        age: extractedData.Age,
+        sex: extractedData.Sex,
+        conditions: JSON.stringify(extractedData.Conditions || []),
+        medications: JSON.stringify(extractedData.Medications || []),
+        allergies: JSON.stringify(extractedData.Allergies || []),
+        lab_results: JSON.stringify(extractedData.Labs || []),
+        vital_signs: JSON.stringify(extractedData.Vitals || []),
+        impression: extractedData.Impression,
+        plan: extractedData.Plan
+      }
+    });
+
+    // Step 6: Create lab results and vital signs records
+    const labResults = extractedData.Labs || [];
+    const vitalSigns = extractedData.Vitals || [];
+
+    // Save lab results
+    for (const lab of labResults) {
+      await prisma.labResult.create({
+        data: {
+          patientId: targetPatient.id,
+          metric_name: lab.metric,
+          value: lab.value,
+          unit: lab.unit,
+          date: lab.date ? new Date(lab.date) : new Date(),
+          source_note_id: medicalNote.id,
+          manually_entered: false
+        }
+      });
+    }
+
+    // Save vital signs
+    for (const vital of vitalSigns) {
+      await prisma.vitalSign.create({
+        data: {
+          patientId: targetPatient.id,
+          vital_type: vital.type,
+          value: vital.value,
+          unit: vital.unit,
+          date: new Date(),
+          value_secondary: vital.value_secondary,
+          source_note_id: medicalNote.id,
+          manually_entered: false
+        }
+      });
+    }
+
+    // Step 7: Create medication records
+    const medications = extractedData.Medications || [];
+    for (const med of medications) {
+      await prisma.patientMedication.create({
+        data: {
+          patientId: targetPatient.id,
+          name: med.name,
+          dosage: med.dose,
+          frequency: med.frequency,
+          route: 'oral', // Default route
+          start_date: new Date(),
+          status: 'active',
+          source_note_id: medicalNote.id,
+          manually_entered: false
+        }
+      });
+    }
+
+    console.log(`✅ Intelligent parsing completed for patient ${targetPatient.id}`);
+
+    res.json({
+      success: true,
+      action: patientAction,
+      patient: {
+        id: targetPatient.id,
+        name: targetPatient.user?.name || extractedData.Patient_Name,
+        email: targetPatient.user?.email,
+        nhsNumber: targetPatient.nhs_number,
+        mrn: targetPatient.mrn
+      },
+      extractedData,
+      medicalNoteId: medicalNote.id,
+      labResultsCount: labResults.length,
+      vitalSignsCount: vitalSigns.length,
+      medicationsCount: medications.length,
+      message: `Successfully ${patientAction === 'create_new' ? 'created new patient' : 'updated existing patient'} with AI-extracted data`
+    });
+
+  } catch (error) {
+    console.error('❌ Intelligent parsing error:', error);
+    res.status(500).json({ 
+      error: 'Failed to process medical notes intelligently',
+      success: false,
+      details: error.message
+    });
+  }
+});
+
+// Get patient metrics
+app.get('/api/metrics/patient/:patientId', async (req, res) => {
+  try {
+    const { patientId } = req.params;
+    const metrics = await prisma.metricTrend.findMany({
+      where: { patientId },
+      orderBy: { date: 'desc' }
+    });
+    res.json(metrics);
+  } catch (error) {
+    console.error('Error fetching patient metrics:', error);
+    res.status(500).json({ error: 'Failed to fetch metrics' });
+  }
+});
+
+// Get patient lab results
+app.get('/api/lab-results/patient/:patientId', async (req, res) => {
+  try {
+    const { patientId } = req.params;
+    const labResults = await prisma.labResult.findMany({
+      where: { patientId },
+      orderBy: { date: 'desc' }
+    });
+    res.json(labResults);
+  } catch (error) {
+    console.error('Error fetching lab results:', error);
+    res.status(500).json({ error: 'Failed to fetch lab results' });
+  }
+});
+
+// Get patient vital signs
+app.get('/api/vital-signs/patient/:patientId', async (req, res) => {
+  try {
+    const { patientId } = req.params;
+    const vitalSigns = await prisma.vitalSign.findMany({
+      where: { patientId },
+      orderBy: { date: 'desc' }
+    });
+    res.json(vitalSigns);
+  } catch (error) {
+    console.error('Error fetching vital signs:', error);
+    res.status(500).json({ error: 'Failed to fetch vital signs' });
+  }
+});
+
+// Approve audit log
+app.post('/api/doctor/audit-logs/:logId/approve', async (req, res) => {
+  try {
+    const { logId } = req.params;
+    await prisma.aiAuditLog.update({
+      where: { id: logId },
+      data: { clinician_approved: true }
+    });
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error approving audit log:', error);
+    res.status(500).json({ error: 'Failed to approve audit log' });
+  }
+});
+
+// Reject audit log
+app.post('/api/doctor/audit-logs/:logId/reject', async (req, res) => {
+  try {
+    const { logId } = req.params;
+    await prisma.aiAuditLog.delete({
+      where: { id: logId }
+    });
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error rejecting audit log:', error);
+    res.status(500).json({ error: 'Failed to reject audit log' });
   }
 });
 
