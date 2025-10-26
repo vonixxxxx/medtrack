@@ -3,7 +3,7 @@ services:
     name: medtrack-backend
     runtime: node
     buildCommand: cd backend && npm install
-    startCommand: cd backend && npm start
+    startCommand: cd backend && node simple-server.js
     envVars:
       - key: PORT
         value: 8000
