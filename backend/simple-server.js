@@ -341,6 +341,35 @@ app.post('/api/doctor/parse-history', async (req, res) => {
     const auditLogs = [];
     const updates = {};
 
+    // Helper: parse flexible dates like DD/MM/YYYY or ISO
+    function parseFlexibleDate(input) {
+      if (!input) return null;
+      if (input instanceof Date) return isNaN(input.getTime()) ? null : input;
+      const str = String(input).trim();
+      // Try ISO first
+      const iso = new Date(str);
+      if (!isNaN(iso.getTime())) return iso;
+      // Try DD/MM/YYYY
+      const m = str.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+      if (m) {
+        const d = parseInt(m[1], 10);
+        const mo = parseInt(m[2], 10) - 1;
+        const y = parseInt(m[3], 10);
+        const dt = new Date(y, mo, d);
+        return isNaN(dt.getTime()) ? null : dt;
+      }
+      return null;
+    }
+
+    const dateFields = new Set([
+      'baseline_hba1c_date',
+      'baseline_lipid_date',
+      'baseline_weight_date',
+      'start_date',
+      'hba1c_date',
+      'lipid_date'
+    ]);
+
     // Map AI parsed data to database fields
     const fieldMapping = {
       age: 'age',
@@ -372,13 +401,37 @@ app.post('/api/doctor/parse-history', async (req, res) => {
       comorbidities_count: 'total_qualifying_comorbidities'
     };
 
+    // Allowed patient fields (must exist in Prisma Patient model)
+    const allowedPatientFields = new Set([
+      'sex','dob','height','baseline_weight','baseline_bmi','baseline_weight_date',
+      'ascvd','htn','hypertension','dyslipidaemia','ischaemic_heart_disease','heart_failure',
+      'cerebrovascular_disease','pulmonary_hypertension','dvt','pe','osa','sleep_studies','cpap','asthma',
+      't2dm','prediabetes','diabetes_type','hba1c_percent','baseline_hba1c','baseline_hba1c_date',
+      'hba1c_mmol','baseline_fasting_glucose','random_glucose',
+      'baseline_tc','baseline_hdl','baseline_ldl','baseline_tg','baseline_lipid_date','lipid_lowering_treatment',
+      'antihypertensive_medications','gord','ckd','kidney_stones','masld','infertility','pcos','anxiety','depression',
+      'bipolar_disorder','emotional_eating','schizoaffective_disorder','oa_knee','oa_hip','limited_mobility','lymphoedema',
+      'thyroid_disorder','iih','epilepsy','functional_neurological_disorder','cancer',
+      'bariatric_gastric_band','bariatric_sleeve','bariatric_bypass','bariatric_balloon',
+      'diagnoses_coded_in_scr','total_qualifying_comorbidities','mes','notes','criteria_for_wegovy'
+    ]);
+
     // Compare parsed data with current data and create updates
     for (const [aiField, dbField] of Object.entries(fieldMapping)) {
       if (parsedData[aiField] !== null && parsedData[aiField] !== undefined) {
+        // Skip fields that are not part of Patient model
+        if (!allowedPatientFields.has(dbField)) continue;
+
         const currentValue = currentPatient[dbField];
-        const newValue = parsedData[aiField];
+        let newValue = parsedData[aiField];
         
-        if (currentValue !== newValue) {
+        // Coerce dates
+        if (dateFields.has(dbField)) {
+          const dt = parseFlexibleDate(newValue);
+          newValue = dt || undefined;
+        }
+        
+        if (newValue !== undefined && currentValue?.toString() !== newValue?.toString()) {
           auditLogs.push({
             patientId,
             field_name: dbField,
@@ -611,9 +664,20 @@ app.post('/api/doctor/intelligent-parse', async (req, res) => {
 
       // Update patient data
       if (Object.keys(updates).length > 0) {
+        // Remove invalid dates before saving
+        const cleanedUpdates = Object.fromEntries(
+          Object.entries(updates).filter(([key, value]) => {
+            // Only allow fields present in Patient model
+            if (!allowedPatientFields.has(key)) return false;
+            if (value instanceof Date) return !isNaN(value.getTime());
+            if (key.endsWith('_date') && typeof value === 'string') return false;
+            return value !== undefined && value !== null && value !== 'Invalid Date';
+          })
+        );
+
         await prisma.patient.update({
           where: { id: targetPatient.id },
-          data: updates
+          data: cleanedUpdates
         });
       }
 
@@ -1087,8 +1151,14 @@ app.get('/api/meds/cycles', (req, res) => {
 // Medication validation endpoint
 app.post('/api/medications/validateMedication', async (req, res) => {
   try {
-    const { medication } = req.body;
+    // Accept multiple possible payload shapes from various frontends
+    const rawInput = (req.body && (req.body.medication ?? req.body.name ?? req.body.query ?? req.body.text ?? req.body.term)) ?? '';
+    const medication = typeof rawInput === 'string' ? rawInput : String(rawInput || '');
     console.log('Validating medication:', medication);
+    
+    if (!medication || !medication.trim()) {
+      return res.status(400).json({ success: false, message: 'No medication text provided' });
+    }
     
     // Enhanced medication database with fuzzy matching
     const medicationDatabase = [
@@ -1168,7 +1238,7 @@ app.post('/api/medications/validateMedication', async (req, res) => {
     }
     
     // Search for medication
-    const searchTerm = medication.toLowerCase();
+    const searchTerm = medication.toLowerCase().trim();
     let bestMatch = null;
     let bestScore = Infinity;
     
@@ -1209,7 +1279,12 @@ app.post('/api/medications/validateMedication', async (req, res) => {
       res.json({
         success: false,
         message: 'Medication not found',
-        suggestions: medicationDatabase.slice(0, 3).map(med => med.generic_name)
+        suggestions: medicationDatabase
+          .map(med => ({
+            generic_name: med.generic_name,
+            brand_names: med.brand_names
+          }))
+          .slice(0, 5)
       });
     }
   } catch (error) {
