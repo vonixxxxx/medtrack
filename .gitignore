@@ -103,3 +103,4 @@ Thumbs.db
 *.db-journal
 prisma/dev.db
 prisma/dev.db-journal
+# Render deployment trigger
