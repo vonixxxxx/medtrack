@@ -1,8 +1,4 @@
 services:
-  - type: pserv
-    name: medtrack-db
-    plan: free
-
   - type: web
     name: medtrack-backend
     runtime: node
