@@ -1374,7 +1374,7 @@ app.get('/api/*', (req, res) => {
   });
 });
 
-const PORT = process.env.PORT || 4000;
+const PORT = process.env.PORT || 8080;
 
 app.listen(PORT, () => {
   console.log(`🚀 Simple backend server running on port ${PORT}`);
