@@ -14,6 +14,11 @@ CREATE TABLE "User" (
     "hospitalCode" TEXT NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
+    "resetToken" TEXT,
+    "resetTokenExpiry" TIMESTAMP(3),
+    "is2FAEnabled" BOOLEAN NOT NULL DEFAULT false,
+    "twoFASecret" TEXT,
+    "surveyCompleted" BOOLEAN NOT NULL DEFAULT false,
 
     CONSTRAINT "User_pkey" PRIMARY KEY ("id")
 );
