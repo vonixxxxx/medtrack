@@ -1,0 +1,175 @@
+Name: Sarah Johnson
+
+Email: sarah.johnson@example.com
+
+Age: 45
+
+Sex: Female
+
+Ethnic Group: White – English, Welsh, Scottish, Northern Irish or British
+
+Location: Manchester
+
+Postcode: M1 1AA
+
+NHS Number: 123 456 7890
+
+MRN: MAN-456789
+
+Vitals & Anthropometrics
+
+Height (cm): 165
+
+Weight (kg): 92
+
+BMI: 33.8
+
+Weight Date: 2025-01-20
+
+Cardiometabolic
+
+ASCVD: Yes
+
+HTN: Yes (on treatment)
+
+Dyslipidaemia: Yes
+
+T2DM: Yes
+
+Prediabetes: No
+
+Diabetes Type: Type 2
+
+HbA1c (%): 7.2
+
+HbA1c Date: 2024-12-15
+
+Baseline Fasting Glucose: 8.1 mmol/L
+
+Random Glucose: 12.5 mmol/L
+
+Lipid Profile
+
+Total Cholesterol: 6.8 mmol/L
+
+HDL: 1.0 mmol/L
+
+LDL: 4.5 mmol/L
+
+Triglycerides: 2.9 mmol/L
+
+Lipid Date: 2024-12-15
+
+Lipid Treatment: Atorvastatin 40mg daily
+
+Sleep & Respiratory
+
+OSA: Moderate
+
+Sleep Studies: Yes - Polysomnography, AHI 22
+
+CPAP: Yes
+
+Asthma: No
+
+Pulmonary HTN: No
+
+Cardiac
+
+Hypertension: Yes
+
+IHD: Yes
+
+Heart Failure: No
+
+CVD: Yes
+
+DVT: No
+
+PE: No
+
+GI & Renal
+
+GORD: Yes
+
+CKD: Stage 3a
+
+Kidney Stones: No
+
+MASLD: Yes (confirmed on ultrasound)
+
+Endocrine & Reproductive
+
+Thyroid Disorder: Hypothyroidism
+
+Infertility: No
+
+PCOS: No
+
+IIH: No
+
+Neurological
+
+Epilepsy: No
+
+FND: No
+
+Psychiatric
+
+Anxiety: Moderate
+
+Depression: Yes
+
+Bipolar: No
+
+Emotional Eating: Yes
+
+Schizoaffective: No
+
+Musculoskeletal & Mobility
+
+OA Knee: Yes
+
+OA Hip: No
+
+Limited Mobility: Yes
+
+Lymphoedema: No
+
+Cancer
+
+Cancer: No
+
+Bariatric History
+
+Gastric Band: No
+
+Sleeve: No
+
+Bypass: No
+
+Balloon: No
+
+Medications
+
+Antihypertensive Meds: Lisinopril 10mg daily, Amlodipine 5mg daily
+
+Lipid Treatment: Atorvastatin 40mg daily
+
+Diabetes Medications: Metformin 1000mg twice daily, Gliclazide 80mg twice daily
+
+Other Medications: Levothyroxine 75mcg daily, Sertraline 100mg daily
+
+Other
+
+Comorbidities: Type 2 Diabetes Mellitus, Hypertension, Dyslipidaemia, ASCVD, Ischaemic Heart Disease, Cerebrovascular Disease, Obstructive Sleep Apnea, MASLD, GORD, Hypothyroidism, Anxiety, Depression, Emotional Eating, Osteoarthritis Knee, Limited Mobility
+
+Total Qualifying Comorbidities: 15
+
+Clinical Notes
+
+Patient presents with multiple cardiometabolic risk factors. Well-controlled diabetes on dual therapy. Hypertension managed with ACE inhibitor and calcium channel blocker. Established cardiovascular disease with previous MI in 2022. Moderate OSA well-managed with CPAP compliance >90%. MASLD confirmed on imaging. Depression and anxiety managed with SSRI. Knee osteoarthritis affecting mobility. Regular monitoring of renal function required due to CKD Stage 3a. Patient counselled on lifestyle modifications including weight management, dietary changes, and increased physical activity within mobility limitations.
+
+Last Visit
+
+2025-01-20

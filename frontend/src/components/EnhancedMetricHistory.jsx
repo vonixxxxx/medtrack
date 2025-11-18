@@ -46,11 +46,18 @@ export const EnhancedMetricHistory = ({ onAddMetric }) => {
     try {
       const response = await api.get('meds/user');
       const medications = response.data.medications || [];
-      setMedications(medications);
+      // Filter out test medications
+      const filteredMeds = medications.filter(med => {
+        const name = (med.medication_name || med.name || med.generic_name || '').toLowerCase();
+        return !name.includes('final test') && 
+               !name.includes('test2') && 
+               !name.includes('test medication');
+      });
+      setMedications(filteredMeds);
       
       // Auto-select first medication if available
-      if (medications.length > 0) {
-        setSelectedMedication(medications[0]);
+      if (filteredMeds.length > 0) {
+        setSelectedMedication(filteredMeds[0]);
       }
     } catch (err) {
       console.error('Error fetching medications:', err);
@@ -249,9 +256,12 @@ export const EnhancedMetricHistory = ({ onAddMetric }) => {
           <Activity className="w-5 h-5 text-foreground" />
           <h3 className="text-lg font-semibold">Health Metrics</h3>
         </div>
-        <NeonButton onClick={onAddMetric} size="sm">
+        <button
+          onClick={onAddMetric}
+          className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-all shadow-md hover:shadow-lg"
+        >
           Log Metrics
-        </NeonButton>
+        </button>
       </div>
 
       {/* Medication and Metric Selection */}
@@ -265,10 +275,10 @@ export const EnhancedMetricHistory = ({ onAddMetric }) => {
               <button
                 key={med.id}
                 onClick={() => setSelectedMedication(med)}
-                className={`px-3 py-1.5 rounded-lg text-sm transition-all ${
+                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
                   selectedMedication?.id === med.id
-                    ? 'bg-primary text-primary-foreground'
-                    : 'bg-secondary text-secondary-foreground hover:bg-secondary/80'
+                    ? 'bg-blue-600 text-white shadow-md'
+                    : 'bg-neutral-100 text-neutral-700 hover:bg-neutral-200 border border-neutral-200'
                 }`}
               >
                 {med.medication_name || med.name || med.generic_name}
@@ -286,10 +296,10 @@ export const EnhancedMetricHistory = ({ onAddMetric }) => {
               <button
                 key={metric}
                 onClick={() => setSelectedMetric(metric)}
-                className={`px-3 py-1.5 rounded-lg text-sm transition-all ${
+                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
                   selectedMetric === metric
-                    ? 'bg-primary text-primary-foreground'
-                    : 'bg-secondary text-secondary-foreground hover:bg-secondary/80'
+                    ? 'bg-blue-600 text-white shadow-md'
+                    : 'bg-neutral-100 text-neutral-700 hover:bg-neutral-200 border border-neutral-200'
                 }`}
               >
                 {metric}

@@ -24,6 +24,123 @@ app.use(express.json());
 const aiRoutes = require('./src/routes/ai');
 app.use('/api/ai', aiRoutes);
 
+// Import and use OpenEMR feature routes
+const encounterRoutes = require('./src/routes/encounters');
+const soapNoteRoutes = require('./src/routes/soap-notes');
+const problemRoutes = require('./src/routes/problems');
+const allergyRoutes = require('./src/routes/allergies');
+const immunizationRoutes = require('./src/routes/immunizations');
+const prescriptionRoutes = require('./src/routes/prescriptions');
+const billingRoutes = require('./src/routes/billing');
+
+// Import new feature routes
+const drugInteractionRoutes = require('./src/routes/drug-interactions');
+const sideEffectRoutes = require('./src/routes/side-effects');
+const adherenceRoutes = require('./src/routes/adherence');
+const patientProfileRoutes = require('./src/routes/patient-profiles');
+const diaryRoutes = require('./src/routes/diary');
+const pillRecognitionRoutes = require('./src/routes/pill-recognition');
+
+app.use('/api/encounters', encounterRoutes);
+app.use('/api/soap-notes', soapNoteRoutes);
+app.use('/api/problems', problemRoutes);
+app.use('/api/allergies', allergyRoutes);
+app.use('/api/immunizations', immunizationRoutes);
+app.use('/api/prescriptions', prescriptionRoutes);
+app.use('/api/billing', billingRoutes);
+
+// New feature routes
+app.use('/api/drug-interactions', drugInteractionRoutes);
+app.use('/api/side-effects', sideEffectRoutes);
+app.use('/api/adherence', adherenceRoutes);
+app.use('/api/patient-profiles', patientProfileRoutes);
+app.use('/api/diary', diaryRoutes);
+app.use('/api/pill-recognition', pillRecognitionRoutes);
+
+// Confir-Med API routes
+const monopharmacyRoutes = require('./src/routes/monopharmacy');
+const polypharmacyRoutes = require('./src/routes/polypharmacy');
+app.use('/api/mono_se', monopharmacyRoutes);
+app.use('/api/poly_se', polypharmacyRoutes);
+
+// Medication validation endpoint (must be before /api/medications route)
+app.post('/api/medications/validateMedication', async (req, res) => {
+  try {
+    // Accept multiple possible payload shapes from various frontends
+    const rawInput = (req.body && (req.body.medication ?? req.body.medication_name ?? req.body.name ?? req.body.query ?? req.body.text ?? req.body.term)) ?? '';
+    const medication = typeof rawInput === 'string' ? rawInput : String(rawInput || '').trim();
+    console.log('Validating medication:', medication);
+    
+    // Use the new comprehensive medication matching service
+    const { validateMedication } = require('./src/services/medicationMatchingService');
+    const { callBioGPTProduction } = require('./src/utils/biogptClient');
+    
+    // Inject BioGPT caller
+    const callBioGPT = async (prompt) => {
+      try {
+        return await callBioGPTProduction(prompt);
+      } catch (error) {
+        console.error('BioGPT call failed:', error.message);
+        // Return a default response if BioGPT fails (don't block validation)
+        return {
+          is_medication: true,
+          confidence: 0.5,
+          drug_class: null,
+          is_generic: true,
+          is_brand: false
+        };
+      }
+    };
+    
+    const result = await validateMedication(medication, { callBioGPTFn: callBioGPT });
+    
+    if (result.found) {
+      // Success - return verified medication
+      // Map result to expected frontend format
+      return res.json({
+        success: true,
+        found: true,
+        data: {
+          generic_name: result.name,
+          name: result.name,
+          brand_names: [],
+          drug_class: result.bio?.drug_class || 'Unknown',
+          dosage_forms: ['tablet'],
+          typical_strengths: [],
+          confidence: result.score,
+          alternatives: [],
+          original_input: medication,
+          source: result.source,
+          rxcui: result.rxcui || null,
+          bio: result.bio
+        }
+      });
+    } else {
+      // No match found - return proper no-match response
+      return res.json({
+        success: false,
+        found: false,
+        error: result.message || `No medication found for "${medication}"`,
+        reason: result.reason,
+        suggestions: result.suggestions || [],
+        original_input: medication
+      });
+    }
+  } catch (error) {
+    console.error('Medication validation error:', error);
+    res.status(500).json({ 
+      success: false, 
+      found: false,
+      error: 'Failed to validate medication', 
+      details: error.message 
+    });
+  }
+});
+
+// Enhanced medication tracking routes
+const medicationTrackingRoutes = require('./src/routes/medication-tracking');
+app.use('/api/medications', medicationTrackingRoutes);
+
 // Test endpoint
 app.get('/api/test-public', (req, res) => {
   res.json({ message: 'Backend is running!' });
@@ -60,6 +177,18 @@ app.post('/api/auth/signup', async (req, res) => {
   try {
     const { email, password, role, hospitalCode, patientData } = req.body;
     
+    // Check if user already exists
+    const existingUser = await prisma.user.findUnique({
+      where: { email }
+    });
+    
+    if (existingUser) {
+      return res.status(400).json({ 
+        error: 'User already exists',
+        details: 'An account with this email already exists. Please login instead.'
+      });
+    }
+    
     // Create user
     const user = await prisma.user.create({
       data: {
@@ -67,7 +196,8 @@ app.post('/api/auth/signup', async (req, res) => {
         password, // In production, hash this
         role: role || 'patient',
         hospitalCode: hospitalCode || '123456789',
-        name: patientData?.name || null
+        name: patientData?.name || null,
+        surveyCompleted: false // Initialize survey as not completed
       }
     });
 
@@ -111,8 +241,8 @@ app.post('/api/auth/signup', async (req, res) => {
       });
     }
 
-    // Initialize survey completion status for new user
-    surveyCompletionStatus.set(user.id, false);
+    // Survey completion status is now stored in database (surveyCompleted field)
+    // No need for in-memory map initialization
 
     res.json({
       success: true,
@@ -321,10 +451,22 @@ app.post('/api/doctor/parse-history', async (req, res) => {
     console.log(`📝 Medical notes: ${medicalNotes.substring(0, 100)}...`);
 
     // Use Ollama parser for AI-powered extraction
-    const { runOllamaParser } = require('./utils/ollamaParser');
-    const parsedData = await runOllamaParser(medicalNotes);
-
-    console.log('📊 Parsed data from AI:', Object.keys(parsedData));
+    let parsedData;
+    let rawModelOutput = null;
+    try {
+      const { runOllamaParser } = require('./utils/ollamaParser');
+      parsedData = await runOllamaParser(medicalNotes);
+      console.log('📊 Parsed data from AI:', Object.keys(parsedData));
+    } catch (parseError) {
+      console.error('❌ Parser error:', parseError.message);
+      console.error('❌ Parser stack:', parseError.stack);
+      console.error('❌ Error details:', {
+        rawModelOutput: rawModelOutput || 'N/A',
+        patientId: patientId,
+        notesLength: medicalNotes?.length || 0
+      });
+      throw new Error(`Failed to parse medical notes: ${parseError.message}`);
+    }
 
     // Get current patient data for comparison
     const currentPatient = await prisma.patient.findUnique({
@@ -371,20 +513,29 @@ app.post('/api/doctor/parse-history', async (req, res) => {
     ]);
 
     // Map AI parsed data to database fields
+    // Note: Patient model doesn't have 'age' field, only 'dob' (date of birth)
     const fieldMapping = {
-      age: 'age',
       sex: 'sex',
       height: 'height',
       weight: 'baseline_weight',
+      baseline_weight: 'baseline_weight',
       bmi: 'baseline_bmi',
+      baseline_bmi: 'baseline_bmi',
+      baseline_weight_date: 'baseline_weight_date',
       systolic_bp: 'systolic_bp',
       diastolic_bp: 'diastolic_bp',
       hba1c_percent: 'hba1c_percent',
       baseline_hba1c: 'baseline_hba1c',
+      baseline_hba1c_date: 'baseline_hba1c_date',
+      baseline_fasting_glucose: 'baseline_fasting_glucose',
+      random_glucose: 'random_glucose',
       baseline_tc: 'baseline_tc',
       baseline_hdl: 'baseline_hdl',
       baseline_ldl: 'baseline_ldl',
       baseline_tg: 'baseline_tg',
+      baseline_lipid_date: 'baseline_lipid_date',
+      lipid_lowering_treatment: 'lipid_lowering_treatment',
+      antihypertensive_medications: 'antihypertensive_medications',
       creatinine: 'creatinine',
       egfr: 'egfr',
       t2dm: 't2dm',
@@ -396,6 +547,38 @@ app.post('/api/doctor/parse-history', async (req, res) => {
       ascvd: 'ascvd',
       ckd: 'ckd',
       osa: 'osa',
+      sleep_studies: 'sleep_studies',
+      cpap: 'cpap',
+      asthma: 'asthma',
+      ischaemic_heart_disease: 'ischaemic_heart_disease',
+      heart_failure: 'heart_failure',
+      cerebrovascular_disease: 'cerebrovascular_disease',
+      pulmonary_hypertension: 'pulmonary_hypertension',
+      dvt: 'dvt',
+      pe: 'pe',
+      gord: 'gord',
+      kidney_stones: 'kidney_stones',
+      masld: 'masld',
+      thyroid_disorder: 'thyroid_disorder',
+      infertility: 'infertility',
+      pcos: 'pcos',
+      iih: 'iih',
+      epilepsy: 'epilepsy',
+      functional_neurological_disorder: 'functional_neurological_disorder',
+      cancer: 'cancer',
+      anxiety: 'anxiety',
+      depression: 'depression',
+      bipolar_disorder: 'bipolar_disorder',
+      emotional_eating: 'emotional_eating',
+      schizoaffective_disorder: 'schizoaffective_disorder',
+      oa_knee: 'oa_knee',
+      oa_hip: 'oa_hip',
+      limited_mobility: 'limited_mobility',
+      lymphoedema: 'lymphoedema',
+      bariatric_gastric_band: 'bariatric_gastric_band',
+      bariatric_sleeve: 'bariatric_sleeve',
+      bariatric_bypass: 'bariatric_bypass',
+      bariatric_balloon: 'bariatric_balloon',
       obesity: 'obesity',
       notes: 'notes',
       comorbidities_count: 'total_qualifying_comorbidities'
@@ -416,11 +599,95 @@ app.post('/api/doctor/parse-history', async (req, res) => {
       'diagnoses_coded_in_scr','total_qualifying_comorbidities','mes','notes','criteria_for_wegovy'
     ]);
 
+    // Helper: Convert 0/1/null to Boolean? for Prisma
+    function convertBooleanValue(value) {
+      if (value === null || value === undefined) return null;
+      if (typeof value === 'number') {
+        if (value === 0) return false;
+        if (value === 1) return true;
+        return null;
+      }
+      if (typeof value === 'boolean') return value;
+      return null;
+    }
+
+    // Conditions are already mapped to columns in validateAndNormalizePatientData
+    // parsedData.conditions array was used to set specific columns to 1
+    // All condition fields are now 0 or 1 (never null)
+    console.log('📋 Condition fields initialized and mapped from conditions array');
+
     // Compare parsed data with current data and create updates
+    // First, handle all boolean fields from parsedData (0/1/null)
+    const booleanFields = [
+      't2dm', 'prediabetes', 'htn', 'hypertension', 'dyslipidaemia', 'ascvd', 'ckd', 'osa',
+      'sleep_studies', 'cpap', 'asthma', 'ischaemic_heart_disease', 'heart_failure',
+      'cerebrovascular_disease', 'pulmonary_hypertension', 'dvt', 'pe', 'gord', 'kidney_stones',
+      'masld', 'infertility', 'pcos', 'anxiety', 'depression', 'bipolar_disorder',
+      'emotional_eating', 'schizoaffective_disorder', 'oa_knee', 'oa_hip', 'limited_mobility',
+      'lymphoedema', 'thyroid_disorder', 'iih', 'epilepsy', 'functional_neurological_disorder',
+      'cancer', 'bariatric_gastric_band', 'bariatric_sleeve', 'bariatric_bypass', 'bariatric_balloon'
+    ];
+
+    for (const field of booleanFields) {
+      const currentValue = currentPatient[field];
+      // parsedData[field] is already 0 or 1 (never null) from validateAndNormalizePatientData
+      const parsedValue = parsedData[field];
+      
+      // Convert 0/1 to false/true for Prisma Boolean fields
+      let newValue = null;
+      if (parsedValue === 0) {
+        newValue = false;
+      } else if (parsedValue === 1) {
+        newValue = true;
+      } else {
+        // Should never happen, but default to false if somehow null/undefined
+        newValue = false;
+        console.warn(`⚠️ Field ${field} was null/undefined, defaulting to false`);
+      }
+      
+      // Only create audit log if value changed
+      if (currentValue !== newValue) {
+        try {
+          auditLogs.push({
+            patientId: String(patientId), // Ensure string
+            field_name: String(field), // Ensure string
+            old_value: currentValue !== null && currentValue !== undefined ? String(currentValue) : '',
+            new_value: String(newValue), // Ensure string
+            ai_confidence: 0.9,
+            ai_suggestion: conditionFieldMap[field] === 1 
+              ? `AI detected from conditions array: ${newValue}`
+              : `AI detected: ${newValue}`,
+            clinician_approved: false
+          });
+          updates[field] = newValue;
+        } catch (logError) {
+          console.error(`⚠️ Error creating audit log for field ${field}:`, logError.message);
+          // Still add to updates even if audit log fails
+          updates[field] = newValue;
+        }
+      }
+    }
+
+    // Handle non-boolean fields from fieldMapping
     for (const [aiField, dbField] of Object.entries(fieldMapping)) {
+      // Skip boolean fields (already handled above)
+      if (booleanFields.includes(dbField)) continue;
+      
+      // Skip age field - Patient model doesn't have age, only dob
+      if (aiField === 'age') continue;
+      
       if (parsedData[aiField] !== null && parsedData[aiField] !== undefined) {
         // Skip fields that are not part of Patient model
         if (!allowedPatientFields.has(dbField)) continue;
+        
+        // Ensure numeric fields stay numeric (not converted to boolean)
+        const numericFields = ['height', 'baseline_weight', 'baseline_bmi', 'baseline_hba1c', 
+                               'hba1c_percent', 'baseline_fasting_glucose', 'random_glucose',
+                               'baseline_tc', 'baseline_hdl', 'baseline_ldl', 'baseline_tg'];
+        if (numericFields.includes(dbField) && typeof parsedData[aiField] === 'boolean') {
+          // Skip if it's a boolean - this shouldn't happen but protect against it
+          continue;
+        }
 
         const currentValue = currentPatient[dbField];
         let newValue = parsedData[aiField];
@@ -432,16 +699,22 @@ app.post('/api/doctor/parse-history', async (req, res) => {
         }
         
         if (newValue !== undefined && currentValue?.toString() !== newValue?.toString()) {
-          auditLogs.push({
-            patientId,
-            field_name: dbField,
-            old_value: currentValue?.toString() || null,
-            new_value: newValue.toString(),
-            ai_confidence: 0.9,
-            ai_suggestion: `AI detected: ${newValue}`,
-            clinician_approved: false
-          });
-          updates[dbField] = newValue;
+          try {
+            auditLogs.push({
+              patientId: String(patientId), // Ensure string
+              field_name: String(dbField), // Ensure string
+              old_value: currentValue !== null && currentValue !== undefined ? String(currentValue) : '',
+              new_value: String(newValue), // Ensure string
+              ai_confidence: 0.9,
+              ai_suggestion: `AI detected: ${newValue}`,
+              clinician_approved: false
+            });
+            updates[dbField] = newValue;
+          } catch (logError) {
+            console.error(`⚠️ Error creating audit log for field ${dbField}:`, logError.message);
+            // Still add to updates even if audit log fails
+            updates[dbField] = newValue;
+          }
         }
       }
     }
@@ -450,80 +723,182 @@ app.post('/api/doctor/parse-history', async (req, res) => {
     if (parsedData.medications && Array.isArray(parsedData.medications)) {
       const medicationsString = parsedData.medications.join(', ');
       if (currentPatient.all_medications_from_scr !== medicationsString) {
-        auditLogs.push({
-          patientId,
-          field_name: 'all_medications_from_scr',
-          old_value: currentPatient.all_medications_from_scr || null,
-          new_value: medicationsString,
-          ai_confidence: 0.9,
-          ai_suggestion: `AI detected medications: ${medicationsString}`,
-          clinician_approved: false
-        });
-        updates.all_medications_from_scr = medicationsString;
+        try {
+          auditLogs.push({
+            patientId: String(patientId), // Ensure string
+            field_name: 'all_medications_from_scr',
+            old_value: currentPatient.all_medications_from_scr ? String(currentPatient.all_medications_from_scr) : '',
+            new_value: String(medicationsString), // Ensure string
+            ai_confidence: 0.9,
+            ai_suggestion: `AI detected medications: ${medicationsString}`,
+            clinician_approved: false
+          });
+          updates.all_medications_from_scr = medicationsString;
+        } catch (logError) {
+          console.error('⚠️ Error creating audit log for medications:', logError.message);
+          // Still add to updates even if audit log fails
+          updates.all_medications_from_scr = medicationsString;
+        }
       }
     }
 
     // Save audit logs
     if (auditLogs.length > 0) {
-      await prisma.aiAuditLog.createMany({
-        data: auditLogs
-      });
-    }
-
-    // Extract conditions for the conditions table
-    const conditions = [];
-    if (parsedData.medications && Array.isArray(parsedData.medications)) {
-      conditions.push(...parsedData.medications);
-    }
-    
-    // Add conditions based on boolean flags
-    const conditionFlags = {
-      t2dm: 'Type 2 Diabetes',
-      prediabetes: 'Prediabetes',
-      htn: 'Hypertension',
-      dyslipidaemia: 'Dyslipidemia',
-      ascvd: 'ASCVD',
-      ckd: 'Chronic Kidney Disease',
-      osa: 'Obstructive Sleep Apnea',
-      obesity: 'Obesity'
-    };
-
-    for (const [flag, conditionName] of Object.entries(conditionFlags)) {
-      if (parsedData[flag]) {
-        conditions.push(conditionName);
+      try {
+        // Validate audit log data before saving
+        const validAuditLogs = auditLogs.filter(log => {
+          return log.patientId && log.field_name && log.new_value !== undefined;
+        });
+        
+        if (validAuditLogs.length > 0) {
+          await prisma.aiAuditLog.createMany({
+            data: validAuditLogs
+          });
+          console.log(`✅ Saved ${validAuditLogs.length} audit logs`);
+        } else {
+          console.warn('⚠️ No valid audit logs to save');
+        }
+      } catch (auditError) {
+        console.error('❌ Error saving audit logs:', auditError.message);
+        console.error('❌ Audit log error details:', auditError);
+        // Don't fail the entire request if audit logs fail
       }
     }
 
-    // Save conditions
-    const savedConditions = await Promise.all(
-      conditions.map(condition => 
-        prisma.condition.create({
-          data: {
-            patientId: patientId,
-            name: condition,
-            normalized: condition.toLowerCase()
+    // Extract conditions from parsedData.conditions array
+    // Use normalizeConditionName helper from conditionMapper
+    const { normalizeConditionName } = require('./src/utils/conditionMapper');
+    let extractedConditions = [];
+    
+    // Primary: Use parsedData.conditions array
+    if (Array.isArray(parsedData.conditions)) {
+      extractedConditions = parsedData.conditions.map(condition => 
+        normalizeConditionName(condition)
+      );
+    }
+    
+    // Fallback: Check boolean flags (only if conditions array is empty or missing)
+    const conditionFlags = {
+      t2dm: 'Type 2 Diabetes Mellitus',
+      prediabetes: 'Prediabetes',
+      htn: 'Hypertension',
+      hypertension: 'Hypertension',
+      dyslipidaemia: 'Dyslipidaemia',
+      ascvd: 'Atherosclerotic Cardiovascular Disease',
+      ckd: 'Chronic Kidney Disease',
+      osa: 'Obstructive Sleep Apnea',
+      masld: 'MASLD',
+      anxiety: 'Anxiety',
+      depression: 'Depression',
+      bipolar_disorder: 'Bipolar Disorder',
+      emotional_eating: 'Emotional Eating',
+      schizoaffective_disorder: 'Schizoaffective Disorder',
+      oa_knee: 'Osteoarthritis Knee',
+      oa_hip: 'Osteoarthritis Hip',
+      limited_mobility: 'Limited Mobility',
+      lymphoedema: 'Lymphoedema',
+      thyroid_disorder: 'Thyroid Disorder',
+      iih: 'Idiopathic Intracranial Hypertension',
+      epilepsy: 'Epilepsy',
+      functional_neurological_disorder: 'Functional Neurological Disorder',
+      cancer: 'Cancer',
+      ischaemic_heart_disease: 'Ischaemic Heart Disease',
+      heart_failure: 'Heart Failure',
+      cerebrovascular_disease: 'Cerebrovascular Disease',
+      pulmonary_hypertension: 'Pulmonary Hypertension',
+      dvt: 'Deep Vein Thrombosis',
+      pe: 'Pulmonary Embolism',
+      gord: 'Gastroesophageal Reflux Disease',
+      kidney_stones: 'Kidney Stones',
+      infertility: 'Infertility',
+      pcos: 'Polycystic Ovary Syndrome',
+      bariatric_gastric_band: 'Gastric Band',
+      bariatric_sleeve: 'Gastric Sleeve',
+      bariatric_bypass: 'Gastric Bypass',
+      bariatric_balloon: 'Gastric Balloon'
+    };
+    
+    // Only use boolean flags as fallback if conditions array is empty
+    if (extractedConditions.length === 0) {
+      for (const [key, label] of Object.entries(conditionFlags)) {
+        if (parsedData[key] === 1) {
+          const normalized = normalizeConditionName(label);
+          if (!extractedConditions.includes(normalized)) {
+            extractedConditions.push(normalized);
           }
-        }).catch(() => null) // Ignore duplicates
-      )
-    );
+        }
+      }
+    }
+    
+    // Remove duplicates
+    extractedConditions = [...new Set(extractedConditions)];
 
     console.log(`✅ AI parsed ${Object.keys(parsedData).length} fields, found ${auditLogs.length} updates`);
+
+    // CRITICAL: Actually apply the updates to the patient record
+    if (Object.keys(updates).length > 0) {
+      try {
+        // Clean updates object - remove any undefined/null values and ensure proper types
+        const cleanedUpdates = {};
+        for (const [key, value] of Object.entries(updates)) {
+          if (value !== undefined && value !== null) {
+            // Handle date fields
+            if (dateFields.has(key)) {
+              const parsedDate = parseFlexibleDate(value);
+              if (parsedDate) {
+                cleanedUpdates[key] = parsedDate;
+              }
+            } else {
+              cleanedUpdates[key] = value;
+            }
+          }
+        }
+
+        // Update the patient record
+        await prisma.patient.update({
+          where: { id: patientId },
+          data: cleanedUpdates
+        });
+
+        console.log(`✅ Successfully updated patient ${patientId} with ${Object.keys(cleanedUpdates).length} fields`);
+      } catch (updateError) {
+        console.error('❌ Error updating patient record:', updateError.message);
+        console.error('❌ Update error details:', updateError);
+        // Don't fail the entire request - return success but log the error
+        // The audit logs are still created, so the clinician can review them
+      }
+    } else {
+      console.log('ℹ️ No updates to apply (all values match current patient data)');
+    }
 
     res.json({
       success: true,
       parsedData,
       updates,
       auditLogs: auditLogs.length,
-      conditions: savedConditions.filter(c => c).map(c => ({
-        id: c.id,
-        name: c.name,
-        normalized: c.normalized
+      conditions: extractedConditions.map(c => ({
+        name: c,
+        normalized: c.toLowerCase()
       })),
-      message: `AI successfully extracted ${Object.keys(parsedData).length} data points, ${auditLogs.length} updates require review`
+      message: `AI successfully extracted ${Object.keys(parsedData).length} data points and ${extractedConditions.length} conditions. ${Object.keys(updates).length} fields updated.`
     });
   } catch (error) {
-    console.error('Error parsing medical history:', error);
-    res.status(500).json({ error: 'Failed to parse medical history' });
+    console.error('❌ Error parsing medical history:', error.message);
+    console.error('❌ Error stack:', error.stack);
+    console.error('❌ Full error object:', {
+      message: error.message,
+      stack: error.stack,
+      name: error.name,
+      patientId: req.body?.patientId || 'unknown',
+      notesLength: req.body?.medicalNotes?.length || 0
+    });
+    
+    res.status(500).json({ 
+      success: false,
+      error: 'Failed to parse medical history',
+      details: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
   }
 });
 
@@ -914,10 +1289,27 @@ app.get('/api/ai/status', (req, res) => {
 
 app.get('/api/auth/survey-status', async (req, res) => {
   try {
-    // For demo purposes, get the most recent user and check their survey status
-    // In a real app, you'd get specific user ID from JWT token
-    const user = await prisma.user.findFirst({
-      orderBy: { createdAt: 'desc' }
+    // Get user ID from query parameter or use the most recent user
+    let userId = req.query.userId;
+    
+    if (!userId) {
+      // For demo purposes, get the most recent user
+      const latestUser = await prisma.user.findFirst({
+        orderBy: { createdAt: 'desc' }
+      });
+      if (!latestUser) {
+        return res.json({ 
+          surveyCompleted: false,
+          lastCompleted: null
+        });
+      }
+      userId = latestUser.id;
+    }
+    
+    // Check survey status from database
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { surveyCompleted: true, email: true }
     });
     
     if (!user) {
@@ -927,14 +1319,11 @@ app.get('/api/auth/survey-status', async (req, res) => {
       });
     }
     
-    const hasCompletedSurvey = surveyCompletionStatus.get(user.id) || false;
-    
-    console.log('Survey status requested for user:', user.email, '- completed:', hasCompletedSurvey);
-    console.log('Survey completion status map:', Object.fromEntries(surveyCompletionStatus));
+    console.log('Survey status requested for user:', user.email, '- completed:', user.surveyCompleted);
     
     res.json({ 
-      surveyCompleted: hasCompletedSurvey,
-      lastCompleted: hasCompletedSurvey ? new Date().toISOString() : null
+      surveyCompleted: user.surveyCompleted || false,
+      lastCompleted: user.surveyCompleted ? new Date().toISOString() : null
     });
   } catch (error) {
     console.error('Error checking survey status:', error);
@@ -1107,37 +1496,136 @@ app.post('/api/auth/survey-data', async (req, res) => {
   }
 });
 
-app.put('/api/auth/complete-survey', (req, res) => {
+app.put('/api/auth/complete-survey', async (req, res) => {
   try {
     console.log('Survey completion requested');
     
-    // Mark survey as completed for all users (demo purposes)
-    // In a real app, you'd get specific user ID from JWT token
-    for (const [userId, status] of surveyCompletionStatus.entries()) {
-      surveyCompletionStatus.set(userId, true);
+    // Get user ID from query parameter or use the most recent user
+    let userId = req.body.userId || req.query.userId;
+    
+    if (!userId) {
+      // For demo purposes, get the most recent user
+      const latestUser = await prisma.user.findFirst({
+        orderBy: { createdAt: 'desc' }
+      });
+      if (!latestUser) {
+        return res.status(400).json({ 
+          success: false,
+          error: 'User not found'
+        });
+      }
+      userId = latestUser.id;
     }
     
-    // Also add a global completion flag for demo purposes
-    surveyCompletionStatus.set('global', true);
+    // Update survey completion status in database
+    const updatedUser = await prisma.user.update({
+      where: { id: userId },
+      data: { surveyCompleted: true },
+      select: { id: true, email: true, surveyCompleted: true }
+    });
 
-    console.log('Survey marked as completed for all users');
-    console.log('Updated survey completion status map:', Object.fromEntries(surveyCompletionStatus));
+    console.log('Survey marked as completed for user:', updatedUser.email, updatedUser.id);
 
     res.json({ 
       success: true,
-      message: 'Survey marked as completed'
+      message: 'Survey marked as completed',
+      user: updatedUser
     });
   } catch (error) {
     console.error('Error completing survey:', error);
     res.status(500).json({ 
       success: false,
-      error: 'Failed to mark survey as completed'
+      error: 'Failed to mark survey as completed',
+      details: error.message
     });
   }
 });
 
-app.get('/api/meds/user', (req, res) => {
-  res.json([]);
+// Get user medications endpoint
+app.get('/api/meds/user', async (req, res) => {
+  try {
+    // Get user ID from query params or find the most recent user (for demo)
+    // In production, get from JWT token
+    let userId = req.query.userId;
+    console.log('GET /api/meds/user - userId from query:', userId);
+    
+    if (!userId) {
+      // For demo: get the most recent user
+      const latestUser = await prisma.user.findFirst({
+        orderBy: { createdAt: 'desc' }
+      });
+      if (!latestUser) {
+        return res.json({ medications: [] });
+      }
+      userId = latestUser.id;
+    }
+    
+    // Find patient associated with user
+    const patient = await prisma.patient.findFirst({
+      where: { userId }
+    });
+    
+    console.log('Patient found:', patient ? patient.id : 'NOT FOUND');
+    
+    if (!patient) {
+      console.log('No patient found for user:', userId);
+      return res.json({ medications: [] });
+    }
+    
+    // Get all medications for this patient (including inactive for debugging)
+    const allMeds = await prisma.patientMedication.findMany({
+      where: {
+        patientId: patient.id
+      },
+      orderBy: {
+        start_date: 'desc'
+      }
+    });
+    
+    console.log('Total medications in DB for patient:', allMeds.length);
+    allMeds.forEach(m => console.log('  -', m.name, m.status, m.id));
+    
+    // Filter to active medications
+    const medications = allMeds.filter(m => m.status === 'active');
+    console.log('Active medications:', medications.length);
+    
+    // Transform to match frontend expected format
+    const transformedMedications = medications.map(med => {
+      // Parse dosage to extract strength and unit if possible
+      const dosageMatch = med.dosage?.match(/^(\d+(?:\.\d+)?)(\w+)$/);
+      const strength = dosageMatch ? dosageMatch[1] : null;
+      const unit = dosageMatch ? dosageMatch[2] : null;
+      
+      return {
+        id: med.id,
+        medication_name: med.name,
+        name: med.name,
+        generic_name: med.name,
+        strength: strength,
+        unit: unit,
+        dosage: med.dosage,
+        frequency: med.frequency,
+        frequency_display: med.frequency === 'daily' ? 'Once daily' :
+                          med.frequency === 'twice_daily' ? 'Twice daily' :
+                          med.frequency === 'three_times_daily' ? 'Three times daily' :
+                          med.frequency === 'four_times_daily' ? 'Four times daily' :
+                          med.frequency === 'weekly' ? 'Once weekly' :
+                          med.frequency === 'monthly' ? 'Once monthly' :
+                          med.frequency === 'as_needed' ? 'As needed' :
+                          med.frequency,
+        start_date: med.start_date.toISOString().split('T')[0],
+        end_date: med.end_date ? med.end_date.toISOString().split('T')[0] : null,
+        status: med.status,
+        route: med.route,
+        createdAt: med.created_at.toISOString()
+      };
+    });
+    
+    res.json({ medications: transformedMedications });
+  } catch (error) {
+    console.error('Error fetching medications:', error);
+    res.status(500).json({ error: 'Failed to fetch medications', details: error.message });
+  }
 });
 
 app.get('/api/meds/schedule', (req, res) => {
@@ -1148,150 +1636,7 @@ app.get('/api/meds/cycles', (req, res) => {
   res.json([]);
 });
 
-// Medication validation endpoint
-app.post('/api/medications/validateMedication', async (req, res) => {
-  try {
-    // Accept multiple possible payload shapes from various frontends
-    const rawInput = (req.body && (req.body.medication ?? req.body.name ?? req.body.query ?? req.body.text ?? req.body.term)) ?? '';
-    const medication = typeof rawInput === 'string' ? rawInput : String(rawInput || '');
-    console.log('Validating medication:', medication);
-    
-    if (!medication || !medication.trim()) {
-      return res.status(400).json({ success: false, message: 'No medication text provided' });
-    }
-    
-    // Enhanced medication database with fuzzy matching
-    const medicationDatabase = [
-      {
-        generic_name: 'semaglutide',
-        brand_names: ['Ozempic', 'Wegovy', 'Rybelsus'],
-        drug_class: 'GLP-1 Receptor Agonist',
-        dosage_forms: ['Injection', 'Tablet'],
-        typical_strengths: ['0.25mg', '0.5mg', '1mg', '2.4mg', '3mg', '7mg', '14mg'],
-        description: 'Used for type 2 diabetes and weight management'
-      },
-      {
-        generic_name: 'metformin',
-        brand_names: ['Glucophage', 'Fortamet', 'Glumetza'],
-        drug_class: 'Biguanide',
-        dosage_forms: ['Tablet', 'Extended-release tablet'],
-        typical_strengths: ['500mg', '850mg', '1000mg'],
-        description: 'First-line treatment for type 2 diabetes'
-      },
-      {
-        generic_name: 'insulin glargine',
-        brand_names: ['Lantus', 'Toujeo', 'Basaglar'],
-        drug_class: 'Long-acting Insulin',
-        dosage_forms: ['Injection'],
-        typical_strengths: ['100 units/mL', '300 units/mL'],
-        description: 'Long-acting insulin for diabetes management'
-      },
-      {
-        generic_name: 'liraglutide',
-        brand_names: ['Victoza', 'Saxenda'],
-        drug_class: 'GLP-1 Receptor Agonist',
-        dosage_forms: ['Injection'],
-        typical_strengths: ['0.6mg', '1.2mg', '1.8mg', '3mg'],
-        description: 'GLP-1 agonist for diabetes and weight management'
-      },
-      {
-        generic_name: 'dulaglutide',
-        brand_names: ['Trulicity'],
-        drug_class: 'GLP-1 Receptor Agonist',
-        dosage_forms: ['Injection'],
-        typical_strengths: ['0.75mg', '1.5mg', '3mg', '4.5mg'],
-        description: 'GLP-1 agonist for diabetes management'
-      },
-      {
-        generic_name: 'exenatide',
-        brand_names: ['Byetta', 'Bydureon'],
-        drug_class: 'GLP-1 Receptor Agonist',
-        dosage_forms: ['Injection'],
-        typical_strengths: ['5mcg', '10mcg', '2mg'],
-        description: 'GLP-1 agonist for diabetes management'
-      }
-    ];
-    
-    // Fuzzy matching function
-    function levenshteinDistance(str1, str2) {
-      const matrix = [];
-      for (let i = 0; i <= str2.length; i++) {
-        matrix[i] = [i];
-      }
-      for (let j = 0; j <= str1.length; j++) {
-        matrix[0][j] = j;
-      }
-      for (let i = 1; i <= str2.length; i++) {
-        for (let j = 1; j <= str1.length; j++) {
-          if (str2.charAt(i - 1) === str1.charAt(j - 1)) {
-            matrix[i][j] = matrix[i - 1][j - 1];
-          } else {
-            matrix[i][j] = Math.min(
-              matrix[i - 1][j - 1] + 1,
-              matrix[i][j - 1] + 1,
-              matrix[i - 1][j] + 1
-            );
-          }
-        }
-      }
-      return matrix[str2.length][str1.length];
-    }
-    
-    // Search for medication
-    const searchTerm = medication.toLowerCase().trim();
-    let bestMatch = null;
-    let bestScore = Infinity;
-    
-    for (const med of medicationDatabase) {
-      // Check for exact substring match first (highest priority)
-      if (med.generic_name.toLowerCase().includes(searchTerm) || 
-          med.brand_names.some(brand => brand.toLowerCase().includes(searchTerm))) {
-        bestMatch = med;
-        bestScore = 0; // Perfect match
-        break;
-      }
-      
-      // Check generic name with fuzzy matching
-      const genericDistance = levenshteinDistance(searchTerm, med.generic_name.toLowerCase());
-      if (genericDistance < bestScore) {
-        bestScore = genericDistance;
-        bestMatch = med;
-      }
-      
-      // Check brand names with fuzzy matching
-      for (const brand of med.brand_names) {
-        const brandDistance = levenshteinDistance(searchTerm, brand.toLowerCase());
-        if (brandDistance < bestScore) {
-          bestScore = brandDistance;
-          bestMatch = med;
-        }
-      }
-    }
-    
-    // If we found a good match (distance <= 5), return it
-    if (bestMatch && bestScore <= 5) {
-      res.json({
-        success: true,
-        medication: bestMatch,
-        confidence: Math.max(0, 1 - (bestScore / 10))
-      });
-    } else {
-      res.json({
-        success: false,
-        message: 'Medication not found',
-        suggestions: medicationDatabase
-          .map(med => ({
-            generic_name: med.generic_name,
-            brand_names: med.brand_names
-          }))
-          .slice(0, 5)
-      });
-    }
-  } catch (error) {
-    console.error('Medication validation error:', error);
-    res.status(500).json({ success: false, error: 'Failed to validate medication' });
-  }
-});
+// This endpoint is now defined above before the /api/medications route
 
 // Save medication endpoint
 app.post('/api/meds/user', async (req, res) => {
@@ -1299,20 +1644,89 @@ app.post('/api/meds/user', async (req, res) => {
     const medicationData = req.body;
     console.log('Saving medication:', medicationData);
     
-    // For demo purposes, just return success
-    // In a real app, you'd save to the database
-    res.json({
+    // Get user ID from request body or find the most recent user (for demo)
+    // In production, get from JWT token
+    let userId = medicationData.userId;
+    if (!userId) {
+      // For demo: get the most recent user
+      const latestUser = await prisma.user.findFirst({
+        orderBy: { createdAt: 'desc' }
+      });
+      if (!latestUser) {
+        return res.status(400).json({ success: false, error: 'User not found' });
+      }
+      userId = latestUser.id;
+    }
+    
+    // Find patient associated with user
+    const patient = await prisma.patient.findFirst({
+      where: { userId }
+    });
+    
+    if (!patient) {
+      return res.status(400).json({ success: false, error: 'Patient profile not found for user' });
+    }
+    
+    // Parse strength and unit
+    const strength = medicationData.strength || '';
+    const unit = medicationData.unit || '';
+    const dosage = strength && unit ? `${strength}${unit}` : (medicationData.dosage || 'As directed');
+    
+    // Parse frequency
+    const frequency = medicationData.frequency || 'daily';
+    
+    // Create medication in database
+    console.log('Creating medication with data:', {
+      patientId: patient.id,
+      name: medicationData.medication_name || medicationData.generic_name || 'Unknown Medication',
+      dosage: dosage,
+      frequency: frequency,
+      start_date: medicationData.start_date ? new Date(medicationData.start_date) : new Date()
+    });
+    
+    const savedMedication = await prisma.patientMedication.create({
+      data: {
+        patientId: patient.id,
+        name: medicationData.medication_name || medicationData.generic_name || 'Unknown Medication',
+        dosage: dosage,
+        frequency: frequency,
+        route: 'oral', // Default route
+        start_date: medicationData.start_date ? new Date(medicationData.start_date) : new Date(),
+        status: 'active',
+        manually_entered: true
+      }
+    });
+    
+    console.log('✅ Medication saved successfully:', savedMedication.id, savedMedication.name);
+    
+    // Verify it was saved
+    const verifyMed = await prisma.patientMedication.findUnique({
+      where: { id: savedMedication.id }
+    });
+    console.log('✅ Verified medication in database:', verifyMed ? 'Found' : 'NOT FOUND');
+    
+    res.status(201).json({
       success: true,
       message: 'Medication saved successfully',
       medication: {
-        id: `med-${Date.now()}`,
-        ...medicationData,
-        createdAt: new Date().toISOString()
+        id: savedMedication.id,
+        medication_name: savedMedication.name,
+        generic_name: savedMedication.name,
+        strength: strength,
+        unit: unit,
+        dosage: savedMedication.dosage,
+        frequency: savedMedication.frequency,
+        frequency_display: medicationData.frequency_display || frequency,
+        drug_class: medicationData.drug_class || null,
+        start_date: savedMedication.start_date.toISOString().split('T')[0],
+        status: savedMedication.status,
+        createdAt: savedMedication.created_at.toISOString()
       }
     });
   } catch (error) {
     console.error('Error saving medication:', error);
-    res.status(500).json({ success: false, error: 'Failed to save medication' });
+    console.error('Error stack:', error.stack);
+    res.status(500).json({ success: false, error: 'Failed to save medication', details: error.message });
   }
 });
 
@@ -1374,7 +1788,7 @@ app.get('/api/*', (req, res) => {
   });
 });
 
-const PORT = process.env.PORT || 8080;
+const PORT = process.env.PORT || 4000;
 
 app.listen(PORT, () => {
   console.log(`🚀 Simple backend server running on port ${PORT}`);

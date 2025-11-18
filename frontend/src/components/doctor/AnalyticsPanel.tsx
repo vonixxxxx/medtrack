@@ -39,7 +39,12 @@ export const AnalyticsPanel = ({ patients, onGenerateGraph }: AnalyticsPanelProp
 
     // Basic demographics
     const totalPatients = patients.length;
-    const averageAge = totalPatients > 0 ? patients.reduce((sum, p) => sum + (p.age || 0), 0) / totalPatients : 0;
+    
+    // Filter out null values before calculating averages
+    const patientsWithAge = patients.filter(p => p.age !== null && p.age !== undefined);
+    const averageAge = patientsWithAge.length > 0 
+      ? patientsWithAge.reduce((sum, p) => sum + (p.age || 0), 0) / patientsWithAge.length 
+      : 0;
     
     const genderDistribution = patients.reduce((acc, p) => {
       if (p.sex) {
@@ -48,9 +53,16 @@ export const AnalyticsPanel = ({ patients, onGenerateGraph }: AnalyticsPanelProp
       return acc;
     }, {} as Record<string, number>);
 
-    // Medical metrics
-    const averageHbA1c = patients.reduce((sum, p) => sum + (p.hba1cPercent || 0), 0) / totalPatients;
-    const averageMES = patients.reduce((sum, p) => sum + (p.mes || 0), 0) / totalPatients;
+    // Medical metrics - filter nulls before averaging
+    const patientsWithHbA1c = patients.filter(p => p.hba1cPercent !== null && p.hba1cPercent !== undefined);
+    const averageHbA1c = patientsWithHbA1c.length > 0
+      ? patientsWithHbA1c.reduce((sum, p) => sum + (p.hba1cPercent || 0), 0) / patientsWithHbA1c.length
+      : 0;
+    
+    const patientsWithMES = patients.filter(p => p.mes !== null && p.mes !== undefined);
+    const averageMES = patientsWithMES.length > 0
+      ? patientsWithMES.reduce((sum, p) => sum + (p.mes || 0), 0) / patientsWithMES.length
+      : 0;
 
     // Improvement rate (patients with negative change percent)
     const improvedPatients = patients.filter(p => p.changePercent && p.changePercent < 0).length;
@@ -105,9 +117,9 @@ export const AnalyticsPanel = ({ patients, onGenerateGraph }: AnalyticsPanelProp
   };
 
   const getChangeColor = (change: number) => {
-    if (change > 0) return 'text-red-400';
-    if (change < 0) return 'text-green-400';
-    return 'text-gray-400';
+    if (change > 0) return 'text-red-600';
+    if (change < 0) return 'text-green-600';
+    return 'text-gray-600';
   };
 
   const getChangeIcon = (change: number) => {
@@ -120,12 +132,13 @@ export const AnalyticsPanel = ({ patients, onGenerateGraph }: AnalyticsPanelProp
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="bg-gray-900 rounded-3xl border border-gray-800 p-6"
+      whileHover={{ y: -2 }}
+      className="bg-gradient-to-br from-white to-blue-50/30 rounded-2xl border border-blue-100 hover:border-blue-200 shadow-lg shadow-blue-600/5 hover:shadow-xl hover:shadow-blue-600/20 transition-all p-6"
     >
       <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-6 gap-4">
         <div>
-          <h3 className="text-lg font-semibold text-white mb-2">Analytics Summary</h3>
-          <p className="text-sm text-gray-400">
+          <h3 className="text-xl font-bold text-gray-900 mb-2">Analytics Summary</h3>
+          <p className="text-sm text-gray-600">
             Overview of patient population and key metrics
           </p>
         </div>
@@ -134,7 +147,7 @@ export const AnalyticsPanel = ({ patients, onGenerateGraph }: AnalyticsPanelProp
           <select
             value={selectedMetric}
             onChange={(e) => setSelectedMetric(e.target.value)}
-            className="px-3 py-2 bg-gray-800 border border-gray-700 rounded-xl text-white text-sm focus:ring-2 focus:ring-white focus:border-white"
+            className="px-4 py-2.5 bg-white border-2 border-gray-200 rounded-xl text-gray-900 text-sm font-medium focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all outline-none hover:border-blue-300"
           >
             <option value="hba1cPercent">HbA1c (%)</option>
             <option value="hba1cMmolMol">HbA1c (mmol/mol)</option>
@@ -143,65 +156,79 @@ export const AnalyticsPanel = ({ patients, onGenerateGraph }: AnalyticsPanelProp
             <option value="changePercent">Change (%)</option>
           </select>
           
-          <button
+          <motion.button
+            whileHover={{ scale: 1.05, y: -2 }}
+            whileTap={{ scale: 0.95 }}
             onClick={onGenerateGraph}
-            className="px-4 py-2 bg-white text-black rounded-xl hover:bg-gray-200 transition-colors text-sm font-medium"
+            className="px-4 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all text-sm font-semibold shadow-lg shadow-blue-600/25 hover:shadow-xl hover:shadow-blue-600/40"
           >
             Generate Graph
-          </button>
+          </motion.button>
         </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         {/* Total Patients */}
-        <div className="bg-gray-800 rounded-xl p-4">
-          <div className="text-2xl font-bold text-white mb-1">
+        <motion.div 
+          whileHover={{ y: -4, scale: 1.02 }}
+          className="bg-gradient-to-br from-blue-50 to-white rounded-xl p-4 border border-blue-100 shadow-sm hover:shadow-md transition-all"
+        >
+          <div className="text-2xl font-bold text-gray-900 mb-1">
             {analytics.totalPatients}
           </div>
-          <div className="text-sm text-gray-400">Total Patients</div>
-        </div>
+          <div className="text-sm text-gray-600 font-medium">Total Patients</div>
+        </motion.div>
 
         {/* Average Age */}
-        <div className="bg-gray-800 rounded-xl p-4">
-          <div className="text-2xl font-bold text-white mb-1">
+        <motion.div 
+          whileHover={{ y: -4, scale: 1.02 }}
+          className="bg-gradient-to-br from-blue-50 to-white rounded-xl p-4 border border-blue-100 shadow-sm hover:shadow-md transition-all"
+        >
+          <div className="text-2xl font-bold text-gray-900 mb-1">
             {analytics.averageAge}
           </div>
-          <div className="text-sm text-gray-400">Average Age</div>
-        </div>
+          <div className="text-sm text-gray-600 font-medium">Average Age</div>
+        </motion.div>
 
         {/* Average HbA1c */}
-        <div className="bg-gray-800 rounded-xl p-4">
-          <div className="text-2xl font-bold text-white mb-1">
+        <motion.div 
+          whileHover={{ y: -4, scale: 1.02 }}
+          className="bg-gradient-to-br from-blue-50 to-white rounded-xl p-4 border border-blue-100 shadow-sm hover:shadow-md transition-all"
+        >
+          <div className="text-2xl font-bold text-gray-900 mb-1">
             {analytics.averageHbA1c}%
           </div>
-          <div className="text-sm text-gray-400">Avg HbA1c</div>
-        </div>
+          <div className="text-sm text-gray-600 font-medium">Avg HbA1c</div>
+        </motion.div>
 
         {/* Improvement Rate */}
-        <div className="bg-gray-800 rounded-xl p-4">
-          <div className="text-2xl font-bold text-white mb-1">
+        <motion.div 
+          whileHover={{ y: -4, scale: 1.02 }}
+          className="bg-gradient-to-br from-blue-50 to-white rounded-xl p-4 border border-blue-100 shadow-sm hover:shadow-md transition-all"
+        >
+          <div className="text-2xl font-bold text-gray-900 mb-1">
             {analytics.improvementRate}%
           </div>
-          <div className="text-sm text-gray-400">Improvement Rate</div>
-        </div>
+          <div className="text-sm text-gray-600 font-medium">Improvement Rate</div>
+        </motion.div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Gender Distribution */}
-        <div className="bg-gray-800 rounded-xl p-4">
-          <h4 className="text-md font-medium text-white mb-3">Gender Distribution</h4>
-          <div className="space-y-2">
+        <div className="bg-white rounded-xl p-5 border border-blue-100 shadow-sm">
+          <h4 className="text-lg font-bold text-gray-900 mb-4">Gender Distribution</h4>
+          <div className="space-y-3">
             {Object.entries(analytics.genderDistribution).map(([gender, count]) => (
               <div key={gender} className="flex items-center justify-between">
-                <span className="text-sm text-gray-300 capitalize">{gender}</span>
-                <div className="flex items-center gap-2">
-                  <div className="w-24 bg-gray-700 rounded-full h-2">
+                <span className="text-sm text-gray-700 font-medium capitalize">{gender}</span>
+                <div className="flex items-center gap-3">
+                  <div className="w-24 bg-gray-200 rounded-full h-2.5">
                     <div
-                      className="bg-blue-500 h-2 rounded-full"
+                      className="bg-gradient-to-r from-blue-500 to-blue-600 h-2.5 rounded-full transition-all"
                       style={{ width: `${(count / analytics.totalPatients) * 100}%` }}
                     />
                   </div>
-                  <span className="text-sm text-white w-8">{count}</span>
+                  <span className="text-sm text-gray-900 font-semibold w-8">{count}</span>
                 </div>
               </div>
             ))}
@@ -209,20 +236,20 @@ export const AnalyticsPanel = ({ patients, onGenerateGraph }: AnalyticsPanelProp
         </div>
 
         {/* Top Conditions */}
-        <div className="bg-gray-800 rounded-xl p-4">
-          <h4 className="text-md font-medium text-white mb-3">Top Conditions</h4>
-          <div className="space-y-2">
+        <div className="bg-white rounded-xl p-5 border border-blue-100 shadow-sm">
+          <h4 className="text-lg font-bold text-gray-900 mb-4">Top Conditions</h4>
+          <div className="space-y-3">
             {analytics.topConditions.map(({ condition, count }, index) => (
               <div key={condition} className="flex items-center justify-between">
-                <span className="text-sm text-gray-300 truncate">{condition}</span>
-                <div className="flex items-center gap-2">
-                  <div className="w-16 bg-gray-700 rounded-full h-2">
+                <span className="text-sm text-gray-700 font-medium truncate">{condition}</span>
+                <div className="flex items-center gap-3">
+                  <div className="w-16 bg-gray-200 rounded-full h-2.5">
                     <div
-                      className="bg-green-500 h-2 rounded-full"
+                      className="bg-gradient-to-r from-blue-500 to-blue-600 h-2.5 rounded-full transition-all"
                       style={{ width: `${(count / analytics.totalPatients) * 100}%` }}
                     />
                   </div>
-                  <span className="text-sm text-white w-6">{count}</span>
+                  <span className="text-sm text-gray-900 font-semibold w-6">{count}</span>
                 </div>
               </div>
             ))}
@@ -233,28 +260,28 @@ export const AnalyticsPanel = ({ patients, onGenerateGraph }: AnalyticsPanelProp
       {/* Percentile Changes Table */}
       {analytics.percentileChanges.length > 0 && (
         <div className="mt-6">
-          <h4 className="text-md font-medium text-white mb-3">
+          <h4 className="text-lg font-bold text-gray-900 mb-4">
             {getMetricLabel(selectedMetric)} - Percentile Changes
           </h4>
-          <div className="bg-gray-800 rounded-xl overflow-hidden">
+          <div className="bg-white rounded-xl overflow-hidden border border-blue-100 shadow-sm">
             <div className="max-h-48 overflow-y-auto">
               <table className="w-full">
-                <thead className="bg-gray-700">
+                <thead className="bg-blue-50 border-b border-blue-100">
                   <tr>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-300">Patient</th>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-300">
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Patient</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                       {getMetricLabel(selectedMetric)}
                     </th>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-300">Change</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Change</th>
                   </tr>
                 </thead>
-                <tbody>
+                <tbody className="divide-y divide-gray-100">
                   {analytics.percentileChanges.slice(0, 10).map((patient, index) => (
-                    <tr key={patient.name} className="border-b border-gray-700 last:border-b-0">
-                      <td className="px-4 py-2 text-sm text-gray-300">{patient.name}</td>
-                      <td className="px-4 py-2 text-sm text-white">{patient.value}</td>
-                      <td className="px-4 py-2 text-sm">
-                        <div className={`flex items-center gap-1 ${getChangeColor(patient.change)}`}>
+                    <tr key={patient.name} className="hover:bg-blue-50/50 transition-colors">
+                      <td className="px-4 py-3 text-sm text-gray-900 font-medium">{patient.name}</td>
+                      <td className="px-4 py-3 text-sm text-gray-700">{patient.value}</td>
+                      <td className="px-4 py-3 text-sm">
+                        <div className={`flex items-center gap-1 font-medium ${patient.change > 0 ? 'text-red-600' : patient.change < 0 ? 'text-green-600' : 'text-gray-600'}`}>
                           <span>{getChangeIcon(patient.change)}</span>
                           <span>{Math.abs(patient.change).toFixed(1)}%</span>
                         </div>

@@ -1,5 +1,5 @@
-import { useState } from 'react';
 import { motion } from 'framer-motion';
+import { Filter, X } from 'lucide-react';
 
 interface FilterSystemProps {
   filters: {
@@ -12,7 +12,6 @@ interface FilterSystemProps {
 }
 
 export const FilterSystem = ({ filters, onFilterChange }: FilterSystemProps) => {
-  const [isExpanded, setIsExpanded] = useState(false);
 
   const handleFilterChange = (key: string, value: string) => {
     onFilterChange({
@@ -36,38 +35,41 @@ export const FilterSystem = ({ filters, onFilterChange }: FilterSystemProps) => 
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="bg-gray-900 rounded-3xl border border-gray-800 p-6"
+      whileHover={{ y: -2 }}
+      className="bg-gradient-to-br from-white to-blue-50/30 rounded-2xl border border-blue-100 hover:border-blue-200 shadow-lg shadow-blue-600/5 hover:shadow-xl hover:shadow-blue-600/20 transition-all p-6"
     >
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-semibold text-white">Filters</h3>
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center gap-3">
+          <div className="p-2.5 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl shadow-lg">
+            <Filter className="text-white" size={20} />
+          </div>
+          <h3 className="text-xl font-bold text-gray-900">Filters</h3>
+        </div>
         <div className="flex items-center gap-2">
           {hasActiveFilters && (
-            <button
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
               onClick={clearFilters}
-              className="px-3 py-1 text-sm bg-gray-700 text-gray-300 rounded-lg hover:bg-gray-600 transition-colors"
+              className="px-4 py-2 text-sm font-medium bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition-colors flex items-center gap-2 border border-gray-200"
             >
+              <X size={16} />
               Clear All
-            </button>
+            </motion.button>
           )}
-          <button
-            onClick={() => setIsExpanded(!isExpanded)}
-            className="px-3 py-1 text-sm bg-gray-700 text-gray-300 rounded-lg hover:bg-gray-600 transition-colors"
-          >
-            {isExpanded ? 'Collapse' : 'Expand'}
-          </button>
         </div>
       </div>
 
-      <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 ${isExpanded ? 'block' : 'hidden'}`}>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Metric Filter */}
         <div>
-          <label className="block text-sm font-medium text-gray-300 mb-2">
+          <label className="block text-sm font-semibold text-gray-700 mb-2">
             By Metric
           </label>
           <select
             value={filters.metric}
             onChange={(e) => handleFilterChange('metric', e.target.value)}
-            className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-xl text-white focus:ring-2 focus:ring-white focus:border-white"
+            className="w-full px-4 py-3 bg-white border-2 border-gray-200 rounded-xl text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all outline-none hover:border-blue-300"
           >
             <option value="all">All Metrics</option>
             <option value="hba1c">HbA1c</option>
@@ -80,13 +82,13 @@ export const FilterSystem = ({ filters, onFilterChange }: FilterSystemProps) => 
 
         {/* Date Range Filter */}
         <div>
-          <label className="block text-sm font-medium text-gray-300 mb-2">
+          <label className="block text-sm font-semibold text-gray-700 mb-2">
             Date Range
           </label>
           <select
             value={filters.dateRange}
             onChange={(e) => handleFilterChange('dateRange', e.target.value)}
-            className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-xl text-white focus:ring-2 focus:ring-white focus:border-white"
+            className="w-full px-4 py-3 bg-white border-2 border-gray-200 rounded-xl text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all outline-none hover:border-blue-300"
           >
             <option value="all">All Time</option>
             <option value="today">Today</option>
@@ -100,13 +102,13 @@ export const FilterSystem = ({ filters, onFilterChange }: FilterSystemProps) => 
 
         {/* Ethnicity Filter */}
         <div>
-          <label className="block text-sm font-medium text-gray-300 mb-2">
+          <label className="block text-sm font-semibold text-gray-700 mb-2">
             By Ethnicity
           </label>
           <select
             value={filters.ethnicity}
             onChange={(e) => handleFilterChange('ethnicity', e.target.value)}
-            className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-xl text-white focus:ring-2 focus:ring-white focus:border-white"
+            className="w-full px-4 py-3 bg-white border-2 border-gray-200 rounded-xl text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all outline-none hover:border-blue-300"
           >
             <option value="all">All Ethnicities</option>
             <option value="white">White</option>
@@ -122,13 +124,13 @@ export const FilterSystem = ({ filters, onFilterChange }: FilterSystemProps) => 
 
         {/* Sex Filter */}
         <div>
-          <label className="block text-sm font-medium text-gray-300 mb-2">
+          <label className="block text-sm font-semibold text-gray-700 mb-2">
             By Sex
           </label>
           <select
             value={filters.sex}
             onChange={(e) => handleFilterChange('sex', e.target.value)}
-            className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-xl text-white focus:ring-2 focus:ring-white focus:border-white"
+            className="w-full px-4 py-3 bg-white border-2 border-gray-200 rounded-xl text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all outline-none hover:border-blue-300"
           >
             <option value="all">All</option>
             <option value="male">Male</option>
@@ -140,34 +142,36 @@ export const FilterSystem = ({ filters, onFilterChange }: FilterSystemProps) => 
 
       {/* Active Filters Display */}
       {hasActiveFilters && (
-        <div className="mt-4 pt-4 border-t border-gray-700">
+        <motion.div
+          initial={{ opacity: 0, height: 0 }}
+          animate={{ opacity: 1, height: 'auto' }}
+          className="mt-6 pt-6 border-t border-gray-200"
+        >
           <div className="flex flex-wrap gap-2">
-            <span className="text-sm text-gray-400">Active filters:</span>
+            <span className="text-sm font-medium text-gray-600">Active filters:</span>
             {filters.metric !== 'all' && (
-              <span className="px-2 py-1 bg-blue-600 text-white text-xs rounded-full">
+              <span className="px-3 py-1.5 bg-blue-100 text-blue-700 text-xs font-medium rounded-full border border-blue-200">
                 Metric: {filters.metric}
               </span>
             )}
             {filters.dateRange !== 'all' && (
-              <span className="px-2 py-1 bg-green-600 text-white text-xs rounded-full">
+              <span className="px-3 py-1.5 bg-blue-100 text-blue-700 text-xs font-medium rounded-full border border-blue-200">
                 Date: {filters.dateRange}
               </span>
             )}
             {filters.ethnicity !== 'all' && (
-              <span className="px-2 py-1 bg-purple-600 text-white text-xs rounded-full">
+              <span className="px-3 py-1.5 bg-blue-100 text-blue-700 text-xs font-medium rounded-full border border-blue-200">
                 Ethnicity: {filters.ethnicity}
               </span>
             )}
             {filters.sex !== 'all' && (
-              <span className="px-2 py-1 bg-orange-600 text-white text-xs rounded-full">
+              <span className="px-3 py-1.5 bg-blue-100 text-blue-700 text-xs font-medium rounded-full border border-blue-200">
                 Sex: {filters.sex}
               </span>
             )}
           </div>
-        </div>
+        </motion.div>
       )}
     </motion.div>
   );
 };
-
-

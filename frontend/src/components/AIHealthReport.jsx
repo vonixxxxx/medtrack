@@ -67,7 +67,7 @@ export const AIHealthReport = () => {
           <Brain className="w-5 h-5 text-foreground" />
           <h3 className="text-lg font-semibold">AI Health Report</h3>
           {isOnline && (
-            <span className="text-xs bg-green-500 text-white px-2 py-1 rounded-full">
+            <span className="text-xs bg-medical-500 text-white px-2 py-1 rounded-full">
               🟢 AI Online
             </span>
           )}
@@ -75,7 +75,7 @@ export const AIHealthReport = () => {
         <button 
           onClick={refreshReport} 
           disabled={isLoading}
-          className="p-2 rounded-lg hover:bg-secondary transition-all disabled:opacity-50"
+          className="p-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-md hover:shadow-lg"
           aria-label="Refresh report"
         >
           <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />

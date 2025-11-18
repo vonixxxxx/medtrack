@@ -1,0 +1,727 @@
+{
+  "metadata": {
+    "source": "OpenEMR GitHub Repository",
+    "analysis_date": "2025-11-09",
+    "version": "7.0.4",
+    "license": "GNU GPL",
+    "repository_url": "https://github.com/openemr/openemr"
+  },
+  "core_modules": {
+    "patient_management": {
+      "description": "Comprehensive patient demographics, medical records, and profile management",
+      "features": [
+        "Patient registration and demographics",
+        "Patient search and finder",
+        "Patient merge and duplicate management",
+        "Patient portal integration",
+        "Patient tracker (check-in/check-out)",
+        "Patient labels and printing",
+        "Patient document management",
+        "Patient reminders and notifications",
+        "Patient de-identification and re-identification",
+        "Patient insurance management",
+        "Patient employer information",
+        "Patient emergency contacts",
+        "Patient photo management",
+        "Patient history tracking"
+      ],
+      "data_models": [
+        "patient_data",
+        "patient_insurance",
+        "patient_employer",
+        "patient_contacts",
+        "patient_history",
+        "patient_reminders",
+        "patient_tracker"
+      ],
+      "api_endpoints": [
+        "GET /api/patient",
+        "POST /api/patient",
+        "PUT /api/patient",
+        "GET /fhir/Patient",
+        "POST /fhir/Patient",
+        "PUT /fhir/Patient"
+      ],
+      "dependencies": ["encounters", "documents", "billing", "appointments"]
+    },
+    "encounter_management": {
+      "description": "Clinical encounter documentation, SOAP notes, and visit management",
+      "features": [
+        "Encounter creation and editing",
+        "SOAP note documentation",
+        "Encounter forms (customizable)",
+        "Encounter templates",
+        "Group encounters",
+        "Encounter history",
+        "Encounter locking",
+        "Encounter billing integration",
+        "Encounter summary reports",
+        "Encounter export (CCD/CCR)"
+      ],
+      "data_models": [
+        "form_encounter",
+        "form_soap",
+        "form_clinical_notes",
+        "form_aftercare_plan",
+        "form_treatment_plan",
+        "form_care_plan"
+      ],
+      "api_endpoints": [
+        "GET /api/encounter",
+        "POST /api/encounter",
+        "PUT /api/encounter",
+        "GET /fhir/Encounter",
+        "POST /fhir/Encounter"
+      ],
+      "dependencies": ["patients", "forms", "billing"]
+    },
+    "appointment_scheduling": {
+      "description": "Calendar-based appointment scheduling and management",
+      "features": [
+        "Calendar view (day/week/month)",
+        "Appointment creation and editing",
+        "Recurring appointments",
+        "Appointment status tracking",
+        "Appointment reminders (SMS/Email)",
+        "Appointment categories and types",
+        "Provider scheduling",
+        "Resource scheduling (rooms, equipment)",
+        "Group appointments",
+        "Appointment conflict detection",
+        "Appointment waitlist",
+        "Appointment cancellation and rescheduling",
+        "Appointment reports"
+      ],
+      "data_models": [
+        "openemr_postcalendar_events",
+        "openemr_postcalendar_categories",
+        "openemr_postcalendar_topics"
+      ],
+      "api_endpoints": [
+        "GET /api/appointment",
+        "POST /api/appointment",
+        "PUT /api/appointment",
+        "GET /fhir/Appointment",
+        "POST /fhir/Appointment"
+      ],
+      "dependencies": ["patients", "providers", "facilities"]
+    },
+    "billing_and_financial": {
+      "description": "Medical billing, claims processing, and financial management",
+      "features": [
+        "Charge capture",
+        "Fee schedule management",
+        "Insurance claims (CMS-1500, UB-04)",
+        "Electronic claims submission (X12 837)",
+        "Claims tracking and status",
+        "Payment processing",
+        "Payment plans",
+        "Patient statements",
+        "Financial reports",
+        "Revenue cycle management",
+        "Co-pay collection",
+        "Refund processing",
+        "Insurance verification",
+        "Prior authorization management",
+        "Billing export (CSV, XML)"
+      ],
+      "data_models": [
+        "billing",
+        "ar_activity",
+        "ar_session",
+        "insurance_data",
+        "claims",
+        "x12_partners"
+      ],
+      "api_endpoints": [
+        "GET /api/transaction",
+        "POST /api/transaction",
+        "GET /api/insurance",
+        "POST /api/insurance",
+        "GET /api/insurance_company"
+      ],
+      "dependencies": ["patients", "encounters", "insurance"]
+    },
+    "prescription_management": {
+      "description": "Electronic prescribing (eRx) and medication management",
+      "features": [
+        "Prescription creation and editing",
+        "Electronic prescribing (eRx)",
+        "Prescription printing",
+        "Prescription faxing",
+        "Drug interaction checking",
+        "Allergy checking",
+        "Prescription history",
+        "Refill requests",
+        "Prescription templates",
+        "Medication list management",
+        "Prior authorization for medications",
+        "Prescription routing to pharmacies"
+      ],
+      "data_models": [
+        "prescriptions",
+        "drugs",
+        "drug_inventory",
+        "pharmacy"
+      ],
+      "api_endpoints": [
+        "GET /api/prescription",
+        "POST /api/prescription",
+        "GET /api/drug",
+        "GET /fhir/MedicationRequest",
+        "POST /fhir/MedicationRequest"
+      ],
+      "dependencies": ["patients", "providers", "pharmacy"]
+    },
+    "clinical_forms": {
+      "description": "Customizable clinical documentation forms",
+      "features": [
+        "Form builder (LBF - Layout Based Forms)",
+        "Custom form templates",
+        "Form library (vitals, ROS, physical exam, etc.)",
+        "Form data storage and retrieval",
+        "Form printing",
+        "Form export",
+        "Form versioning",
+        "Conditional form fields",
+        "Form validation"
+      ],
+      "form_types": [
+        "vitals",
+        "review_of_systems",
+        "physical_exam",
+        "pain_map",
+        "functional_cognitive_status",
+        "clinical_notes",
+        "care_plan",
+        "treatment_plan",
+        "aftercare_plan",
+        "questionnaire_assessments",
+        "sdoh (Social Determinants of Health)",
+        "phq9",
+        "track_anything"
+      ],
+      "data_models": [
+        "form_vitals",
+        "form_ros",
+        "form_physical_exam",
+        "form_painmap",
+        "lbf_data"
+      ],
+      "api_endpoints": [
+        "GET /api/vital",
+        "POST /api/vital",
+        "GET /fhir/Observation"
+      ],
+      "dependencies": ["encounters", "patients"]
+    },
+    "document_management": {
+      "description": "Medical document storage, retrieval, and management",
+      "features": [
+        "Document upload and storage",
+        "Document categories and tags",
+        "Document scanning integration",
+        "Document templates",
+        "Document printing",
+        "Document faxing",
+        "Document encryption",
+        "Document access control",
+        "Document versioning",
+        "Document search",
+        "Document export (PDF, XML)",
+        "CCD/CCR generation",
+        "QRDA export",
+        "Document viewer"
+      ],
+      "data_models": [
+        "documents",
+        "categories",
+        "documents_legal_detail",
+        "documents_legal_master"
+      ],
+      "api_endpoints": [
+        "GET /api/document",
+        "POST /api/document",
+        "GET /fhir/DocumentReference",
+        "POST /fhir/DocumentReference",
+        "GET /fhir/Binary"
+      ],
+      "dependencies": ["patients", "encounters"]
+    },
+    "laboratory_and_orders": {
+      "description": "Laboratory orders, results, and diagnostic reports",
+      "features": [
+        "Lab order creation",
+        "Lab result entry",
+        "Lab result viewing",
+        "Lab result printing",
+        "Lab interface (HL7)",
+        "Lab result trending",
+        "Lab result alerts",
+        "Procedure orders",
+        "Radiology orders",
+        "Order tracking",
+        "Result interpretation"
+      ],
+      "data_models": [
+        "procedure_order",
+        "procedure_report",
+        "procedure_result",
+        "procedure_type"
+      ],
+      "api_endpoints": [
+        "GET /api/procedure",
+        "POST /api/procedure",
+        "GET /fhir/DiagnosticReport",
+        "GET /fhir/Observation"
+      ],
+      "dependencies": ["patients", "encounters", "providers"]
+    },
+    "immunization_management": {
+      "description": "Immunization tracking and management",
+      "features": [
+        "Immunization records",
+        "Immunization schedules",
+        "Immunization reminders",
+        "Vaccine inventory",
+        "Immunization reporting",
+        "Immunization export (HL7)",
+        "Immunization registry integration"
+      ],
+      "data_models": [
+        "immunizations",
+        "immunization_registry"
+      ],
+      "api_endpoints": [
+        "GET /api/immunization",
+        "POST /api/immunization",
+        "GET /fhir/Immunization",
+        "POST /fhir/Immunization"
+      ],
+      "dependencies": ["patients"]
+    },
+    "allergy_management": {
+      "description": "Allergy and adverse reaction tracking",
+      "features": [
+        "Allergy entry and editing",
+        "Allergy severity levels",
+        "Allergy reactions",
+        "Allergy alerts",
+        "Allergy history",
+        "Drug allergy checking"
+      ],
+      "data_models": [
+        "lists (allergy type)",
+        "patient_allergies"
+      ],
+      "api_endpoints": [
+        "GET /api/allergy",
+        "POST /api/allergy",
+        "GET /fhir/AllergyIntolerance",
+        "POST /fhir/AllergyIntolerance"
+      ],
+      "dependencies": ["patients"]
+    },
+    "problem_list": {
+      "description": "Medical problem list management",
+      "features": [
+        "Problem entry and editing",
+        "Problem status tracking",
+        "ICD-10 coding",
+        "Problem history",
+        "Problem resolution tracking"
+      ],
+      "data_models": [
+        "lists (problem type)",
+        "patient_problems"
+      ],
+      "api_endpoints": [
+        "GET /api/medical_problem",
+        "POST /api/medical_problem",
+        "GET /fhir/Condition",
+        "POST /fhir/Condition"
+      ],
+      "dependencies": ["patients", "encounters"]
+    },
+    "surgery_management": {
+      "description": "Surgical procedure documentation and tracking",
+      "features": [
+        "Surgery entry and editing",
+        "Surgery history",
+        "Surgery reports",
+        "Pre-operative notes",
+        "Post-operative notes"
+      ],
+      "data_models": [
+        "lists (surgery type)"
+      ],
+      "api_endpoints": [
+        "GET /api/surgery",
+        "POST /api/surgery",
+        "GET /fhir/Procedure",
+        "POST /fhir/Procedure"
+      ],
+      "dependencies": ["patients", "encounters"]
+    },
+    "messaging": {
+      "description": "Internal messaging and communication system",
+      "features": [
+        "Secure messaging between providers",
+        "Patient messaging",
+        "Message attachments",
+        "Message categories",
+        "Message priority",
+        "Message read receipts",
+        "Message archiving",
+        "Message search"
+      ],
+      "data_models": [
+        "pnotes",
+        "messages"
+      ],
+      "api_endpoints": [
+        "POST /api/message"
+      ],
+      "dependencies": ["users", "patients"]
+    },
+    "reporting": {
+      "description": "Clinical and administrative reporting",
+      "features": [
+        "Custom report builder",
+        "Clinical quality measures (CQM)",
+        "Meaningful Use reports",
+        "Financial reports",
+        "Administrative reports",
+        "Patient reports",
+        "Provider reports",
+        "Export capabilities (CSV, PDF, XML)",
+        "Scheduled reports",
+        "Report templates"
+      ],
+      "report_types": [
+        "Clinical Quality Measures",
+        "Meaningful Use",
+        "Financial",
+        "Administrative",
+        "Patient Lists",
+        "Provider Productivity",
+        "Custom Reports"
+      ],
+      "data_models": [
+        "report_results",
+        "report_itemized"
+      ],
+      "dependencies": ["all_modules"]
+    },
+    "security_and_audit": {
+      "description": "Security, access control, and audit logging",
+      "features": [
+        "Role-based access control (RBAC)",
+        "User authentication",
+        "Password policies",
+        "Session management",
+        "Audit logging",
+        "Access control lists (ACL)",
+        "HIPAA compliance features",
+        "Data encryption",
+        "Secure communication (TLS/SSL)",
+        "Two-factor authentication support",
+        "Login tracking",
+        "Access violation logging"
+      ],
+      "data_models": [
+        "users",
+        "gacl_aro",
+        "gacl_aco",
+        "log",
+        "audit_master",
+        "audit_details"
+      ],
+      "dependencies": ["all_modules"]
+    },
+    "fhir_api": {
+      "description": "FHIR R4 compliant REST API",
+      "features": [
+        "FHIR R4 compliance",
+        "US Core 3.1 Implementation Guide",
+        "SMART on FHIR support",
+        "OAuth2/OIDC authentication",
+        "Bulk FHIR exports",
+        "FHIR search",
+        "FHIR transactions",
+        "FHIR batch operations",
+        "Provenance tracking",
+        "FHIR capabilities statement"
+      ],
+      "fhir_resources": [
+        "Patient",
+        "Encounter",
+        "Observation",
+        "Medication",
+        "MedicationRequest",
+        "AllergyIntolerance",
+        "Condition",
+        "Procedure",
+        "Immunization",
+        "DiagnosticReport",
+        "DocumentReference",
+        "CarePlan",
+        "CareTeam",
+        "Goal",
+        "Coverage",
+        "Organization",
+        "Practitioner",
+        "PractitionerRole",
+        "Location",
+        "Device",
+        "Binary",
+        "Provenance",
+        "ValueSet"
+      ],
+      "api_endpoints": [
+        "GET /fhir/metadata",
+        "GET /fhir/{resource}",
+        "POST /fhir/{resource}",
+        "PUT /fhir/{resource}",
+        "DELETE /fhir/{resource}",
+        "GET /fhir/$export",
+        "GET /fhir/$bulkdata-status"
+      ],
+      "dependencies": ["all_modules"]
+    },
+    "patient_portal": {
+      "description": "Patient-facing portal for accessing medical records",
+      "features": [
+        "Patient login",
+        "View medical records",
+        "View lab results",
+        "View medications",
+        "View appointments",
+        "Request appointments",
+        "Secure messaging",
+        "Document upload",
+        "Questionnaire completion",
+        "Payment processing",
+        "Insurance information",
+        "Allergy management",
+        "Medication list"
+      ],
+      "api_endpoints": [
+        "GET /portal/api/patient",
+        "GET /portal/api/encounter",
+        "GET /portal/api/appointment"
+      ],
+      "dependencies": ["patients", "encounters", "appointments", "documents"]
+    },
+    "insurance_management": {
+      "description": "Insurance company and coverage management",
+      "features": [
+        "Insurance company database",
+        "Insurance plan management",
+        "Insurance verification",
+        "Primary/secondary/tertiary insurance",
+        "Insurance eligibility checking",
+        "Insurance claims submission",
+        "Insurance payment posting"
+      ],
+      "data_models": [
+        "insurance_companies",
+        "insurance_data",
+        "insurance_numbers"
+      ],
+      "api_endpoints": [
+        "GET /api/insurance",
+        "POST /api/insurance",
+        "GET /api/insurance_company",
+        "POST /api/insurance_company",
+        "GET /api/insurance_type",
+        "GET /fhir/Coverage",
+        "POST /fhir/Coverage"
+      ],
+      "dependencies": ["patients", "billing"]
+    },
+    "facility_management": {
+      "description": "Healthcare facility and location management",
+      "features": [
+        "Facility registration",
+        "Facility information management",
+        "Multi-facility support",
+        "Facility-specific configurations"
+      ],
+      "data_models": [
+        "facility"
+      ],
+      "api_endpoints": [
+        "GET /api/facility",
+        "POST /api/facility",
+        "GET /fhir/Location",
+        "POST /fhir/Location"
+      ],
+      "dependencies": ["users", "appointments"]
+    },
+    "provider_management": {
+      "description": "Healthcare provider and staff management",
+      "features": [
+        "Provider registration",
+        "Provider credentials",
+        "Provider specialties",
+        "Provider scheduling",
+        "Provider productivity reports"
+      ],
+      "data_models": [
+        "users",
+        "physician"
+      ],
+      "api_endpoints": [
+        "GET /api/practitioner",
+        "POST /api/practitioner",
+        "GET /fhir/Practitioner",
+        "POST /fhir/Practitioner",
+        "GET /fhir/PractitionerRole",
+        "POST /fhir/PractitionerRole"
+      ],
+      "dependencies": ["users", "appointments"]
+    },
+    "clinical_decision_support": {
+      "description": "Clinical decision support rules and alerts",
+      "features": [
+        "CDS rule engine",
+        "Clinical alerts",
+        "Drug interaction checking",
+        "Allergy checking",
+        "Clinical reminders",
+        "AMC (Automated Measure Calculation)"
+      ],
+      "data_models": [
+        "clinical_rules",
+        "clinical_reminders"
+      ],
+      "dependencies": ["patients", "encounters", "medications"]
+    },
+    "care_coordination": {
+      "description": "Care coordination and care team management",
+      "features": [
+        "Care team assignment",
+        "Care plan creation",
+        "Care coordination notes",
+        "CCD/CCR generation",
+        "Referral management",
+        "Transfer summaries"
+      ],
+      "data_models": [
+        "care_plan",
+        "care_team"
+      ],
+      "api_endpoints": [
+        "GET /fhir/CarePlan",
+        "POST /fhir/CarePlan",
+        "GET /fhir/CareTeam",
+        "POST /fhir/CareTeam",
+        "GET /fhir/Goal",
+        "POST /fhir/Goal"
+      ],
+      "dependencies": ["patients", "encounters", "providers"]
+    },
+    "interoperability": {
+      "description": "Health information exchange and interoperability",
+      "features": [
+        "HL7 interface",
+        "X12 EDI (837, 835, 270/271)",
+        "CCD/CCR export",
+        "QRDA export",
+        "Direct messaging",
+        "SMART on FHIR",
+        "API integration",
+        "Data import/export"
+      ],
+      "standards": [
+        "HL7 v2",
+        "HL7 FHIR R4",
+        "X12 EDI",
+        "CCD/CCR",
+        "QRDA",
+        "Direct Messaging"
+      ],
+      "dependencies": ["all_modules"]
+    },
+    "administration": {
+      "description": "System administration and configuration",
+      "features": [
+        "User management",
+        "Role management",
+        "System configuration",
+        "Backup and restore",
+        "System upgrades",
+        "Multisite management",
+        "API client management",
+        "OAuth2 configuration",
+        "Email configuration",
+        "SMS configuration",
+        "Printing configuration",
+        "Language/localization",
+        "Theme customization"
+      ],
+      "dependencies": ["all_modules"]
+    }
+  },
+  "technical_architecture": {
+    "backend": {
+      "language": "PHP",
+      "framework": "Custom MVC",
+      "orm": "Doctrine (partial)",
+      "database": "MySQL/MariaDB",
+      "api_framework": "Slim Framework",
+      "authentication": "OAuth2/OIDC",
+      "file_storage": "File system + database"
+    },
+    "frontend": {
+      "language": "JavaScript, PHP",
+      "frameworks": ["jQuery", "Bootstrap", "Twig templates"],
+      "ui_libraries": ["jQuery UI", "FullCalendar"],
+      "charting": "Chart.js, Highcharts"
+    },
+    "api": {
+      "rest_api": "Standard REST API",
+      "fhir_api": "FHIR R4",
+      "authentication": "OAuth2/OIDC",
+      "documentation": "Swagger/OpenAPI"
+    },
+    "security": {
+      "encryption": "AES-256",
+      "hashing": "bcrypt",
+      "ssl_tls": "Required",
+      "access_control": "RBAC + ACL",
+      "audit_logging": "Comprehensive"
+    }
+  },
+  "compliance": {
+    "hipaa": {
+      "compliant": true,
+      "features": [
+        "Access controls",
+        "Audit logging",
+        "Data encryption",
+        "Secure communication",
+        "User authentication",
+        "Session management"
+      ]
+    },
+    "meaningful_use": {
+      "certified": true,
+      "stage": "Stage 3",
+      "certification": "ONC Health IT Certification"
+    },
+    "gdpr": {
+      "compliant": true,
+      "features": [
+        "Data export",
+        "Data deletion",
+        "Consent management",
+        "Privacy controls"
+      ]
+    }
+  }
+}
+
+
+

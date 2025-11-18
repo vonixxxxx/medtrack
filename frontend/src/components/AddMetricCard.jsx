@@ -221,15 +221,15 @@ export default function AddMetricCard() {
                     <p className="text-xs mt-1">Configure metrics when creating the medication cycle</p>
                   </div>
                 ) : (
-                  <div className="text-amber-600">
+                  <div className="text-warning-600">
                     <div className="mb-2">⏰</div>
                     <p className="text-sm font-medium">No metrics due for logging today</p>
                     <p className="text-xs mt-1">{metricsCheck?.message}</p>
-                    <div className="mt-3 p-2 bg-amber-50 rounded-lg">
-                      <p className="text-xs text-amber-700 font-medium mb-1">Configured metrics:</p>
+                    <div className="mt-3 p-2 bg-warning-50 rounded-lg">
+                      <p className="text-xs text-warning-700 font-medium mb-1">Configured metrics:</p>
                       <div className="flex flex-wrap gap-1">
                         {allConfiguredMetrics.map(metric => (
-                          <span key={metric.type} className="bg-amber-200 text-amber-800 px-2 py-1 rounded-full text-xs">
+                          <span key={metric.type} className="bg-warning-200 text-warning-800 px-2 py-1 rounded-full text-xs">
                             {metric.type} ({metric.frequency})
                           </span>
                         ))}
@@ -240,12 +240,12 @@ export default function AddMetricCard() {
               </div>
             ) : (
               <>
-                <div className="bg-blue-50 p-3 rounded-xl">
-                  <p className="text-sm font-medium text-blue-800 mb-1">Required Metrics to Update</p>
-                  <p className="text-xs text-blue-600">All metrics must be logged together:</p>
+                <div className="bg-primary-50 p-3 rounded-xl">
+                  <p className="text-sm font-medium text-primary-800 mb-1">Required Metrics to Update</p>
+                  <p className="text-xs text-primary-600">All metrics must be logged together:</p>
                   <div className="flex flex-wrap gap-1 mt-2">
                     {monitoredMetrics.map(metric => (
-                      <span key={metric.type} className="bg-blue-200 text-blue-800 px-2 py-1 rounded-full text-xs">
+                      <span key={metric.type} className="bg-primary-200 text-primary-800 px-2 py-1 rounded-full text-xs">
                         {metric.type} ({metric.frequency})
                       </span>
                     ))}
@@ -256,22 +256,24 @@ export default function AddMetricCard() {
                 {monitoredMetrics.map(metric => (
                   <div key={metric.type} className="border rounded-xl p-3 space-y-2">
                     <div className="flex justify-between items-center">
-                      <label className="block text-sm font-medium text-gray-700">
+                      <label htmlFor={`metric-${metric.type}`} className="block text-sm font-medium text-neutral-700">
                         {metric.type}
                       </label>
-                      <label className="flex items-center gap-1 text-xs">
+                      <label htmlFor={`multiple-${metric.type}`} className="flex items-center gap-1 text-xs text-neutral-600">
                         <input
+                          id={`multiple-${metric.type}`}
                           type="checkbox"
                           checked={useMultipleValues[metric.type] || false}
                           onChange={() => toggleMultipleValues(metric.type)}
                           className="rounded"
+                          aria-label={`Enable multiple values for ${metric.type}`}
                         />
                         Multiple values
                       </label>
                     </div>
                     
                     {useMultipleValues[metric.type] && (form.metricValues[metric.type]?.length > 1) && (
-                      <p className="text-xs text-gray-500">
+                      <p className="text-xs text-neutral-500">
                         Mean: {calculateMean(form.metricValues[metric.type] || [''])?.toFixed(2) || 'N/A'}
                       </p>
                     )}
@@ -279,10 +281,12 @@ export default function AddMetricCard() {
                     {(form.metricValues[metric.type] || ['']).map((value, index) => (
                       <div key={index} className="flex gap-2">
                         <input
+                          id={`${metric.type}-value-${index}`}
                           value={value}
                           onChange={(e) => handleMetricValueChange(metric.type, index, e.target.value)}
                           placeholder={`${metric.type} value${index > 0 ? ` ${index + 1}` : ''}`}
-                          className="flex-1 rounded-lg border px-3 py-2 text-sm"
+                          className="flex-1 rounded-lg border border-neutral-200 px-3 py-2 text-sm h-11 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                          aria-label={`${metric.type} value ${index + 1}`}
                         />
                         {useMultipleValues[metric.type] && (
                           <>
@@ -290,7 +294,8 @@ export default function AddMetricCard() {
                               <button
                                 type="button"
                                 onClick={() => removeValueField(metric.type, index)}
-                                className="px-2 py-1 text-red-600 hover:text-red-800 text-sm"
+                                className="px-3 py-2 text-error-600 hover:text-error-800 text-sm h-11 min-w-[44px] rounded-lg transition-colors"
+                                aria-label={`Remove ${metric.type} value ${index + 1}`}
                               >
                                 ✕
                               </button>
@@ -299,7 +304,8 @@ export default function AddMetricCard() {
                               <button
                                 type="button"
                                 onClick={() => addValueField(metric.type)}
-                                className="px-2 py-1 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 text-sm"
+                                className="px-3 py-2 bg-neutral-100 text-neutral-700 rounded-lg hover:bg-neutral-200 text-sm h-11 min-w-[44px] transition-colors"
+                                aria-label={`Add another ${metric.type} value`}
                               >
                                 +
                               </button>

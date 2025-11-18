@@ -50,10 +50,10 @@ export default function UpcomingIntakeCard() {
     const date = new Date(dateStr);
     const minutesUntil = differenceInMinutes(date, now);
     
-    if (minutesUntil < 60) return 'from-red-100 to-red-200 border-red-300';
-    if (minutesUntil < 120) return 'from-orange-100 to-orange-200 border-orange-300';
-    if (minutesUntil < 1440) return 'from-blue-100 to-blue-200 border-blue-300';
-    return 'from-gray-100 to-gray-200 border-gray-300';
+    if (minutesUntil < 60) return 'from-error-100 to-error-200 border-error-300';
+    if (minutesUntil < 120) return 'from-warning-100 to-warning-200 border-warning-300';
+    if (minutesUntil < 1440) return 'from-primary-100 to-primary-200 border-primary-300';
+    return 'from-neutral-100 to-neutral-200 border-neutral-300';
   };
 
   const getPriorityIcon = (dateStr) => {
@@ -72,14 +72,14 @@ export default function UpcomingIntakeCard() {
         {upcomingDoses.length === 0 ? (
           <div className="text-center py-6">
             <div className="text-2xl mb-2">⏰</div>
-            <p className="text-gray-600 text-sm">No upcoming medications</p>
+            <p className="text-neutral-600 text-sm">No upcoming medications</p>
           </div>
         ) : (
           <div className="max-h-48 overflow-y-auto custom-scrollbar pr-2 space-y-3">
             {upcomingDoses.map((intake, index) => (
               <div 
                 key={`${intake.cycleId}-${intake.date}`} 
-                className="group relative bg-white p-3 rounded-xl border border-gray-100 shadow-sm hover:shadow-md transition-all duration-300"
+                className="group relative bg-white p-3 rounded-xl border border-neutral-100 shadow-sm hover:shadow-md transition-all duration-300"
               >
                 <div className="flex items-start justify-between">
                   <div className="flex-1 min-w-0">
@@ -89,11 +89,11 @@ export default function UpcomingIntakeCard() {
                       </p>
                       <span className="text-lg flex-shrink-0">{getPriorityIcon(intake.date)}</span>
                     </div>
-                    <p className="text-xs text-gray-600 mb-1 truncate max-w-32" title={intake.dosage}>
+                    <p className="text-xs text-neutral-600 mb-1 truncate max-w-32" title={intake.dosage}>
                       {intake.dosage}
                     </p>
                     {intake.totalDosesPerDay > 1 && (
-                      <div className="inline-flex items-center px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium">
+                      <div className="inline-flex items-center px-2 py-1 bg-primary-100 text-primary-800 rounded-full text-xs font-medium">
                         Dose {intake.doseNumber || 1} of {intake.totalDosesPerDay}
                       </div>
                     )}

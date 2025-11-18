@@ -1,5 +1,6 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import './utils/clearStorage';
+import LandingPage from './pages/LandingPage';
 import LoginPage from './pages/LoginPage';
 import SignUpPage from './pages/SignUpPage';
 import EnhancedPatientSignup from './pages/EnhancedPatientSignup';
@@ -19,7 +20,15 @@ const PrivateRoute = ({ children, requiredRole }) => {
   const user = userString && userString !== 'undefined' ? JSON.parse(userString) : {};
   
   if (!token) {
-    return <Navigate to="/login" />;
+    // Show message instead of redirecting
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <p className="text-gray-600 mb-4">Please log in to access this page.</p>
+          <p className="text-sm text-gray-500">Authentication is required.</p>
+        </div>
+      </div>
+    );
   }
   
   // If no required role specified, allow access
@@ -27,19 +36,33 @@ const PrivateRoute = ({ children, requiredRole }) => {
     return children;
   }
   
-  // If user doesn't have a role, redirect to login
+  // If user doesn't have a role, show message
   if (!user.role) {
-    return <Navigate to="/login" />;
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <p className="text-gray-600 mb-4">Invalid user session.</p>
+          <p className="text-sm text-gray-500">Please log in again.</p>
+        </div>
+      </div>
+    );
   }
   
-  // If user has wrong role, redirect to appropriate dashboard
+  // If user has wrong role, redirect to appropriate dashboard within the app
   if (user.role !== requiredRole) {
     if (user.role === 'clinician') {
-      return <Navigate to="/dashboard/clinician" />;
+      return <Navigate to="/dashboard/clinician" replace />;
     } else if (user.role === 'patient') {
-      return <Navigate to="/dashboard/patient" />;
+      return <Navigate to="/dashboard/patient" replace />;
     } else {
-      return <Navigate to="/login" />;
+      return (
+        <div className="min-h-screen flex items-center justify-center bg-gray-50">
+          <div className="text-center">
+            <p className="text-gray-600 mb-4">Invalid user role.</p>
+            <p className="text-sm text-gray-500">Please contact support.</p>
+          </div>
+        </div>
+      );
     }
   }
   
@@ -66,6 +89,7 @@ export default function App() {
   return (
     <Routes>
       {/* Public routes */}
+      <Route path="/" element={<LandingPage />} />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/signup" element={<SignUpPage />} />
       <Route path="/signup/enhanced" element={<EnhancedPatientSignup />} />
@@ -74,14 +98,6 @@ export default function App() {
       <Route path="/reset-password" element={<ResetPasswordPage />} />
       
       {/* Protected routes */}
-      <Route
-        path="/"
-        element={
-          <PrivateRoute>
-            <Navigate to="/dashboard" />
-          </PrivateRoute>
-        }
-      />
       <Route
         path="/dashboard"
         element={

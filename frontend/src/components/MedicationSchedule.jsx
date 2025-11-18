@@ -1,11 +1,14 @@
 import { useState, useEffect } from "react";
-import { Calendar, Loader2, Clock } from "lucide-react";
-import { MedTrackCard } from "./MedTrackCard";
+import { Calendar, Clock } from "lucide-react";
+import DashboardCard from "./DashboardCard";
 import { Badge } from "./ui/badge";
-import { motion } from "framer-motion";
+import { LoadingSkeleton } from "./dashboard/LoadingSkeleton";
+import { EmptyState } from "./dashboard/EmptyState";
+import { motion, useReducedMotion } from "framer-motion";
 import api from "../api";
 
 export const MedicationSchedule = ({ refreshTrigger }) => {
+  const prefersReducedMotion = useReducedMotion();
   const [schedule, setSchedule] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -17,8 +20,16 @@ export const MedicationSchedule = ({ refreshTrigger }) => {
       const response = await api.get('meds/user');
       const medications = response.data.medications || [];
       
+      // Filter out test medications
+      const filteredMeds = medications.filter(med => {
+        const name = (med.medication_name || med.name || med.generic_name || '').toLowerCase();
+        return !name.includes('final test') && 
+               !name.includes('test2') && 
+               !name.includes('test medication');
+      });
+      
       // Transform medications into schedule format
-      const scheduleData = medications.map(med => ({
+      const scheduleData = filteredMeds.map(med => ({
         id: med.id,
         name: med.medication_name || med.name || med.generic_name || 'Unknown Medication',
         frequency: formatFrequency(med.frequency, med.customFrequency),
@@ -129,68 +140,80 @@ export const MedicationSchedule = ({ refreshTrigger }) => {
   };
 
   return (
-    <MedTrackCard>
-      <div className="flex items-center gap-2 mb-4">
-        <Calendar className="w-5 h-5 text-foreground" />
-        <h3 className="text-lg font-semibold">Medication Schedule</h3>
-      </div>
-
+    <DashboardCard
+      title="Medication Schedule"
+      icon={<Calendar size={20} />}
+      variant="patient"
+    >
       {isLoading ? (
-        <div className="flex items-center justify-center py-8">
-          <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
-        </div>
+        <LoadingSkeleton variant="list" count={3} />
       ) : error ? (
-        <div className="text-center py-8">
-          <p className="text-muted-foreground">{error}</p>
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="text-center py-12"
+        >
+          <div className="mb-4 p-3 bg-error-50 rounded-2xl inline-block">
+            <p className="text-error-600 font-medium text-sm">{error}</p>
+          </div>
           <button 
             onClick={fetchSchedule}
-            className="mt-2 text-sm text-blue-600 hover:text-blue-700"
+            className="text-sm text-primary-600 hover:text-primary-700 font-semibold transition-colors"
           >
             Try again
           </button>
-        </div>
+        </motion.div>
       ) : schedule.length === 0 ? (
-        <div className="text-center py-8">
-          <Calendar className="w-12 h-12 text-muted-foreground/50 mx-auto mb-3" />
-          <p className="text-muted-foreground">No medications scheduled</p>
-          <p className="text-sm text-muted-foreground/70">Add medications to see your schedule</p>
-        </div>
+        <EmptyState
+          icon={Calendar}
+          title="No medications scheduled"
+          description="Add medications to see your schedule and upcoming doses"
+        />
       ) : (
         <div className="space-y-3">
           {schedule.map((item, index) => (
             <motion.div
               key={item.id || index}
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: index * 0.1 }}
-              className="p-3.5 bg-secondary/50 rounded-lg border border-border hover:bg-secondary transition-all"
+              initial={{ opacity: 0, y: prefersReducedMotion ? 0 : 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{
+                duration: 0.2,
+                delay: index * 0.03,
+                ease: [0.16, 1, 0.3, 1],
+              }}
+              whileHover={prefersReducedMotion ? {} : { y: -2 }}
+              className="group p-4 bg-white rounded-2xl border border-neutral-200 hover:border-primary-300 hover:shadow-medium transition-all duration-200"
             >
-              <div className="flex justify-between items-start">
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-1">
-                    <p className="font-medium text-foreground text-lg">{item.name}</p>
+              <div className="flex justify-between items-start gap-4">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-2">
+                    <p className="font-semibold text-neutral-900 text-base truncate">{item.name}</p>
                     {item.drugClass && (
-                      <Badge variant="secondary" className="text-xs">
+                      <Badge className="text-xs bg-primary-50 text-primary-700 border-0 font-medium">
                         {item.drugClass}
                       </Badge>
                     )}
                   </div>
-                  <p className="text-sm text-muted-foreground mb-1">
+                  <p className="text-sm text-neutral-600 mb-1 font-medium">
                     {item.frequency} • {item.strength}
                   </p>
                   {item.special_instructions && (
-                    <p className="text-xs text-blue-400/80 mt-1 italic">
-                      💡 {item.special_instructions}
-                    </p>
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      className="mt-2 text-xs text-primary-700 bg-primary-50 px-3 py-1.5 rounded-lg border border-primary-100"
+                    >
+                      <span className="font-medium">Note:</span> {item.special_instructions}
+                    </motion.div>
                   )}
                 </div>
-                <div className="text-right">
-                  <div className="flex items-center gap-1 text-sm text-foreground">
-                    <Clock className="w-4 h-4" />
-                    <span>Next: {item.next}</span>
+                <div className="text-right flex-shrink-0">
+                  <div className="flex items-center gap-1.5 text-sm text-neutral-700 font-semibold mb-1">
+                    <Clock className="w-4 h-4 text-neutral-500" />
+                    <span>{item.next}</span>
                   </div>
                   {item.taken && (
-                    <div className="text-xs text-green-600 mt-1">
+                    <div className="text-xs text-medical-700 font-semibold bg-medical-50 px-2 py-1 rounded-lg border border-medical-200 inline-block">
                       ✓ Taken today
                     </div>
                   )}
@@ -200,6 +223,6 @@ export const MedicationSchedule = ({ refreshTrigger }) => {
           ))}
         </div>
       )}
-    </MedTrackCard>
+    </DashboardCard>
   );
 };

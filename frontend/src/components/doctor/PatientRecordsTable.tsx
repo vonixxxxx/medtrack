@@ -187,9 +187,9 @@ export const PatientRecordsTable = ({ patients, onRefresh, onHbA1cAdjustment, on
   };
 
   const getChangeColor = (change: number) => {
-    if (change > 0) return 'text-red-400';
+    if (change > 0) return 'text-error-400';
     if (change < 0) return 'text-green-400';
-    return 'text-gray-400';
+    return 'text-neutral-400';
   };
 
   const getChangeIcon = (change: number) => {
@@ -204,12 +204,12 @@ export const PatientRecordsTable = ({ patients, onRefresh, onHbA1cAdjustment, on
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="bg-gray-900 rounded-3xl border border-gray-800 p-6"
+      className="bg-neutral-900 rounded-3xl border border-neutral-800 p-6"
     >
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
         <div>
           <h3 className="text-xl font-semibold text-white mb-2">Patient Records</h3>
-          <p className="text-sm text-gray-400">
+          <p className="text-sm text-neutral-400">
             {filteredData.length} of {patients.length} patients
           </p>
         </div>
@@ -217,13 +217,13 @@ export const PatientRecordsTable = ({ patients, onRefresh, onHbA1cAdjustment, on
         <div className="flex flex-wrap gap-2">
           <button
             onClick={onRefresh}
-            className="px-4 py-2 bg-gray-800 text-white rounded-xl hover:bg-gray-700 transition-colors"
+            className="px-4 py-2 bg-neutral-800 text-white rounded-xl hover:bg-neutral-700 transition-colors"
           >
             Refresh
           </button>
           <button
             onClick={onHbA1cAdjustment}
-            className="px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors"
+            className="px-4 py-2 bg-primary-600 text-white rounded-xl hover:bg-primary-700 transition-colors"
           >
             HbA1c Calculator
           </button>
@@ -235,7 +235,7 @@ export const PatientRecordsTable = ({ patients, onRefresh, onHbA1cAdjustment, on
           </button>
           <button
             onClick={handleExportPDF}
-            className="px-4 py-2 bg-red-600 text-white rounded-xl hover:bg-red-700 transition-colors"
+            className="px-4 py-2 bg-error-600 text-white rounded-xl hover:bg-error-700 transition-colors"
           >
             Export PDF
           </button>
@@ -250,18 +250,18 @@ export const PatientRecordsTable = ({ patients, onRefresh, onHbA1cAdjustment, on
             placeholder="Search patients or conditions..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-xl text-white placeholder-gray-400 focus:ring-2 focus:ring-white focus:border-white"
+            className="w-full px-4 py-2 bg-neutral-800 border border-neutral-700 rounded-xl text-white placeholder-neutral-400 focus:ring-2 focus:ring-white focus:border-white"
           />
         </div>
         
         <div className="flex flex-wrap gap-2">
           {columns.map(column => (
-            <label key={column.key} className="flex items-center gap-2 text-sm text-gray-300">
+            <label key={column.key} className="flex items-center gap-2 text-sm text-neutral-300">
               <input
                 type="checkbox"
                 checked={selectedColumns.has(column.key)}
                 onChange={() => toggleColumn(column.key)}
-                className="rounded border-gray-600 bg-gray-800 text-white focus:ring-white"
+                className="rounded border-neutral-600 bg-neutral-800 text-white focus:ring-white"
               />
               {column.label}
             </label>
@@ -273,13 +273,13 @@ export const PatientRecordsTable = ({ patients, onRefresh, onHbA1cAdjustment, on
       <div className="overflow-x-auto">
         <table className="w-full">
           <thead>
-            <tr className="border-b border-gray-700">
+            <tr className="border-b border-neutral-700">
               {columns
                 .filter(col => selectedColumns.has(col.key))
                 .map(column => (
                   <th
                     key={column.key}
-                    className={`px-4 py-3 text-left text-sm font-medium text-gray-300 ${
+                    className={`px-4 py-3 text-left text-sm font-medium text-neutral-300 ${
                       column.sortable ? 'cursor-pointer hover:text-white' : ''
                     }`}
                     onClick={column.sortable ? () => handleSort(column.key as keyof Patient) : undefined}
@@ -300,22 +300,22 @@ export const PatientRecordsTable = ({ patients, onRefresh, onHbA1cAdjustment, on
             {filteredData.map((patient, index) => (
               <tr 
                 key={patient.id} 
-                className={`border-b border-gray-800 hover:bg-gray-800/50 cursor-pointer ${
-                  selectedPatientId === patient.id ? 'bg-blue-900/20 border-blue-500' : ''
+                className={`border-b border-neutral-800 hover:bg-neutral-800/50 cursor-pointer ${
+                  selectedPatientId === patient.id ? 'bg-primary-900/20 border-primary-500' : ''
                 }`}
                 onClick={() => onPatientSelect?.(patient)}
               >
                 {columns
                   .filter(col => selectedColumns.has(col.key))
                   .map(column => (
-                    <td key={column.key} className="px-4 py-3 text-sm text-gray-300">
+                    <td key={column.key} className="px-4 py-3 text-sm text-neutral-300">
                       {column.key === 'conditions' ? (
                         <div className="flex flex-wrap gap-1">
                           {patient.conditions && patient.conditions.length > 0 ? (
                             patient.conditions.map((condition, idx) => (
                               <span
                                 key={idx}
-                                className="px-2 py-1 bg-gray-700 text-xs rounded-full"
+                                className="px-2 py-1 bg-neutral-700 text-xs rounded-full"
                               >
                                 {condition}
                               </span>
@@ -347,7 +347,7 @@ export const PatientRecordsTable = ({ patients, onRefresh, onHbA1cAdjustment, on
       </div>
 
       {filteredData.length === 0 && (
-        <div className="text-center py-8 text-gray-400">
+        <div className="text-center py-8 text-neutral-400">
           No patients found matching your criteria.
         </div>
       )}

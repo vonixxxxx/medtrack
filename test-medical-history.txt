@@ -1,0 +1,174 @@
+Name: Albert Einstein
+
+Email: ggg@gmail.com
+
+Age: 36
+
+Sex: Male
+
+Ethnic Group: White – English, Welsh, Scottish, Northern Irish or British
+
+Location: London
+
+Postcode: SW7 2AZ
+
+NHS Number: 943 476 8297
+
+MRN: LND-2039847
+
+Vitals & Anthropometrics
+
+Height (cm): 178
+
+Weight (kg): 86
+
+BMI: 27.1
+
+Weight Date: 2025-01-18
+
+Cardiometabolic
+
+ASCVD: No
+
+HTN: Borderline (not on treatment)
+
+Dyslipidaemia: Yes
+
+T2DM: No
+
+Prediabetes: Yes
+
+Diabetes Type: N/A
+
+HbA1c (%): 6.0
+
+HbA1c Date: 2024-11-03
+
+Lipid Profile
+
+Total Cholesterol: 5.9 mmol/L
+
+HDL: 1.2 mmol/L
+
+LDL: 3.9 mmol/L
+
+Triglycerides: 1.8 mmol/L
+
+Lipid Date: 2024-11-03
+
+Lipid Treatment: None
+
+Sleep & Respiratory
+
+OSA: Mild
+
+Sleep Studies: Home sleep study, AHI 9
+
+CPAP: No
+
+Asthma: No
+
+Pulmonary HTN: No
+
+Cardiac
+
+Hypertension: Borderline
+
+IHD: No
+
+Heart Failure: No
+
+CVD: No
+
+DVT: No
+
+PE: No
+
+GI & Renal
+
+GORD: Occasional
+
+CKD: No
+
+Kidney Stones: No
+
+MASLD: Possible (mildly elevated ALT x2, ultrasound pending)
+
+Endocrine & Reproductive
+
+Thyroid Disorder: No
+
+Infertility: No
+
+PCOS: N/A
+
+IIH: No
+
+Neurological
+
+Epilepsy: No
+
+FND: No
+
+Psychiatric
+
+Anxiety: Mild intermittent
+
+Depression: No
+
+Bipolar: No
+
+Emotional Eating: Mild
+
+Schizoaffective: No
+
+Musculoskeletal & Mobility
+
+OA Knee: No
+
+OA Hip: No
+
+Limited Mobility: No
+
+Lymphoedema: No
+
+Cancer
+
+Cancer: None reported
+
+Bariatric History
+
+Gastric Band: No
+
+Sleeve: No
+
+Bypass: No
+
+Balloon: No
+
+Medications
+
+Antihypertensive Meds: None
+
+Lipid Treatment: None
+
+Other
+
+Comorbidities: Dyslipidaemia, Prediabetes, Mild OSA
+
+MES: Elevated waist circumference; borderline metabolic syndrome markers
+
+Wegovy Criteria: Not eligible currently
+
+BMI < 30
+
+No major metabolic complications requiring pharmacologic weight-loss therapy
+
+Clinical Notes
+
+Mild metabolic risk profile. Lipids elevated for age. Borderline blood pressure. Lifestyle modification advised—weight stabilization, dietary intervention, increased cardio training. OSA mild and non-disabling; CPAP not indicated. Follow-up HbA1c and lipid panel in 6 months.
+
+Last Visit
+
+2025-01-18
+

@@ -216,273 +216,122 @@ const EnhancedMedicationChat = ({ isOpen, onClose, onSuccess }) => {
     try {
       console.log('Making API call for medication:', input);
       const response = await api.post('medications/validateMedication', {
-        medication_name: input
+        medication: input,
+        medication_name: input,
+        name: input
+      }, {
+        timeout: 10000 // 10 second timeout for validation (includes RxNorm calls)
       });
       
       console.log('API response:', response.data);
       
-      if (response.data && response.data.success && response.data.data) {
+      // Check if medication was found using new response format
+      if (response.data.found && response.data.data) {
         const match = response.data.data;
-        setMedicationData(match);
+        const confidence = match.confidence || 0.5;
         
-        // Get suggested strengths
-        const strengths = getCommonStrengths(match);
-        setSuggestedStrengths(strengths);
+        // Check confidence threshold
+        if (confidence < 0.80) {
+          // Low confidence - ask for confirmation
+          setMedicationData(match);
+          const strengths = getCommonStrengths(match);
+          setSuggestedStrengths(strengths);
+          
+          simulateTyping(() => {
+            addMessage('bot', `I'm not certain — did you mean **${match.generic_name}** (${match.drug_class})? Confidence: ${Math.round(confidence * 100)}%`, {
+              type: 'medication_confirmation',
+              medication: match,
+              confidence: confidence,
+              actions: [
+                { text: 'Yes, that\'s correct', action: 'confirm_medication', data: match },
+                { text: 'No, try again', action: 'retry_medication' }
+              ]
+            });
+          });
+        } else {
+          // High confidence - confirm directly
+          setMedicationData(match);
+          const strengths = getCommonStrengths(match);
+          setSuggestedStrengths(strengths);
+          
+          simulateTyping(() => {
+            const sourceInfo = match.source === 'rxnorm' ? ' (verified via RxNorm)' : 
+                              match.source === 'dmd' ? ' (verified via NHS dm+d)' : '';
+            const bioInfo = match.bio ? ` • BioGPT confidence: ${Math.round(match.bio.confidence * 100)}%` : '';
+            addMessage('bot', `Found **${match.generic_name}** (${match.drug_class})${sourceInfo}${bioInfo}. Is this the medication you're looking for?`, {
+              type: 'medication_confirmation',
+              medication: match,
+              confidence: confidence,
+              actions: [
+                { text: 'Yes, that\'s correct', action: 'confirm_medication', data: match },
+                { text: 'No, try again', action: 'retry_medication' }
+              ]
+            });
+          });
+        }
+      } else {
+        // No match found - show proper error message
+        const errorMessage = response.data.error || response.data.message || `No medication found for "${input}"`;
+        const suggestions = response.data.suggestions || [];
         
         simulateTyping(() => {
-          addMessage('bot', `Perfect! I found **${match.generic_name}** (${match.drug_class}). Did you mean this medication?`, {
-            type: 'medication_confirmation',
-            medication: match,
+          let messageContent = errorMessage;
+          
+          if (suggestions.length > 0) {
+            messageContent += '\n\nDid you mean:';
+            const suggestionButtons = suggestions.slice(0, 5).map(suggestion => ({
+              text: typeof suggestion === 'string' ? suggestion : (suggestion.generic_name || suggestion.name || suggestion),
+              action: 'select_suggestion',
+              data: typeof suggestion === 'string' ? suggestion : suggestion
+            }));
+            
+            addMessage('bot', messageContent, {
+              type: 'error',
+              suggestions: suggestionButtons,
+              actions: [
+                { text: 'Try again', action: 'retry_medication' }
+              ]
+            });
+          } else {
+            addMessage('bot', messageContent + '\n\nPlease try:\n• Using the generic name (e.g., "acetaminophen" instead of "Tylenol")\n• Checking your spelling\n• Using a different medication name', {
+              type: 'error',
+              actions: [
+                { text: 'Try again', action: 'retry_medication' }
+              ]
+            });
+          }
+        });
+      }
+    } catch (error) {
+      console.error('Medication validation error:', error);
+      
+      // Handle timeout or network errors
+      if (error.code === 'ECONNABORTED' || error.message?.includes('timeout')) {
+        simulateTyping(() => {
+          addMessage('bot', 'The validation service is taking longer than expected. Please try again in a moment, or check your internet connection.', {
+            type: 'error',
             actions: [
-              { text: 'Yes, that\'s correct', action: 'confirm_medication', data: match },
-              { text: 'No, try again', action: 'retry_medication' }
+              { text: 'Try again', action: 'retry_medication' }
             ]
           });
         });
       } else {
-        console.log('API returned no match, trying intelligent recognition');
-        // Enhanced fallback: Try intelligent recognition with BioGPT
-        await handleIntelligentMedicationRecognition(input);
+        simulateTyping(() => {
+          addMessage('bot', 'I\'m having trouble connecting to the medication database. Please try again.', {
+            type: 'error',
+            actions: [
+              { text: 'Try again', action: 'retry_medication' }
+            ]
+          });
+        });
       }
-    } catch (error) {
-      console.error('Medication validation error:', error);
-      console.log('API call failed, trying intelligent recognition');
-      // Fallback to intelligent recognition
-      await handleIntelligentMedicationRecognition(input);
     } finally {
       setIsLoading(false);
       setIsProcessing(false);
     }
   };
 
-  // Enhanced intelligent medication recognition with BioGPT fallback
-  const handleIntelligentMedicationRecognition = async (input) => {
-    try {
-      console.log('Starting intelligent recognition for:', input);
-      // First try enhanced local matching for common patterns
-      const enhancedMatch = await tryEnhancedLocalMatching(input);
-      console.log('Enhanced match result:', enhancedMatch);
-      
-      if (enhancedMatch) {
-        setMedicationData(enhancedMatch);
-        const strengths = getCommonStrengths(enhancedMatch);
-        setSuggestedStrengths(strengths);
-        
-        simulateTyping(() => {
-          addMessage('bot', `I found **${enhancedMatch.generic_name}** (${enhancedMatch.drug_class}). Is this the medication you're looking for?`, {
-            type: 'medication_confirmation',
-            medication: enhancedMatch,
-            actions: [
-              { text: 'Yes, that\'s correct', action: 'confirm_medication', data: enhancedMatch },
-              { text: 'No, try again', action: 'retry_medication' }
-            ]
-          });
-        });
-        return;
-      }
-
-      console.log('No enhanced match, trying BioGPT');
-      // Fallback to BioGPT for complex cases
-      const bioGPTSuccess = await tryBioGPTRecognition(input);
-      console.log('BioGPT success:', bioGPTSuccess);
-      
-      if (!bioGPTSuccess) {
-        // Neither enhanced matching nor BioGPT found the medication
-        console.log('No match found, showing error message');
-        addMessage('bot', `I couldn't find "${input}" in my database. Could you try a different name or spelling?`, {
-          type: 'error',
-          actions: [
-            { text: 'Try again', action: 'retry_medication' }
-          ]
-        });
-      }
-    } catch (error) {
-      console.error('Intelligent recognition error:', error);
-      addMessage('bot', `I'm sorry, there was an error processing your request. Could you try again?`, {
-        type: 'error',
-        actions: [
-          { text: 'Try again', action: 'retry_medication' }
-        ]
-      });
-    }
-  };
-
-  // Enhanced local matching for complex patterns
-  const tryEnhancedLocalMatching = async (input) => {
-    const normalizedInput = input.toLowerCase().trim();
-    
-    // Enhanced pattern matching for complex cases
-    const enhancedPatterns = {
-      // GLP-1 related
-      'glp-1': 'semaglutide',
-      'glp1': 'semaglutide', 
-      'glp_1': 'semaglutide',
-      'glp1 agonist': 'semaglutide',
-      'glp-1 agonist': 'semaglutide',
-      'glp-1 receptor agonist': 'semaglutide',
-      
-      // Common pain medications
-      'panadol': 'acetaminophen',
-      'tylenol': 'acetaminophen',
-      'acetaminophen': 'acetaminophen',
-      'paracetamol': 'acetaminophen',
-      
-      // Semaglutide variations
-      'semagl': 'semaglutide',
-      'semaglutide': 'semaglutide',
-      'ozempic': 'semaglutide',
-      'wegovy': 'semaglutide',
-      
-      // Other complex patterns
-      'ace inhibitor': 'lisinopril',
-      'beta blocker': 'metoprolol',
-      'statin': 'atorvastatin',
-      'ppi': 'omeprazole',
-      'proton pump inhibitor': 'omeprazole',
-      'ssri': 'sertraline',
-      'selective serotonin reuptake inhibitor': 'sertraline',
-      'nsaid': 'ibuprofen',
-      'non-steroidal anti-inflammatory': 'ibuprofen',
-      'stimulant': 'amphetamine/dextroamphetamine',
-      'adhd medication': 'amphetamine/dextroamphetamine'
-    };
-
-    const mappedName = enhancedPatterns[normalizedInput];
-    if (mappedName) {
-      // Find the medication in our database
-      const medicationDatabase = [
-        { generic_name: 'acetaminophen', brand_names: ['Tylenol', 'Panadol', 'Excedrin'], drug_class: 'Analgesic/Antipyretic', dosage_forms: ['tablet', 'capsule', 'liquid', 'suppository'], typical_strengths: ['325mg', '500mg', '650mg', '1000mg'], indications: ['pain relief', 'fever reduction', 'headache', 'muscle aches'] },
-        { generic_name: 'semaglutide', brand_names: ['Ozempic', 'Wegovy', 'Rybelsus'], drug_class: 'GLP-1 Receptor Agonist', dosage_forms: ['injection', 'tablet'], typical_strengths: ['0.25mg', '0.5mg', '1mg', '2.4mg', '3mg', '7mg', '14mg'], indications: ['type 2 diabetes', 'weight management', 'obesity'] },
-        { generic_name: 'lisinopril', brand_names: ['Prinivil', 'Zestril'], drug_class: 'ACE Inhibitor', dosage_forms: ['tablet'], typical_strengths: ['5mg', '10mg', '20mg', '40mg'], indications: ['hypertension', 'heart failure', 'heart attack prevention'] },
-        { generic_name: 'metoprolol', brand_names: ['Lopressor', 'Toprol-XL'], drug_class: 'Beta Blocker', dosage_forms: ['tablet', 'extended-release'], typical_strengths: ['25mg', '50mg', '100mg', '200mg'], indications: ['hypertension', 'heart failure', 'chest pain'] },
-        { generic_name: 'atorvastatin', brand_names: ['Lipitor'], drug_class: 'Statin', dosage_forms: ['tablet'], typical_strengths: ['10mg', '20mg', '40mg', '80mg'], indications: ['high cholesterol', 'heart disease prevention'] },
-        { generic_name: 'omeprazole', brand_names: ['Prilosec'], drug_class: 'Proton Pump Inhibitor', dosage_forms: ['capsule', 'tablet'], typical_strengths: ['10mg', '20mg', '40mg'], indications: ['acid reflux', 'ulcers', 'GERD'] },
-        { generic_name: 'sertraline', brand_names: ['Zoloft'], drug_class: 'SSRI', dosage_forms: ['tablet', 'liquid'], typical_strengths: ['25mg', '50mg', '100mg', '200mg'], indications: ['depression', 'anxiety', 'panic disorder', 'PTSD'] },
-        { generic_name: 'ibuprofen', brand_names: ['Advil', 'Motrin', 'Nurofen'], drug_class: 'NSAID', dosage_forms: ['tablet', 'capsule', 'liquid', 'gel'], typical_strengths: ['200mg', '400mg', '600mg', '800mg'], indications: ['pain', 'inflammation', 'fever'] },
-        { generic_name: 'amphetamine/dextroamphetamine', brand_names: ['Adderall', 'Adderall XR'], drug_class: 'Stimulant', dosage_forms: ['tablet', 'extended-release capsule'], typical_strengths: ['5mg', '10mg', '15mg', '20mg', '25mg', '30mg'], indications: ['ADHD', 'narcolepsy'] }
-      ];
-
-      const match = medicationDatabase.find(med => med.generic_name === mappedName);
-      if (match) {
-        return {
-          ...match,
-          confidence: 0.9,
-          match_type: 'enhanced_pattern',
-          original_input: input
-        };
-      }
-    }
-    
-    return null;
-  };
-
-  // BioGPT fallback for complex recognition
-  const tryBioGPTRecognition = async (input) => {
-    try {
-      // Simulate BioGPT API call for complex medication recognition
-      const bioGPTResponse = await simulateBioGPTRecognition(input);
-      
-      if (bioGPTResponse && bioGPTResponse.medication) {
-        setMedicationData(bioGPTResponse.medication);
-        const strengths = getCommonStrengths(bioGPTResponse.medication);
-        setSuggestedStrengths(strengths);
-        
-        simulateTyping(() => {
-          addMessage('bot', `I found **${bioGPTResponse.medication.generic_name}** (${bioGPTResponse.medication.drug_class}) using AI analysis. Is this correct?`, {
-            type: 'medication_confirmation',
-            medication: bioGPTResponse.medication,
-            actions: [
-              { text: 'Yes, that\'s correct', action: 'confirm_medication', data: bioGPTResponse.medication },
-              { text: 'No, try again', action: 'retry_medication' }
-            ]
-          });
-        });
-        return true; // Success
-      } else {
-        return false; // No medication found, but don't throw error
-      }
-    } catch (error) {
-      console.error('BioGPT recognition error:', error);
-      return false; // Return false instead of throwing
-    }
-  };
-
-  // Simulate BioGPT recognition for complex cases
-  const simulateBioGPTRecognition = async (input) => {
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    
-    const normalizedInput = input.toLowerCase().trim();
-    
-    // Enhanced BioGPT-style recognition patterns
-    if (normalizedInput.includes('glp') || normalizedInput.includes('glp-1')) {
-      return {
-        medication: {
-          generic_name: 'semaglutide',
-          brand_names: ['Ozempic', 'Wegovy', 'Rybelsus'],
-          drug_class: 'GLP-1 Receptor Agonist',
-          dosage_forms: ['injection', 'tablet'],
-          typical_strengths: ['0.25mg', '0.5mg', '1mg', '2.4mg', '3mg', '7mg', '14mg'],
-          indications: ['type 2 diabetes', 'weight management', 'obesity'],
-          confidence: 0.95,
-          match_type: 'biogpt_semantic',
-          original_input: input
-        }
-      };
-    }
-    
-    // Additional BioGPT patterns for common medications
-    if (normalizedInput.includes('metformin') || normalizedInput.includes('glucophage')) {
-      return {
-        medication: {
-          generic_name: 'metformin',
-          brand_names: ['Glucophage', 'Fortamet', 'Glumetza'],
-          drug_class: 'Biguanide',
-          dosage_forms: ['tablet', 'extended-release tablet'],
-          typical_strengths: ['500mg', '850mg', '1000mg'],
-          indications: ['type 2 diabetes'],
-          confidence: 0.95,
-          match_type: 'biogpt_semantic',
-          original_input: input
-        }
-      };
-    }
-    
-    if (normalizedInput.includes('insulin') || normalizedInput.includes('lantus') || normalizedInput.includes('humalog')) {
-      return {
-        medication: {
-          generic_name: 'insulin',
-          brand_names: ['Lantus', 'Humalog', 'Novolog', 'Tresiba'],
-          drug_class: 'Insulin',
-          dosage_forms: ['injection', 'pen'],
-          typical_strengths: ['100 units/ml'],
-          indications: ['diabetes', 'type 1 diabetes', 'type 2 diabetes'],
-          confidence: 0.95,
-          match_type: 'biogpt_semantic',
-          original_input: input
-        }
-      };
-    }
-    
-    if (normalizedInput.includes('warfarin') || normalizedInput.includes('coumadin')) {
-      return {
-        medication: {
-          generic_name: 'warfarin',
-          brand_names: ['Coumadin', 'Jantoven'],
-          drug_class: 'Anticoagulant',
-          dosage_forms: ['tablet'],
-          typical_strengths: ['1mg', '2mg', '2.5mg', '3mg', '4mg', '5mg', '6mg', '7.5mg', '10mg'],
-          indications: ['blood clots', 'atrial fibrillation', 'deep vein thrombosis'],
-          confidence: 0.95,
-          match_type: 'biogpt_semantic',
-          original_input: input
-        }
-      };
-    }
-    
-    // If no patterns match, return null (no error)
-    return null;
-  };
+  // Old fallback functions removed - all matching now handled by backend service
 
   // Handle strength selection
   const handleStrengthInput = (strength) => {
@@ -684,7 +533,13 @@ const EnhancedMedicationChat = ({ isOpen, onClose, onSuccess }) => {
     
     setIsProcessing(true);
     try {
+      // Get user ID from localStorage
+      const userStr = localStorage.getItem('user');
+      const user = userStr ? JSON.parse(userStr) : null;
+      const userId = user?.id;
+      
       const response = await api.post('meds/user', {
+        userId: userId, // Include user ID
         medication_name: medicationData.medication_name || medicationData.generic_name,
         generic_name: medicationData.generic_name,
         strength: medicationData.strength,
@@ -700,16 +555,13 @@ const EnhancedMedicationChat = ({ isOpen, onClose, onSuccess }) => {
         start_date: new Date().toISOString().split('T')[0]
       });
 
-      if (response.status === 201) {
-        addMessage('bot', `🎉 **Medication added successfully!**\n\n**${medicationData.generic_name}** (${medicationData.strength}${medicationData.unit}, ${medicationData.frequency_display})\n\n**Tracking metrics:** ${selectedMetrics.join(', ')}\n\nThe medication has been added to your dashboard and will appear in your medication schedule.`, {
-          type: 'success_card',
-          medication: response.data
-        });
-
-        setTimeout(() => {
-          onSuccess?.(response.data);
-          onClose();
-        }, 2000); // Reduced timeout for faster return to dashboard
+      if (response.status === 201 || response.status === 200 || response.data?.success) {
+        const savedMedication = response.data?.medication || response.data;
+        
+        // Immediately close modal and trigger refresh
+        onClose();
+        // Call onSuccess immediately to refresh dashboard
+        onSuccess?.(savedMedication);
       } else {
         throw new Error('Failed to save medication');
       }
@@ -745,6 +597,14 @@ const EnhancedMedicationChat = ({ isOpen, onClose, onSuccess }) => {
           type: 'info'
         });
         setConversationState('medication_input');
+        break;
+        
+      case 'select_suggestion':
+        // User selected a suggestion - validate it again
+        if (data) {
+          const suggestionName = data.generic_name || data.name || data;
+          handleMedicationInput(suggestionName);
+        }
         break;
         
       case 'retry_save':
@@ -850,14 +710,14 @@ const EnhancedMedicationChat = ({ isOpen, onClose, onSuccess }) => {
               <Button
                 key={index}
                 onClick={() => handleStrengthInput(strength)}
-                className="justify-start text-left bg-gray-800 text-white hover:bg-gray-700 border border-gray-700 rounded-xl px-3 py-2 text-sm font-medium transition-all duration-200"
+                className="justify-start text-left bg-white text-neutral-900 hover:bg-primary-50 border border-neutral-200 hover:border-primary-300 rounded-xl px-3 py-2 text-sm font-medium transition-all duration-200"
                 size="sm"
               >
                 {strength}
               </Button>
             ))}
           </div>
-          <p className="text-sm text-gray-400">
+          <p className="text-sm text-neutral-600">
             Or type a custom strength (e.g., "500mg", "10ml")
           </p>
         </div>
@@ -872,17 +732,17 @@ const EnhancedMedicationChat = ({ isOpen, onClose, onSuccess }) => {
               <Button
                 key={index}
                 onClick={() => handleFrequencyInput(freq.value)}
-                className="justify-start text-left bg-gray-800 text-white hover:bg-gray-700 border border-gray-700 rounded-xl px-3 py-2 text-sm font-medium transition-all duration-200"
+                className="justify-start text-left bg-white text-neutral-900 hover:bg-primary-50 border border-neutral-200 hover:border-primary-300 rounded-xl px-3 py-2 text-sm font-medium transition-all duration-200"
                 size="sm"
               >
                 <div className="text-left">
                   <div className="font-medium">{freq.label}</div>
-                  <div className="text-xs text-[#a0a0a0]">{freq.description}</div>
+                  <div className="text-xs text-neutral-400">{freq.description}</div>
                 </div>
               </Button>
             ))}
           </div>
-          <p className="text-sm text-gray-400">
+          <p className="text-sm text-neutral-600">
             Or type your own frequency (e.g., "twice a day", "every 2 days")
           </p>
         </div>
@@ -892,14 +752,14 @@ const EnhancedMedicationChat = ({ isOpen, onClose, onSuccess }) => {
     if (message.type === 'metric_selection') {
       return (
         <div className="space-y-6">
-            <div className="text-sm text-gray-400 mb-4">
+            <div className="text-sm text-neutral-600 mb-4">
             Suggested metrics (pre-selected):
           </div>
           <div className="flex flex-wrap gap-3 mb-6">
             {message.suggestedMetrics.map((metric, index) => (
               <Badge
                 key={index}
-                className="cursor-pointer bg-white text-black hover:bg-gray-200 rounded-xl px-3 py-1 text-xs font-medium transition-all duration-200"
+                className="cursor-pointer bg-white text-neutral-900 hover:bg-neutral-200 rounded-xl px-3 py-1 text-xs font-medium transition-all duration-200"
                 onClick={() => toggleMetric(metric)}
               >
                 {metric}
@@ -907,40 +767,40 @@ const EnhancedMedicationChat = ({ isOpen, onClose, onSuccess }) => {
             ))}
           </div>
           
-            <div className="text-sm text-gray-400 mb-4">
+            <div className="text-sm text-neutral-600 mb-4">
             All available health metrics:
           </div>
           <div className="grid grid-cols-2 gap-3 max-h-80 overflow-y-auto pr-2">
             {message.allMetrics.map((metric, index) => (
               <div
                 key={index}
-                className="flex items-center space-x-3 p-3 rounded-xl border border-gray-800 hover:bg-gray-900 transition-colors cursor-pointer"
+                className="flex items-center space-x-3 p-3 rounded-xl border border-neutral-200 hover:bg-primary-50 transition-colors cursor-pointer"
                 onClick={() => toggleMetric(metric)}
               >
                 <Checkbox
                   checked={selectedMetrics.includes(metric)}
                   className="data-[state=checked]:bg-white data-[state=checked]:border-white"
                 />
-                <span className="text-sm text-white">{metric}</span>
+                <span className="text-sm text-neutral-900">{metric}</span>
               </div>
             ))}
           </div>
           
           {/* Custom Metric Input */}
           <div className="space-y-3">
-            <div className="text-sm text-[#a0a0a0]">Add custom metric:</div>
+            <div className="text-sm text-neutral-600">Add custom metric:</div>
             <div className="flex space-x-2">
               <Input
                 value={customMetricInput}
                 onChange={(e) => setCustomMetricInput(e.target.value)}
                 placeholder="Enter custom metric name..."
-                className="flex-1 bg-gray-900 border border-gray-800 text-white placeholder-gray-400 focus:border-white focus:ring-1 focus:ring-white focus:outline-none rounded-xl px-3 py-2"
+                className="flex-1 bg-white border border-neutral-200 text-neutral-900 placeholder-neutral-500 focus:border-primary-500 focus:ring-1 focus:ring-primary-500 focus:outline-none rounded-xl px-3 py-2"
                 onKeyPress={(e) => e.key === 'Enter' && addCustomMetric()}
               />
               <Button
                 onClick={addCustomMetric}
                 disabled={!customMetricInput.trim()}
-                className="px-4 py-2 bg-white hover:bg-gray-200 text-black rounded-xl font-medium transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-xl font-medium transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                 size="sm"
               >
                 Add
@@ -967,7 +827,7 @@ const EnhancedMedicationChat = ({ isOpen, onClose, onSuccess }) => {
     if (message.type === 'ai_notes_preview') {
       return (
         <div className="space-y-4">
-          <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-4">
+          <div className="bg-primary-500/10 border border-primary-500/20 rounded-lg p-4">
             <div className="prose prose-sm max-w-none text-foreground">
               {message.notes.split('\n').map((line, index) => (
                 <div key={index} className="mb-2">
@@ -1001,7 +861,7 @@ const EnhancedMedicationChat = ({ isOpen, onClose, onSuccess }) => {
     
     if (message.type === 'final_confirmation') {
       return (
-        <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-4">
+        <div className="bg-primary-500/10 border border-primary-500/20 rounded-lg p-4">
           <div className="space-y-3">
             <div className="text-lg font-semibold mb-4">Medication Summary</div>
             <div className="grid grid-cols-2 gap-4 text-sm">
@@ -1021,7 +881,7 @@ const EnhancedMedicationChat = ({ isOpen, onClose, onSuccess }) => {
               <Button
                 onClick={saveMedication}
                 size="sm"
-                className="bg-green-600 hover:bg-green-700"
+                className="bg-medical-600 hover:bg-medical-700"
               >
                 <CheckCircle className="w-4 h-4 mr-2" />
                 Add Medication
@@ -1041,10 +901,10 @@ const EnhancedMedicationChat = ({ isOpen, onClose, onSuccess }) => {
     
     if (message.type === 'success_card') {
       return (
-        <div className="bg-green-500/10 border border-green-500/20 rounded-lg p-4">
+        <div className="bg-medical-500/10 border border-medical-500/20 rounded-lg p-4">
           <div className="flex items-center space-x-2 mb-2">
-            <CheckCircle className="w-5 h-5 text-green-500" />
-            <span className="font-semibold text-green-500">Medication Added Successfully!</span>
+            <CheckCircle className="w-5 h-5 text-medical-500" />
+            <span className="font-semibold text-medical-500">Medication Added Successfully!</span>
           </div>
           <div className="space-y-1 text-sm">
             <div><strong>Name:</strong> {message.medication.medication_name || message.medication.name}</div>
@@ -1083,25 +943,26 @@ const EnhancedMedicationChat = ({ isOpen, onClose, onSuccess }) => {
         initial={{ opacity: 0, scale: 0.95, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, y: 20 }}
-        className="relative w-full max-w-4xl max-h-[90vh] bg-black border border-gray-800 rounded-3xl shadow-2xl overflow-hidden flex flex-col"
+        className="relative w-full max-w-4xl max-h-[90vh] bg-white border border-neutral-200 rounded-3xl shadow-2xl overflow-hidden flex flex-col"
       >
         {/* Grok-style Header */}
-        <div className="bg-gradient-to-r from-gray-900 to-black border-b border-gray-800 px-6 py-4">
+        <div className="bg-gradient-to-r from-primary-600 to-primary-700 border-b border-primary-700 px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
               <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center">
-                <Pill className="w-5 h-5 text-black" />
+                <Pill className="w-5 h-5 text-primary-600" />
               </div>
               <div>
                 <h2 className="text-xl font-semibold text-white">Medication Assistant</h2>
-                <p className="text-sm text-gray-400">AI-powered medication validation</p>
+                <p className="text-sm text-primary-100">AI-powered medication validation</p>
               </div>
             </div>
             <Button
               onClick={onClose}
               variant="ghost"
               size="sm"
-              className="text-gray-400 hover:bg-gray-800 hover:text-white"
+              className="text-white hover:bg-primary-800 hover:text-white"
+              aria-label="Close chat"
             >
               <X className="w-5 h-5" />
             </Button>
@@ -1109,7 +970,7 @@ const EnhancedMedicationChat = ({ isOpen, onClose, onSuccess }) => {
         </div>
 
         {/* Grok-style Messages */}
-        <div className="flex-1 overflow-y-auto px-6 py-4 space-y-6 bg-black">
+        <div className="flex-1 overflow-y-auto px-6 py-4 space-y-6 bg-neutral-50">
           <AnimatePresence>
             {messages.map((message) => (
               <motion.div
@@ -1130,9 +991,9 @@ const EnhancedMedicationChat = ({ isOpen, onClose, onSuccess }) => {
                   <div className={cn(
                     "w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 mt-1",
                     message.type === 'user' 
-                      ? "bg-white text-black" 
-                      : "bg-gray-800 text-white"
-                  )}>
+                      ? "bg-primary-600 text-white" 
+                      : "bg-white text-neutral-900 border border-neutral-200"
+                  )} aria-label={message.type === 'user' ? 'User avatar' : 'AI assistant avatar'}>
                     {message.type === 'user' ? <User className="w-4 h-4" /> : <Bot className="w-4 h-4" />}
                   </div>
                   
@@ -1142,10 +1003,10 @@ const EnhancedMedicationChat = ({ isOpen, onClose, onSuccess }) => {
                     message.type === 'user' ? "text-right" : "text-left"
                   )}>
                     <div className={cn(
-                      "inline-block p-4 rounded-2xl max-w-full text-[15px] leading-relaxed",
+                      "inline-block p-4 rounded-2xl max-w-full text-sm leading-relaxed",
                       message.type === 'user'
-                        ? "bg-white text-black rounded-br-lg"
-                        : "bg-gray-900 text-white border border-gray-800 rounded-bl-lg"
+                        ? "bg-primary-600 text-white rounded-br-lg"
+                        : "bg-white text-neutral-900 border border-neutral-200 rounded-bl-lg"
                     )}>
                       {renderMessageContent(message)}
                       
@@ -1160,9 +1021,10 @@ const EnhancedMedicationChat = ({ isOpen, onClose, onSuccess }) => {
                               className={cn(
                                 "text-xs font-medium transition-all duration-200 rounded-xl px-3 py-2",
                                 message.type === 'user' 
-                                  ? "bg-gray-200 text-black hover:bg-gray-300 border border-gray-300" 
-                                  : "bg-gray-800 text-white hover:bg-gray-700 border border-gray-700"
+                                  ? "bg-primary-700 text-white hover:bg-primary-800 border border-primary-800" 
+                                  : "bg-primary-50 text-primary-700 hover:bg-primary-100 border border-primary-200"
                               )}
+                              aria-label={action.text}
                             >
                               {action.text}
                             </Button>
@@ -1184,18 +1046,18 @@ const EnhancedMedicationChat = ({ isOpen, onClose, onSuccess }) => {
               className="flex justify-start"
             >
               <div className="flex items-start space-x-4 max-w-[85%]">
-                <div className="w-8 h-8 rounded-full bg-gray-800 text-white flex items-center justify-center flex-shrink-0 mt-1">
+                <div className="w-8 h-8 rounded-full bg-white text-primary-600 border border-neutral-200 flex items-center justify-center flex-shrink-0 mt-1" aria-label="AI assistant typing">
                   <Bot className="w-4 h-4" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="inline-block p-4 rounded-2xl rounded-bl-lg bg-gray-900 text-white border border-gray-800">
+                  <div className="inline-block p-4 rounded-2xl rounded-bl-lg bg-white text-neutral-900 border border-neutral-200">
                     <div className="flex items-center space-x-3">
-                      <div className="flex space-x-1">
-                        <div className="w-2 h-2 bg-white rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
-                        <div className="w-2 h-2 bg-white rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
-                        <div className="w-2 h-2 bg-white rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+                      <div className="flex space-x-1" aria-label="Typing indicator">
+                        <div className="w-2 h-2 bg-primary-600 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+                        <div className="w-2 h-2 bg-primary-600 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+                        <div className="w-2 h-2 bg-primary-600 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
                       </div>
-                      <span className="text-sm text-gray-400">AI is thinking...</span>
+                      <span className="text-sm text-neutral-600">AI is thinking...</span>
                     </div>
                   </div>
                 </div>
@@ -1207,7 +1069,7 @@ const EnhancedMedicationChat = ({ isOpen, onClose, onSuccess }) => {
         </div>
 
         {/* Grok-style Input */}
-        <div className="border-t border-gray-800 p-6 bg-black">
+        <div className="border-t border-neutral-200 p-6 bg-white">
           <div className="flex space-x-3">
             <div className="flex-1 relative">
               <Input
@@ -1217,13 +1079,13 @@ const EnhancedMedicationChat = ({ isOpen, onClose, onSuccess }) => {
                 onKeyPress={handleKeyPress}
                 placeholder="Ask about your medication..."
                 disabled={isLoading}
-                className="w-full px-4 py-3 bg-gray-900 border border-gray-800 rounded-2xl text-white placeholder-gray-400 focus:border-white focus:ring-1 focus:ring-white focus:outline-none"
+                className="w-full px-4 py-3 bg-white border border-neutral-200 rounded-2xl text-neutral-900 placeholder-neutral-500 focus:border-primary-500 focus:ring-1 focus:ring-primary-500 focus:outline-none"
               />
             </div>
             <Button
               onClick={handleSendMessage}
               disabled={!inputValue.trim() || isLoading}
-              className="px-6 py-3 bg-white hover:bg-gray-200 text-black rounded-2xl font-medium transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-6 py-3 bg-primary-600 hover:bg-primary-700 text-white rounded-2xl font-medium transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Send className="w-4 h-4" />
             </Button>

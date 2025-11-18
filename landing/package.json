@@ -1,0 +1,32 @@
+{
+  "name": "medtrack-landing",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "next": "^14.2.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "framer-motion": "^12.23.22",
+    "lucide-react": "^0.542.0",
+    "clsx": "^2.1.1",
+    "tailwind-merge": "^3.3.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/react": "^18.2.0",
+    "@types/react-dom": "^18.2.0",
+    "autoprefixer": "^10.4.21",
+    "postcss": "^8.5.6",
+    "tailwindcss": "^3.3.0",
+    "typescript": "^5.0.0",
+    "eslint": "^8.56.0",
+    "eslint-config-next": "^14.2.0"
+  }
+}
+

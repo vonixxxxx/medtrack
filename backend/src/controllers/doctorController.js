@@ -41,9 +41,47 @@ exports.getPatients = async (req, res) => {
       }
     });
 
+    // Helper function to calculate change percent
+    const calculateChangePercent = async (patientId, baselineValue, currentValue, metricType = 'hba1c') => {
+      if (!baselineValue || !currentValue) return null;
+      
+      try {
+        // Try to get from MetricTrend table first (most accurate)
+        const latestTrend = await prisma.metricTrend.findFirst({
+          where: {
+            patientId: patientId,
+            metric_name: metricType === 'hba1c' ? 'HbA1c' : metricType
+          },
+          orderBy: { date: 'desc' }
+        });
+
+        if (latestTrend && latestTrend.change_percentage !== null) {
+          return latestTrend.change_percentage;
+        }
+
+        // Fallback: Calculate from baseline vs current
+        if (baselineValue && currentValue && baselineValue > 0) {
+          const change = ((currentValue - baselineValue) / baselineValue) * 100;
+          return Math.round(change * 10) / 10; // Round to 1 decimal
+        }
+      } catch (err) {
+        console.error(`Error calculating change percent for patient ${patientId}:`, err);
+      }
+      
+      return null;
+    };
+
     // Transform data for frontend - only include real data
-    const transformedPatients = patients.map(patient => {
+    const transformedPatients = await Promise.all(patients.map(async (patient) => {
       const latestMetric = patient.metrics[0];
+      
+      // Calculate changePercent based on HbA1c (primary metric)
+      const changePercent = await calculateChangePercent(
+        patient.id,
+        patient.baseline_hba1c,
+        patient.hba1c_percent || patient.baseline_hba1c,
+        'hba1c'
+      );
       
       return {
         id: patient.id,
@@ -145,9 +183,9 @@ exports.getPatients = async (req, res) => {
         // Legacy fields for compatibility
         conditions: patient.conditions.map(c => c.normalized),
         lastVisit: latestMetric?.timestamp?.toISOString().split('T')[0] || null,
-        changePercent: null // Will be calculated from historical data
+        changePercent: changePercent
       };
-    });
+    }));
 
     res.json(transformedPatients);
   } catch (err) {

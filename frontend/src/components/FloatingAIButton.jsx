@@ -18,9 +18,9 @@ export const FloatingAIButton = ({ onChatOpen }) => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 20 }}
-            className="bg-card border border-border rounded-lg p-3 shadow-lg"
+            className="bg-white border border-neutral-200 rounded-2xl p-4 shadow-medium"
           >
-            <p className="text-sm text-muted-foreground mb-2">Need help?</p>
+            <p className="text-sm text-neutral-600 mb-3">Need help?</p>
             <Button
               onClick={onChatOpen}
               size="sm"
@@ -36,6 +36,7 @@ export const FloatingAIButton = ({ onChatOpen }) => {
           onClick={() => setIsExpanded(!isExpanded)}
           size="lg"
           className="w-14 h-14 rounded-full shadow-lg hover:shadow-xl transition-shadow"
+          aria-label={isExpanded ? "Close AI assistant menu" : "Open AI assistant menu"}
         >
           <motion.div
             animate={{ rotate: isExpanded ? 45 : 0 }}

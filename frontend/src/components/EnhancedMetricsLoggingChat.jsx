@@ -624,8 +624,8 @@ const EnhancedMetricsLoggingChat = ({ isOpen, onClose, onSuccess }) => {
                 className={cn(
                   "justify-start text-left rounded-xl px-3 py-2 text-sm font-medium transition-all duration-200",
                   selectedMetrics.includes(metric)
-                    ? "bg-white text-black border border-gray-300"
-                    : "bg-gray-800 text-white hover:bg-gray-700 border border-gray-700"
+                    ? "bg-white text-neutral-900 border border-neutral-300"
+                    : "bg-neutral-800 text-white hover:bg-neutral-700 border border-neutral-700"
                 )}
                 size="sm"
               >
@@ -635,13 +635,13 @@ const EnhancedMetricsLoggingChat = ({ isOpen, onClose, onSuccess }) => {
             ))}
           </div>
           <div className="flex items-center justify-between">
-            <div className="text-sm text-gray-400">
+            <div className="text-sm text-neutral-400">
               {selectedMetrics.length} selected
             </div>
             <Button
               onClick={() => handleActionClick('select_metrics', selectedMetrics)}
               disabled={selectedMetrics.length === 0}
-              className="px-4 py-2 bg-white hover:bg-gray-200 text-black rounded-xl font-medium transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-4 py-2 bg-white hover:bg-neutral-200 text-neutral-900 rounded-xl font-medium transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
               size="sm"
             >
               Continue
@@ -653,10 +653,10 @@ const EnhancedMetricsLoggingChat = ({ isOpen, onClose, onSuccess }) => {
     
     if (message.type === 'success_card') {
       return (
-        <div className="bg-green-500/10 border border-green-500/20 rounded-lg p-4">
+        <div className="bg-medical-500/10 border border-medical-500/20 rounded-lg p-4">
           <div className="flex items-center space-x-2 mb-2">
-            <CheckCircle className="w-5 h-5 text-green-500" />
-            <span className="font-semibold text-green-500">Metrics Logged Successfully!</span>
+            <CheckCircle className="w-5 h-5 text-medical-500" />
+            <span className="font-semibold text-medical-500">Metrics Logged Successfully!</span>
           </div>
           <div className="space-y-1 text-sm">
             <div><strong>Medication:</strong> {selectedMedication?.medication_name || selectedMedication?.name}</div>
@@ -700,25 +700,25 @@ const EnhancedMetricsLoggingChat = ({ isOpen, onClose, onSuccess }) => {
         initial={{ opacity: 0, scale: 0.95, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, y: 20 }}
-        className="relative w-full max-w-2xl max-h-[90vh] bg-black border border-gray-800 rounded-3xl shadow-2xl overflow-hidden flex flex-col"
+        className="relative w-full max-w-2xl max-h-[90vh] bg-neutral-900 border border-neutral-800 rounded-3xl shadow-2xl overflow-hidden flex flex-col"
       >
         {/* Header */}
-        <div className="bg-gradient-to-r from-gray-900 to-black border-b border-gray-800 px-6 py-4">
+        <div className="bg-gradient-to-r from-neutral-900 to-neutral-900 border-b border-neutral-800 px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
               <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center">
-                <Activity className="w-5 h-5 text-black" />
+                <Activity className="w-5 h-5 text-neutral-900" />
               </div>
               <div>
                 <h2 className="text-xl font-semibold text-white">Log Health Metrics</h2>
-                <p className="text-sm text-gray-400">Track your health data</p>
+                <p className="text-sm text-neutral-400">Track your health data</p>
               </div>
             </div>
             <Button
               onClick={onClose}
               variant="ghost"
               size="sm"
-              className="text-gray-400 hover:bg-gray-800 hover:text-white"
+              className="text-neutral-400 hover:bg-neutral-800 hover:text-white"
             >
               <X className="w-5 h-5" />
             </Button>
@@ -747,9 +747,9 @@ const EnhancedMetricsLoggingChat = ({ isOpen, onClose, onSuccess }) => {
                   <div className={cn(
                     "w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 mt-1",
                     message.type === 'user' 
-                      ? "bg-white text-black" 
-                      : "bg-gray-800 text-white"
-                  )}>
+                      ? "bg-white text-neutral-900" 
+                      : "bg-neutral-800 text-white"
+                  )} aria-label={message.type === 'user' ? 'User avatar' : 'AI assistant avatar'}>
                     {message.type === 'user' ? <User className="w-4 h-4" /> : <Bot className="w-4 h-4" />}
                   </div>
                   
@@ -759,10 +759,10 @@ const EnhancedMetricsLoggingChat = ({ isOpen, onClose, onSuccess }) => {
                     message.type === 'user' ? "text-right" : "text-left"
                   )}>
                     <div className={cn(
-                      "inline-block p-4 rounded-2xl max-w-full text-[15px] leading-relaxed",
+                      "inline-block p-4 rounded-2xl max-w-full text-sm leading-relaxed",
                       message.type === 'user'
-                        ? "bg-white text-black rounded-br-lg"
-                        : "bg-gray-900 text-white border border-gray-800 rounded-bl-lg"
+                        ? "bg-white text-neutral-900 rounded-br-lg"
+                        : "bg-neutral-900 text-white border border-neutral-800 rounded-bl-lg"
                     )}>
                       {renderMessageContent(message)}
                       
@@ -802,18 +802,18 @@ const EnhancedMetricsLoggingChat = ({ isOpen, onClose, onSuccess }) => {
               className="flex justify-start"
             >
               <div className="flex items-start space-x-4 max-w-[85%]">
-                <div className="w-8 h-8 rounded-full bg-gray-800 text-white flex items-center justify-center flex-shrink-0 mt-1">
+                <div className="w-8 h-8 rounded-full bg-neutral-800 text-white flex items-center justify-center flex-shrink-0 mt-1" aria-label="AI assistant typing">
                   <Bot className="w-4 h-4" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="inline-block p-4 rounded-2xl rounded-bl-lg bg-gray-900 text-white border border-gray-800">
+                  <div className="inline-block p-4 rounded-2xl rounded-bl-lg bg-neutral-900 text-white border border-neutral-800">
                     <div className="flex items-center space-x-3">
-                      <div className="flex space-x-1">
+                      <div className="flex space-x-1" aria-label="Typing indicator">
                         <div className="w-2 h-2 bg-white rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
                         <div className="w-2 h-2 bg-white rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
                         <div className="w-2 h-2 bg-white rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
                       </div>
-                      <span className="text-sm text-gray-400">Thinking...</span>
+                      <span className="text-sm text-neutral-400">Thinking...</span>
                     </div>
                   </div>
                 </div>
@@ -825,7 +825,7 @@ const EnhancedMetricsLoggingChat = ({ isOpen, onClose, onSuccess }) => {
         </div>
 
         {/* Input */}
-        <div className="border-t border-gray-800 p-6 bg-black">
+        <div className="border-t border-neutral-800 p-6 bg-neutral-900">
           <div className="flex items-center space-x-3">
             <Input
               ref={inputRef}
@@ -835,12 +835,12 @@ const EnhancedMetricsLoggingChat = ({ isOpen, onClose, onSuccess }) => {
               onKeyPress={handleKeyPress}
               placeholder="Type your response..."
               disabled={isLoading}
-              className="flex-1 bg-gray-900 border border-gray-800 text-white placeholder-gray-400 focus:border-white focus:ring-1 focus:ring-white focus:outline-none rounded-2xl px-4 py-3"
+              className="flex-1 bg-neutral-900 border border-neutral-800 text-white placeholder-neutral-400 focus:border-white focus:ring-1 focus:ring-white focus:outline-none rounded-2xl px-4 py-3"
             />
             <Button
               onClick={handleSendMessage}
               disabled={!inputValue.trim() || isLoading}
-              className="px-6 py-3 bg-white hover:bg-gray-200 text-black rounded-2xl font-medium transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-6 py-3 bg-white hover:bg-neutral-200 text-neutral-900 rounded-2xl font-medium transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
               size="sm"
             >
               <Send className="w-4 h-4" />

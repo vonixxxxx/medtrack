@@ -1,17 +1,49 @@
 import * as React from "react"
 import { cn } from "../../lib/utils"
 
-const Input = React.forwardRef(({ className, type, ...props }, ref) => {
+/**
+ * Input - Design system compliant input component
+ * 
+ * Follows MedTrack design system:
+ * - Height: 44px (h-11) for proper touch targets
+ * - Border: neutral-200
+ * - Focus: primary-500 ring
+ * - Typography: text-base (16px minimum)
+ * - Border radius: rounded-md (8px)
+ * 
+ * @param {Object} props
+ * @param {string} props.className - Additional classes
+ * @param {string} props.type - Input type
+ * @param {boolean} props.error - Error state
+ * @param {string} props.helper - Helper text
+ * @returns {JSX.Element}
+ */
+const Input = React.forwardRef(({ className, type, error, helper, ...props }, ref) => {
   return (
-    <input
-      type={type}
-      className={cn(
-        "flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50",
-        className
+    <div className="w-full">
+      <input
+        type={type}
+        className={cn(
+          // Base styles - Design system compliant
+          "flex h-11 w-full rounded-md border bg-white px-4 text-base",
+          "placeholder:text-neutral-400",
+          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 focus-visible:border-transparent",
+          "disabled:bg-neutral-100 disabled:cursor-not-allowed disabled:opacity-50",
+          "transition-colors duration-200",
+          // Error state
+          error 
+            ? "border-error-500 focus-visible:ring-error-500" 
+            : "border-neutral-200",
+          className
+        )}
+        ref={ref}
+        aria-invalid={error ? "true" : "false"}
+        {...props}
+      />
+      {helper && !error && (
+        <p className="mt-2 text-sm text-neutral-500">{helper}</p>
       )}
-      ref={ref}
-      {...props}
-    />
+    </div>
   )
 })
 Input.displayName = "Input"

@@ -43,6 +43,7 @@ export const MetricsAnalytics: React.FC<MetricsAnalyticsProps> = ({ patientId, p
   const [labResults, setLabResults] = useState<LabResult[]>([]);
   const [vitalSigns, setVitalSigns] = useState<VitalSign[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [selectedMetric, setSelectedMetric] = useState<string>('all');
   const [dateRange, setDateRange] = useState<{ start: string; end: string }>({
     start: new Date(Date.now() - 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 1 year ago
@@ -57,19 +58,29 @@ export const MetricsAnalytics: React.FC<MetricsAnalyticsProps> = ({ patientId, p
   const fetchMetricsData = async () => {
     try {
       setLoading(true);
+      setError(null);
       
       // Fetch all metrics data
       const [metricsRes, labRes, vitalsRes] = await Promise.all([
-        api.get(`metrics/patient/${patientId}`),
-        api.get(`lab-results/patient/${patientId}`),
-        api.get(`vital-signs/patient/${patientId}`)
+        api.get(`metrics/patient/${patientId}`).catch(err => ({ data: [], error: err })),
+        api.get(`lab-results/patient/${patientId}`).catch(err => ({ data: [], error: err })),
+        api.get(`vital-signs/patient/${patientId}`).catch(err => ({ data: [], error: err }))
       ]);
 
       setMetrics(metricsRes.data || []);
       setLabResults(labRes.data || []);
       setVitalSigns(vitalsRes.data || []);
-    } catch (error) {
-      console.error('Error fetching metrics data:', error);
+      
+      // Check for errors
+      if (metricsRes.error || labRes.error || vitalsRes.error) {
+        const errors = [metricsRes.error, labRes.error, vitalsRes.error].filter(Boolean);
+        if (errors.length > 0) {
+          setError('Some data could not be loaded. Partial results shown.');
+        }
+      }
+    } catch (err: any) {
+      console.error('Error fetching metrics data:', err);
+      setError(err.response?.data?.error || 'Failed to load metrics data');
     } finally {
       setLoading(false);
     }
@@ -154,17 +165,46 @@ export const MetricsAnalytics: React.FC<MetricsAnalyticsProps> = ({ patientId, p
 
   if (loading) {
     return (
-      <div className="bg-gray-800 rounded-lg p-6">
+      <div className="bg-neutral-800 rounded-lg p-6">
         <div className="animate-pulse">
-          <div className="h-6 bg-gray-700 rounded w-1/4 mb-4"></div>
-          <div className="h-64 bg-gray-700 rounded"></div>
+          <div className="h-6 bg-neutral-700 rounded w-1/4 mb-4"></div>
+          <div className="h-64 bg-neutral-700 rounded"></div>
         </div>
       </div>
     );
   }
 
+  const hasNoData = metrics.length === 0 && labResults.length === 0 && vitalSigns.length === 0;
+
   return (
-    <div className="bg-gray-800 rounded-lg p-6">
+    <div className="bg-neutral-800 rounded-lg p-6">
+      {error && (
+        <div className="mb-4 p-3 bg-error-900/20 border border-error-800 rounded-xl text-error-400 text-sm flex items-center justify-between">
+          <span>{error}</span>
+          <button
+            onClick={fetchMetricsData}
+            className="ml-4 px-3 py-1 bg-error-600 hover:bg-error-700 text-white rounded text-xs"
+          >
+            Retry
+          </button>
+        </div>
+      )}
+      
+      {hasNoData && !loading && (
+        <div className="text-center py-12">
+          <div className="text-6xl mb-4">📊</div>
+          <h3 className="text-lg font-medium text-white mb-2">No Metrics Data Available</h3>
+          <p className="text-neutral-400 text-sm mb-4">
+            No metrics, lab results, or vital signs found for {patientName}.
+          </p>
+          <p className="text-gray-500 text-xs">
+            Data may not have been recorded yet, or patient ID may be incorrect.
+          </p>
+        </div>
+      )}
+      
+      {!hasNoData && (
+        <>
       <div className="flex justify-between items-center mb-6">
         <h3 className="text-xl font-semibold text-white">
           Metrics Analytics - {patientName}
@@ -173,7 +213,7 @@ export const MetricsAnalytics: React.FC<MetricsAnalyticsProps> = ({ patientId, p
           <select
             value={selectedMetric}
             onChange={(e) => setSelectedMetric(e.target.value)}
-            className="bg-gray-700 text-white px-3 py-2 rounded border border-gray-600"
+            className="bg-neutral-700 text-white px-3 py-2 rounded border border-neutral-600"
           >
             {availableMetrics.map(metric => (
               <option key={metric} value={metric}>
@@ -184,7 +224,7 @@ export const MetricsAnalytics: React.FC<MetricsAnalyticsProps> = ({ patientId, p
           <select
             value={viewType}
             onChange={(e) => setViewType(e.target.value as 'line' | 'bar')}
-            className="bg-gray-700 text-white px-3 py-2 rounded border border-gray-600"
+            className="bg-neutral-700 text-white px-3 py-2 rounded border border-neutral-600"
           >
             <option value="line">Line Chart</option>
             <option value="bar">Bar Chart</option>
@@ -195,21 +235,21 @@ export const MetricsAnalytics: React.FC<MetricsAnalyticsProps> = ({ patientId, p
       {/* Date Range Filter */}
       <div className="flex space-x-4 mb-6">
         <div>
-          <label className="block text-sm text-gray-300 mb-1">Start Date</label>
+          <label className="block text-sm text-neutral-300 mb-1">Start Date</label>
           <input
             type="date"
             value={dateRange.start}
             onChange={(e) => setDateRange(prev => ({ ...prev, start: e.target.value }))}
-            className="bg-gray-700 text-white px-3 py-2 rounded border border-gray-600"
+            className="bg-neutral-700 text-white px-3 py-2 rounded border border-neutral-600"
           />
         </div>
         <div>
-          <label className="block text-sm text-gray-300 mb-1">End Date</label>
+          <label className="block text-sm text-neutral-300 mb-1">End Date</label>
           <input
             type="date"
             value={dateRange.end}
             onChange={(e) => setDateRange(prev => ({ ...prev, end: e.target.value }))}
-            className="bg-gray-700 text-white px-3 py-2 rounded border border-gray-600"
+            className="bg-neutral-700 text-white px-3 py-2 rounded border border-neutral-600"
           />
         </div>
       </div>
@@ -218,9 +258,9 @@ export const MetricsAnalytics: React.FC<MetricsAnalyticsProps> = ({ patientId, p
       <div className="mb-6">
         <h4 className="text-lg font-medium text-white mb-3">Metrics Over Time</h4>
         <div className="overflow-x-auto">
-          <table className="w-full text-sm text-gray-300">
+          <table className="w-full text-sm text-neutral-300">
             <thead>
-              <tr className="border-b border-gray-700">
+              <tr className="border-b border-neutral-700">
                 <th className="text-left py-2">Date</th>
                 <th className="text-left py-2">Metric</th>
                 <th className="text-left py-2">Value</th>
@@ -233,16 +273,16 @@ export const MetricsAnalytics: React.FC<MetricsAnalyticsProps> = ({ patientId, p
               {filteredData.slice(0, 10).map((item, index) => {
                 const trend = calculateTrend(item.metric_name);
                 return (
-                  <tr key={index} className="border-b border-gray-800">
+                  <tr key={index} className="border-b border-neutral-800">
                     <td className="py-2">{new Date(item.date).toLocaleDateString()}</td>
                     <td className="py-2">{item.metric_name}</td>
                     <td className="py-2">{item.value.toFixed(2)}</td>
                     <td className="py-2">{item.unit}</td>
                     <td className="py-2">
                       <span className={`px-2 py-1 rounded text-xs ${
-                        item.source === 'lab_result' ? 'bg-blue-900 text-blue-300' :
-                        item.source === 'vital_sign' ? 'bg-green-900 text-green-300' :
-                        'bg-purple-900 text-purple-300'
+                        item.source === 'lab_result' ? 'bg-primary-900 text-primary-300' :
+                        item.source === 'vital_sign' ? 'bg-medical-900 text-medical-300' :
+                        'bg-primary-800 text-primary-300'
                       }`}>
                         {item.source.replace('_', ' ')}
                       </span>
@@ -250,9 +290,9 @@ export const MetricsAnalytics: React.FC<MetricsAnalyticsProps> = ({ patientId, p
                     <td className="py-2">
                       {trend && (
                         <span className={`px-2 py-1 rounded text-xs ${
-                          trend.direction === 'increasing' ? 'bg-red-900 text-red-300' :
-                          trend.direction === 'decreasing' ? 'bg-green-900 text-green-300' :
-                          'bg-gray-700 text-gray-300'
+                          trend.direction === 'increasing' ? 'bg-error-900 text-error-300' :
+                          trend.direction === 'decreasing' ? 'bg-medical-900 text-medical-300' :
+                          'bg-neutral-700 text-neutral-300'
                         }`}>
                           {trend.changePercent > 0 ? '+' : ''}{trend.changePercent.toFixed(1)}%
                         </span>
@@ -334,23 +374,25 @@ export const MetricsAnalytics: React.FC<MetricsAnalyticsProps> = ({ patientId, p
 
       {/* Summary Statistics */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="bg-gray-700 rounded-lg p-4">
-          <h5 className="text-sm font-medium text-gray-300 mb-2">Total Data Points</h5>
+        <div className="bg-neutral-700 rounded-lg p-4">
+          <h5 className="text-sm font-medium text-neutral-300 mb-2">Total Data Points</h5>
           <p className="text-2xl font-bold text-white">{filteredData.length}</p>
         </div>
-        <div className="bg-gray-700 rounded-lg p-4">
-          <h5 className="text-sm font-medium text-gray-300 mb-2">Metrics Tracked</h5>
+        <div className="bg-neutral-700 rounded-lg p-4">
+          <h5 className="text-sm font-medium text-neutral-300 mb-2">Metrics Tracked</h5>
           <p className="text-2xl font-bold text-white">
             {new Set(filteredData.map(item => item.metric_name)).size}
           </p>
         </div>
-        <div className="bg-gray-700 rounded-lg p-4">
-          <h5 className="text-sm font-medium text-gray-300 mb-2">Date Range</h5>
+        <div className="bg-neutral-700 rounded-lg p-4">
+          <h5 className="text-sm font-medium text-neutral-300 mb-2">Date Range</h5>
           <p className="text-sm text-white">
             {new Date(dateRange.start).toLocaleDateString()} - {new Date(dateRange.end).toLocaleDateString()}
           </p>
         </div>
       </div>
+        </>
+      )}
     </div>
   );
 };
