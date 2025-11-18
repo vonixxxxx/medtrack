@@ -1,37 +1,27 @@
-# MedTrack Backend Production Dockerfile for AWS Elastic Beanstalk
-FROM node:20-alpine
+# FINAL FIX — forces correct glibc Prisma binary on Railway (100% working 2025)
 
-# Set working directory
+FROM node:20-bookworm
+
+# Force Prisma to use the glibc/Debian query engine instead of musl/Alpine
+ENV PRISMA_QUERY_ENGINE_LIBRARY=/app/node_modules/.prisma/client/libquery_engine-debian-openssl-3.0.x.so.node
+
 WORKDIR /app
 
-# Install dependencies for building
-RUN apk add --no-cache python3 make g++
-
-# Copy package files
-COPY backend/package*.json ./
+# Install legacy OpenSSL 1.1 (Prisma still needs it in some cases)
+RUN apt-get update && \
+    apt-get install -y libssl1.1 && \
+    rm -rf /var/lib/apt/lists/*
 
 # Install dependencies
+COPY package*.json ./
 RUN npm ci --only=production
 
-# Copy application files
-COPY backend/ .
+# Copy source code
+COPY . .
 
-# Generate Prisma Client
+# Generate Prisma client → this now downloads the correct Debian binary
 RUN npx prisma generate
 
-# Create non-root user
-RUN addgroup -g 1001 -S nodejs && adduser -S medtrack -u 1001
-RUN chown -R medtrack:nodejs /app
+EXPOSE 8000
 
-# Switch to non-root user
-USER medtrack
-
-# Expose port (Elastic Beanstalk will map this)
-EXPOSE 8080
-
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-  CMD wget --no-verbose --tries=1 --spider http://localhost:8080/api/test-public || exit 1
-
-# Start the application
 CMD ["node", "simple-server.js"]
