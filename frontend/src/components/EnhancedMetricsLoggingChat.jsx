@@ -332,8 +332,6 @@ const EnhancedMetricsLoggingChat = ({ isOpen, onClose, onSuccess }) => {
         const monthsDiff = (now.getFullYear() - startMonth.getFullYear()) * 12 + 
                           (now.getMonth() - startMonth.getMonth());
         return monthsDiff >= 1;
-      case 'as_needed':
-        return true; // As needed medications can always be logged
       default:
         return true;
     }
