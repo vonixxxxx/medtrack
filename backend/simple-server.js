@@ -11,7 +11,10 @@ const {
 } = require('./utils/intelligentMedicalParser.js');
 
 const app = express();
-const prisma = new PrismaClient();
+
+// Initialize Prisma with singleton pattern for production
+const prisma = global.prisma || new PrismaClient();
+if (process.env.NODE_ENV !== 'production') global.prisma = prisma;
 
 // Simple in-memory store for survey completion status
 const surveyCompletionStatus = new Map();
@@ -19,6 +22,11 @@ const surveyCompletionStatus = new Map();
 // Middleware
 app.use(cors());
 app.use(express.json());
+
+// Health check endpoint
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'OK', timestamp: new Date().toISOString() });
+});
 
 // Import and use AI routes
 const aiRoutes = require('./src/routes/ai');
@@ -1788,9 +1796,16 @@ app.get('/api/*', (req, res) => {
   });
 });
 
-const PORT = process.env.PORT || 4000;
+// Export app for Supabase Edge Functions deployment
+// If running standalone, start the server
+if (require.main === module) {
+  const PORT = process.env.PORT || 8080;
+  app.listen(PORT, () => {
+    console.log(`🚀 Simple backend server running on port ${PORT}`);
+    console.log(`📊 Test endpoint: http://localhost:${PORT}/api/test-public`);
+    console.log(`❤️  Health check: http://localhost:${PORT}/api/health`);
+  });
+}
 
-app.listen(PORT, () => {
-  console.log(`🚀 Simple backend server running on port ${PORT}`);
-  console.log(`📊 Test endpoint: http://localhost:${PORT}/api/test-public`);
-});
+// Export app for use in Supabase Edge Functions
+module.exports = app;

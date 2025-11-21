@@ -1,0 +1,27 @@
+# Exact Terminal Command to Deploy Backend
+
+Run this single command to deploy your Supabase Edge Function:
+
+```bash
+cd supabase/functions/backend-express && ./deploy.sh
+```
+
+OR if you prefer manual steps:
+
+```bash
+# 1. Link Supabase project (first time only)
+supabase link --project-ref ydfksxcktsjhadiotlrc
+
+# 2. Set secrets (copy from supabase/secrets.txt)
+# Run each command from supabase/secrets.txt
+
+# 3. Deploy function
+cd supabase/functions/backend-express
+mkdir -p backend
+cp -r ../../backend/* backend/
+supabase functions deploy backend-express
+```
+
+Your backend will be live at:
+https://ydfksxcktsjhadiotlrc.supabase.co/functions/v1/backend-express
+

@@ -1,0 +1,10 @@
+# Vercel Environment Variables - Copy and paste these into Vercel Dashboard
+# Go to: Your Project → Settings → Environment Variables
+
+# API Configuration
+VITE_API_URL=https://ydfksxcktsjhadiotlrc.supabase.co/functions/v1/backend-express
+
+# Supabase Configuration
+VITE_SUPABASE_URL=https://ydfksxcktsjhadiotlrc.supabase.co
+VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlkZmtzeGNrdHNqaGFkaW90bHJjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM0NDUxMDAsImV4cCI6MjA3OTAyMTEwMH0.0ijYSj2crCIa3KDrWab6uqaiwpR_q-V7vpjILyzFTfA
+

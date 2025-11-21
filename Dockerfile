@@ -1,27 +1,24 @@
-# FINAL FIX — forces correct glibc Prisma binary on Railway (100% working 2025)
-
 FROM node:20-bookworm
-
-# Force Prisma to use the glibc/Debian query engine instead of musl/Alpine
-ENV PRISMA_QUERY_ENGINE_LIBRARY=/app/node_modules/.prisma/client/libquery_engine-debian-openssl-3.0.x.so.node
 
 WORKDIR /app
 
-# Install legacy OpenSSL 1.1 (Prisma still needs it in some cases)
+# Install OpenSSL 3 + build tools (Prisma needs these on Debian 12)
 RUN apt-get update && \
-    apt-get install -y libssl1.1 && \
+    apt-get install -y openssl libssl-dev build-essential libpq-dev curl && \
     rm -rf /var/lib/apt/lists/*
 
-# Install dependencies
 COPY package*.json ./
 RUN npm ci --only=production
 
-# Copy source code
 COPY . .
 
-# Generate Prisma client → this now downloads the correct Debian binary
+# Generate Prisma client + ensure query engine is built correctly
 RUN npx prisma generate
 
-EXPOSE 8000
+EXPOSE 8080
+ENV PORT=8080
 
-CMD ["node", "simple-server.js"]
+HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
+  CMD curl -f http://localhost:8080/api/health || exit 1
+
+CMD ["npm", "start"]

@@ -1,0 +1,16 @@
+{
+  "compilerOptions": {
+    "lib": ["deno.window", "deno.unstable"],
+    "jsx": "react-jsx",
+    "jsxImportSource": "react",
+    "allowJs": true,
+    "checkJs": false
+  },
+  "imports": {
+    "@supabase/supabase-js": "jsr:@supabase/supabase-js@2"
+  },
+  "tasks": {
+    "dev": "deno run --allow-all --watch index.ts",
+    "deploy": "supabase functions deploy backend-express --no-verify-jwt"
+  }
+}
