@@ -7,15 +7,15 @@ RUN apt-get update && \
     apt-get install -y openssl libssl-dev build-essential libpq-dev curl && \
     rm -rf /var/lib/apt/lists/*
 
-# Copy package files + lockfile + npmrc
-COPY package*.json ./
-COPY package-lock.json .npmrc* ./
+# Copy package files + lockfile + npmrc from backend directory
+COPY backend/package*.json ./
+COPY backend/package-lock.json backend/.npmrc* ./
 
 # Production install using lockfile (replaces --only=production)
 RUN npm ci --omit=dev
 
-# Copy source code
-COPY . .
+# Copy backend source code
+COPY backend/ .
 
 # Generate Prisma client (critical for production)
 RUN npx prisma generate
