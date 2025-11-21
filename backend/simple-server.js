@@ -25,7 +25,11 @@ app.use(express.json());
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'OK', timestamp: new Date().toISOString() });
+  res.json({ 
+    status: 'OK', 
+    service: 'medtrack-backend',
+    timestamp: new Date().toISOString() 
+  });
 });
 
 // Import and use AI routes
@@ -462,9 +466,9 @@ app.post('/api/doctor/parse-history', async (req, res) => {
     let parsedData;
     let rawModelOutput = null;
     try {
-      const { runOllamaParser } = require('./utils/ollamaParser');
+    const { runOllamaParser } = require('./utils/ollamaParser');
       parsedData = await runOllamaParser(medicalNotes);
-      console.log('📊 Parsed data from AI:', Object.keys(parsedData));
+    console.log('📊 Parsed data from AI:', Object.keys(parsedData));
     } catch (parseError) {
       console.error('❌ Parser error:', parseError.message);
       console.error('❌ Parser stack:', parseError.stack);
@@ -708,16 +712,16 @@ app.post('/api/doctor/parse-history', async (req, res) => {
         
         if (newValue !== undefined && currentValue?.toString() !== newValue?.toString()) {
           try {
-            auditLogs.push({
+          auditLogs.push({
               patientId: String(patientId), // Ensure string
               field_name: String(dbField), // Ensure string
               old_value: currentValue !== null && currentValue !== undefined ? String(currentValue) : '',
               new_value: String(newValue), // Ensure string
-              ai_confidence: 0.9,
-              ai_suggestion: `AI detected: ${newValue}`,
-              clinician_approved: false
-            });
-            updates[dbField] = newValue;
+            ai_confidence: 0.9,
+            ai_suggestion: `AI detected: ${newValue}`,
+            clinician_approved: false
+          });
+          updates[dbField] = newValue;
           } catch (logError) {
             console.error(`⚠️ Error creating audit log for field ${dbField}:`, logError.message);
             // Still add to updates even if audit log fails
@@ -732,16 +736,16 @@ app.post('/api/doctor/parse-history', async (req, res) => {
       const medicationsString = parsedData.medications.join(', ');
       if (currentPatient.all_medications_from_scr !== medicationsString) {
         try {
-          auditLogs.push({
+        auditLogs.push({
             patientId: String(patientId), // Ensure string
-            field_name: 'all_medications_from_scr',
+          field_name: 'all_medications_from_scr',
             old_value: currentPatient.all_medications_from_scr ? String(currentPatient.all_medications_from_scr) : '',
             new_value: String(medicationsString), // Ensure string
-            ai_confidence: 0.9,
-            ai_suggestion: `AI detected medications: ${medicationsString}`,
-            clinician_approved: false
-          });
-          updates.all_medications_from_scr = medicationsString;
+          ai_confidence: 0.9,
+          ai_suggestion: `AI detected medications: ${medicationsString}`,
+          clinician_approved: false
+        });
+        updates.all_medications_from_scr = medicationsString;
         } catch (logError) {
           console.error('⚠️ Error creating audit log for medications:', logError.message);
           // Still add to updates even if audit log fails
@@ -759,7 +763,7 @@ app.post('/api/doctor/parse-history', async (req, res) => {
         });
         
         if (validAuditLogs.length > 0) {
-          await prisma.aiAuditLog.createMany({
+      await prisma.aiAuditLog.createMany({
             data: validAuditLogs
           });
           console.log(`✅ Saved ${validAuditLogs.length} audit logs`);
@@ -1303,7 +1307,7 @@ app.get('/api/auth/survey-status', async (req, res) => {
     if (!userId) {
       // For demo purposes, get the most recent user
       const latestUser = await prisma.user.findFirst({
-        orderBy: { createdAt: 'desc' }
+      orderBy: { createdAt: 'desc' }
       });
       if (!latestUser) {
         return res.json({ 
@@ -1799,12 +1803,12 @@ app.get('/api/*', (req, res) => {
 // Export app for Supabase Edge Functions deployment
 // If running standalone, start the server
 if (require.main === module) {
-  const PORT = process.env.PORT || 8080;
-  app.listen(PORT, () => {
-    console.log(`🚀 Simple backend server running on port ${PORT}`);
-    console.log(`📊 Test endpoint: http://localhost:${PORT}/api/test-public`);
+const PORT = process.env.PORT || 8080;
+app.listen(PORT, () => {
+  console.log(`🚀 Simple backend server running on port ${PORT}`);
+  console.log(`📊 Test endpoint: http://localhost:${PORT}/api/test-public`);
     console.log(`❤️  Health check: http://localhost:${PORT}/api/health`);
-  });
+});
 }
 
 // Export app for use in Supabase Edge Functions
