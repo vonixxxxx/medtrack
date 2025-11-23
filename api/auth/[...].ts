@@ -38,10 +38,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     path.includes('/auth/login') || 
     path.endsWith('/login') ||
     path === '/api/auth/login' ||
+    path.includes('login') ||
     (Array.isArray(route) && route.length > 0 && route[0] === 'login')
   );
   
+  console.log('Login route check:', { isLogin, method, routePath, path, route });
+  
   if (isLogin) {
+    console.log('Processing login request...');
     try {
       const { email, password } = req.body;
 
