@@ -367,5 +367,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return;
   }
 
-  res.status(404).json({ error: 'Route not found' });
+  // If no route matched, return 404 for unknown routes
+  console.log('Auth route not matched:', { path, method, routePath });
+  return res.status(404).json({ 
+    error: 'Auth route not found', 
+    path, 
+    method, 
+    routePath,
+    hint: 'Available routes: /api/auth/login, /api/auth/signup, /api/auth/me, etc.'
+  });
 }
