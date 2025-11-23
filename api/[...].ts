@@ -232,5 +232,101 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
   }
 
+  // Route: /api/prescriptions
+  if (path.includes('/prescriptions') || routePath === 'prescriptions' || routePath?.startsWith('prescriptions/')) {
+    if (method === 'GET') {
+      try {
+        const authHeader = req.headers.authorization;
+        if (!authHeader) {
+          return res.status(401).json({ error: 'No authorization header' });
+        }
+
+        const token = authHeader.replace('Bearer ', '');
+        const tokenParts = token.split('-');
+        const userId = tokenParts[2];
+        
+        if (!userId) {
+          const latestUser = await prisma.user.findFirst({
+            orderBy: { createdAt: 'desc' },
+          });
+          if (!latestUser) {
+            return res.json([]);
+          }
+          userId = latestUser.id;
+        }
+
+        const patient = await prisma.patient.findFirst({
+          where: { userId },
+        });
+
+        if (!patient) {
+          return res.json([]);
+        }
+
+        const prescriptions = await prisma.prescription.findMany({
+          where: { patientId: patient.id },
+          orderBy: { datePrescribed: 'desc' },
+        });
+
+        return res.json(prescriptions);
+      } catch (error: any) {
+        console.error('Get prescriptions error:', error);
+        return res.status(500).json({ error: 'Failed to get prescriptions' });
+      }
+    }
+    // For POST, PUT, DELETE - return empty array for now
+    if (method === 'POST' || method === 'PUT' || method === 'DELETE') {
+      return res.json({ success: true, message: 'Prescription operation not yet implemented' });
+    }
+  }
+
+  // Route: /api/side-effects
+  if (path.includes('/side-effects') || routePath === 'side-effects' || routePath?.startsWith('side-effects/')) {
+    if (method === 'GET') {
+      try {
+        const authHeader = req.headers.authorization;
+        if (!authHeader) {
+          return res.status(401).json({ error: 'No authorization header' });
+        }
+
+        const token = authHeader.replace('Bearer ', '');
+        const tokenParts = token.split('-');
+        const userId = tokenParts[2];
+        
+        if (!userId) {
+          const latestUser = await prisma.user.findFirst({
+            orderBy: { createdAt: 'desc' },
+          });
+          if (!latestUser) {
+            return res.json([]);
+          }
+          userId = latestUser.id;
+        }
+
+        const medications = await prisma.medication.findMany({
+          where: { userId },
+        });
+
+        const medicationIds = medications.map(m => m.id);
+
+        const sideEffects = await prisma.medicationSideEffect.findMany({
+          where: {
+            medicationId: { in: medicationIds },
+          },
+          orderBy: { createdAt: 'desc' },
+        });
+
+        return res.json(sideEffects);
+      } catch (error: any) {
+        console.error('Get side effects error:', error);
+        return res.status(500).json({ error: 'Failed to get side effects' });
+      }
+    }
+    // For POST, PUT, DELETE - return empty array for now
+    if (method === 'POST' || method === 'PUT' || method === 'DELETE') {
+      return res.json({ success: true, message: 'Side effect operation not yet implemented' });
+    }
+  }
+
   return res.status(404).json({ error: 'Route not found', path });
 }
