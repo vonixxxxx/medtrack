@@ -242,14 +242,72 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
 
       const surveyData = req.body;
+      
+      // Extract only valid UserSurveyData fields (exclude 'name' which goes to User table)
+      const validSurveyFields: any = {
+        dateOfBirth: surveyData.dateOfBirth ? new Date(surveyData.dateOfBirth) : null,
+        biologicalSex: surveyData.biologicalSex || null,
+        ethnicity: surveyData.ethnicity || null,
+        hasMenses: surveyData.hasMenses ?? null,
+        ageAtMenarche: surveyData.ageAtMenarche ? parseInt(surveyData.ageAtMenarche) : null,
+        menstrualRegularity: surveyData.menstrualRegularity || null,
+        lastMenstrualPeriod: surveyData.lastMenstrualPeriod ? new Date(surveyData.lastMenstrualPeriod) : null,
+        cycleLength: surveyData.cycleLength ? parseInt(surveyData.cycleLength) : null,
+        periodDuration: surveyData.periodDuration ? parseInt(surveyData.periodDuration) : null,
+        usesContraception: surveyData.usesContraception ?? null,
+        contraceptionType: surveyData.contraceptionType || null,
+        hasPreviousPregnancies: surveyData.hasPreviousPregnancies ?? null,
+        isPerimenopausal: surveyData.isPerimenopausal ?? null,
+        isPostmenopausal: surveyData.isPostmenopausal ?? null,
+        ageAtMenopause: surveyData.ageAtMenopause ? parseInt(surveyData.ageAtMenopause) : null,
+        menopauseType: surveyData.menopauseType || null,
+        isOnHRT: surveyData.isOnHRT ?? null,
+        hrtType: surveyData.hrtType || null,
+        iiefScore: surveyData.iiefScore ? parseInt(surveyData.iiefScore) : null,
+        lowTestosteroneSymptoms: surveyData.lowTestosteroneSymptoms || null,
+        redFlagQuestions: surveyData.redFlagQuestions || null,
+        auditScore: surveyData.auditScore ? parseInt(surveyData.auditScore) : null,
+        smokingStatus: surveyData.smokingStatus || null,
+        smokingStartAge: surveyData.smokingStartAge ? parseInt(surveyData.smokingStartAge) : null,
+        cigarettesPerDay: surveyData.cigarettesPerDay ? parseInt(surveyData.cigarettesPerDay) : null,
+        vapingDevice: surveyData.vapingDevice || null,
+        nicotineMg: surveyData.nicotineMg ? parseFloat(surveyData.nicotineMg) : null,
+        pgVgRatio: surveyData.pgVgRatio || null,
+        usagePattern: surveyData.usagePattern || null,
+        psecdiScore: surveyData.psecdiScore ? parseInt(surveyData.psecdiScore) : null,
+        readinessToQuit: surveyData.readinessToQuit ? parseInt(surveyData.readinessToQuit) : null,
+        ipaqScore: surveyData.ipaqScore ? parseInt(surveyData.ipaqScore) : null,
+        weight: surveyData.weight ? parseFloat(surveyData.weight) : null,
+        height: surveyData.height ? parseFloat(surveyData.height) : null,
+        waistCircumference: surveyData.waistCircumference ? parseFloat(surveyData.waistCircumference) : null,
+        hipCircumference: surveyData.hipCircumference ? parseFloat(surveyData.hipCircumference) : null,
+        neckCircumference: surveyData.neckCircumference ? parseFloat(surveyData.neckCircumference) : null,
+        systolicBP: surveyData.systolicBP ? parseInt(surveyData.systolicBP) : null,
+        diastolicBP: surveyData.diastolicBP ? parseInt(surveyData.diastolicBP) : null,
+      };
+
+      // Remove null values to avoid Prisma errors
+      Object.keys(validSurveyFields).forEach(key => {
+        if (validSurveyFields[key] === null || validSurveyFields[key] === undefined) {
+          delete validSurveyFields[key];
+        }
+      });
+
+      // Update user's name if provided
+      if (surveyData.name) {
+        await prisma.user.update({
+          where: { id: userId },
+          data: { name: surveyData.name },
+        });
+      }
 
       // Upsert survey data
       await prisma.userSurveyData.upsert({
         where: { userId },
-        update: surveyData,
+        update: validSurveyFields,
         create: {
           userId,
-          ...surveyData,
+          ...validSurveyFields,
         },
       });
 
