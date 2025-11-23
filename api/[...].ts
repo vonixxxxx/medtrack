@@ -243,7 +243,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
         const token = authHeader.replace('Bearer ', '');
         const tokenParts = token.split('-');
-        const userId = tokenParts[2];
+        let userId = tokenParts[2];
         
         if (!userId) {
           const latestUser = await prisma.user.findFirst({
@@ -291,7 +291,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
         const token = authHeader.replace('Bearer ', '');
         const tokenParts = token.split('-');
-        const userId = tokenParts[2];
+        let userId = tokenParts[2];
         
         if (!userId) {
           const latestUser = await prisma.user.findFirst({
