@@ -1,0 +1,62 @@
+═══════════════════════════════════════════════════════════════
+  VERCEL ENVIRONMENT VARIABLES - COPY-PASTE READY
+═══════════════════════════════════════════════════════════════
+
+Go to: https://vercel.com/vonixs-projects/medtrack/settings/environment-variables
+
+Click "Create new" and add each variable:
+
+───────────────────────────────────────────────────────────────
+1. DATABASE_URL
+───────────────────────────────────────────────────────────────
+postgresql://postgres:tirpuV-sihsu7-rijjem@db.ydfksxcktsjhadiotlrc.supabase.co:5432/postgres
+
+───────────────────────────────────────────────────────────────
+2. JWT_SECRET
+───────────────────────────────────────────────────────────────
+8a1ac4d831720f929941ac89de22dea979bbe7c5c4dee9a06ffc17e07d80a400
+
+───────────────────────────────────────────────────────────────
+3. SUPABASE_URL
+───────────────────────────────────────────────────────────────
+https://ydfksxcktsjhadiotlrc.supabase.co
+
+───────────────────────────────────────────────────────────────
+4. NODE_ENV
+───────────────────────────────────────────────────────────────
+production
+
+───────────────────────────────────────────────────────────────
+5. FRONTEND_URL
+───────────────────────────────────────────────────────────────
+https://medtrack.vercel.app
+
+───────────────────────────────────────────────────────────────
+6. CORS_ORIGIN
+───────────────────────────────────────────────────────────────
+https://medtrack.vercel.app
+
+───────────────────────────────────────────────────────────────
+7. SUPABASE_ANON_KEY (Optional - if using Supabase Auth)
+───────────────────────────────────────────────────────────────
+[Your Supabase anonymous key]
+
+═══════════════════════════════════════════════════════════════
+INSTRUCTIONS:
+═══════════════════════════════════════════════════════════════
+
+1. For each variable above:
+   - Click "Create new"
+   - Paste Key name
+   - Paste Value
+   - Select: Production, Preview, Development
+   - Click "Save"
+
+2. After adding all variables:
+   - Go to Deployments tab
+   - Click "Redeploy" on latest deployment
+   - Or wait for next git push
+
+3. Verify deployment succeeds and test endpoints
+
+═══════════════════════════════════════════════════════════════
