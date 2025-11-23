@@ -11,11 +11,9 @@ cd ..
 echo "🏗️  Step 2: Building frontend..."
 cd frontend
 # Use local vite from node_modules/.bin to ensure vite.config.js can find vite module
-if [ -f "./node_modules/.bin/vite" ]; then
-  ./node_modules/.bin/vite build
-else
-  npm run build
-fi
+# Set NODE_PATH to ensure vite module resolution works
+export NODE_PATH=$(pwd)/node_modules
+./node_modules/.bin/vite build
 cd ..
 
 echo "✅ Build completed successfully!"
