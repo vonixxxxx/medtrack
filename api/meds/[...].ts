@@ -178,13 +178,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
       const medications = await prisma.medication.findMany({
         where: { userId },
-        include: { schedules: true },
       });
 
       const cycles = medications.map(med => ({
         medicationId: med.id,
         medicationName: med.name,
-        cycles: med.schedules || [],
+        cycles: [],
       }));
 
       res.json(cycles);
