@@ -103,5 +103,9 @@ Thumbs.db
 *.db-journal
 prisma/dev.db
 prisma/dev.db-journal
+
+# Temporary backend files (not needed for Vercel deployment)
+api/src-temp/
+
 # Render deployment trigger
 .vercel
