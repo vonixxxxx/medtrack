@@ -1,0 +1,61 @@
+# Additional files to ignore for Vercel deployment
+# (in addition to .vercelignore)
+
+# Large directories
+openemr-analysis/
+ai-backend/
+hospital_medication_search/
+ollama/
+landing/
+packages/
+supabase/functions/
+backend/
+
+# Test files
+__tests__/
+test/
+tests/
+*.test.js
+*.test.ts
+*.spec.js
+*.spec.ts
+test-*.js
+test-*.txt
+
+# Build artifacts
+dist/
+build/
+coverage/
+.nyc_output/
+.cache/
+
+# Logs
+logs/
+*.log
+
+# Python
+__pycache__/
+*.pyc
+*.py
+*.pth
+
+# Database
+*.sql
+*.db
+*.sqlite
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temporary
+temp/
+tmp/
+*.backup
+*.bak

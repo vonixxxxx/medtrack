@@ -1,0 +1,112 @@
+# Ignore files that shouldn't be deployed to Vercel
+# This reduces file count from 65k+ to manageable size
+
+# Large directories (not needed for deployment)
+backend/
+openemr-analysis/
+ai-backend/
+hospital_medication_search/
+ollama/
+landing/
+packages/
+supabase/
+scripts/
+
+# Node modules (installed during build)
+node_modules/
+**/node_modules/
+
+# Git and version control
+.git/
+.gitignore
+.gitattributes
+
+# Environment files
+.env*
+!.env.example
+api/.env.local
+
+# Documentation (keep only README.md)
+*.md
+!README.md
+!frontend/README.md
+
+# Test files
+__tests__/
+test/
+tests/
+*.test.js
+*.test.ts
+*.spec.js
+*.spec.ts
+test-*.js
+test-*.txt
+*.test.*
+
+# Build artifacts
+dist/
+build/
+coverage/
+.nyc_output/
+.cache/
+.next/
+out/
+
+# Logs
+logs/
+*.log
+*.log.*
+
+# Python files
+__pycache__/
+*.pyc
+*.py
+*.pth
+*.whl
+*.egg-info/
+
+# Database files
+*.sql
+*.db
+*.sqlite
+*.sqlite3
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*.sublime-*
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Temporary files
+temp/
+tmp/
+*.backup
+*.bak
+*.tmp
+*.cache
+
+# Shell scripts (except deployment scripts)
+*.sh
+!DEPLOY*.sh
+
+# Large data files
+*.json.bak
+*.csv
+data/
+*.data
+
+# TypeScript build outputs
+*.tsbuildinfo
+tsconfig.tsbuildinfo
+
+# Misc
+*.pem
+*.key
+*.crt
+*.cert

@@ -104,3 +104,4 @@ Thumbs.db
 prisma/dev.db
 prisma/dev.db-journal
 # Render deployment trigger
+.vercel

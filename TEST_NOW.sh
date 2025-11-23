@@ -1,0 +1,48 @@
+#!/bin/bash
+# Quick test script for Step A
+
+echo "╔══════════════════════════════════════════════════════════════╗"
+echo "║                                                              ║"
+echo "║     🧪 STEP A: TEST DEV SERVER 🧪                          ║"
+echo "║                                                              ║"
+echo "╚══════════════════════════════════════════════════════════════╝"
+echo ""
+
+# Check if .env.local exists
+if [ ! -f "api/.env.local" ]; then
+    echo "⚠️  WARNING: api/.env.local not found!"
+    echo "   Create it with: cd api && echo 'DATABASE_URL=\"...\"' > .env.local"
+    echo ""
+fi
+
+echo "📋 Testing Instructions:"
+echo ""
+echo "1. Start API Server (Terminal 1):"
+echo "   cd api"
+echo "   npx vercel dev"
+echo "   → API will run on http://localhost:3000"
+echo ""
+echo "2. Start Frontend (Terminal 2):"
+echo "   cd frontend"
+echo "   npm run dev"
+echo "   → Frontend will run on http://localhost:5173"
+echo ""
+echo "3. Test API Endpoints:"
+echo "   curl http://localhost:3000/api/health"
+echo "   curl http://localhost:3000/api/test-public"
+echo "   curl -X POST http://localhost:3000/api/auth/login \\"
+echo "     -H 'Content-Type: application/json' \\"
+echo "     -d '{\"email\":\"test@test.com\",\"password\":\"test\"}'"
+echo ""
+echo "4. Test Frontend:"
+echo "   Open: http://localhost:5173"
+echo "   - Check browser console for errors"
+echo "   - Test login/signup forms"
+echo "   - Verify API calls work"
+echo ""
+echo "✅ Expected Results:"
+echo "   - /api/health → {\"status\":\"OK\",\"service\":\"medtrack-backend\",...}"
+echo "   - /api/test-public → {\"message\":\"Backend is running!\"}"
+echo "   - Frontend loads without console errors"
+echo "   - API calls from frontend succeed"
+echo ""

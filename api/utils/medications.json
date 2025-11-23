@@ -1,0 +1,92 @@
+[
+  {
+    "name": "semaglutide",
+    "generic": "semaglutide",
+    "brand_names": ["Ozempic", "Rybelsus", "Wegovy"],
+    "synonyms": ["ozempic", "rybelsus", "wegovy", "semaglutid", "sema", "semaglut"],
+    "drug_class": "GLP-1 Receptor Agonist",
+    "dosage_forms": ["Injection", "Tablet"],
+    "typical_strengths": ["0.25mg", "0.5mg", "1mg", "2.4mg", "3mg", "7mg", "14mg"],
+    "description": "Used for type 2 diabetes and weight management"
+  },
+  {
+    "name": "metformin",
+    "generic": "metformin",
+    "brand_names": ["Glucophage", "Fortamet", "Glumetza", "Riomet"],
+    "synonyms": ["glucophage", "riomet", "metfromin", "metfornin", "fortamet", "glumetza"],
+    "drug_class": "Biguanide",
+    "dosage_forms": ["Tablet", "Extended-release tablet"],
+    "typical_strengths": ["500mg", "850mg", "1000mg"],
+    "description": "First-line treatment for type 2 diabetes"
+  },
+  {
+    "name": "insulin glargine",
+    "generic": "insulin glargine",
+    "brand_names": ["Lantus", "Toujeo", "Basaglar"],
+    "synonyms": ["lantus", "toujeo", "basaglar", "insulin glargine"],
+    "drug_class": "Long-acting Insulin",
+    "dosage_forms": ["Injection"],
+    "typical_strengths": ["100 units/mL", "300 units/mL"],
+    "description": "Long-acting insulin for diabetes management"
+  },
+  {
+    "name": "liraglutide",
+    "generic": "liraglutide",
+    "brand_names": ["Victoza", "Saxenda"],
+    "synonyms": ["victoza", "saxenda", "liraglutid"],
+    "drug_class": "GLP-1 Receptor Agonist",
+    "dosage_forms": ["Injection"],
+    "typical_strengths": ["0.6mg", "1.2mg", "1.8mg", "3mg"],
+    "description": "GLP-1 agonist for diabetes and weight management"
+  },
+  {
+    "name": "dulaglutide",
+    "generic": "dulaglutide",
+    "brand_names": ["Trulicity"],
+    "synonyms": ["trulicity", "dulaglutid"],
+    "drug_class": "GLP-1 Receptor Agonist",
+    "dosage_forms": ["Injection"],
+    "typical_strengths": ["0.75mg", "1.5mg", "3mg", "4.5mg"],
+    "description": "GLP-1 agonist for diabetes management"
+  },
+  {
+    "name": "exenatide",
+    "generic": "exenatide",
+    "brand_names": ["Byetta", "Bydureon"],
+    "synonyms": ["byetta", "bydureon", "exenatid"],
+    "drug_class": "GLP-1 Receptor Agonist",
+    "dosage_forms": ["Injection"],
+    "typical_strengths": ["5mcg", "10mcg", "2mg"],
+    "description": "GLP-1 agonist for diabetes management"
+  },
+  {
+    "name": "atorvastatin",
+    "generic": "atorvastatin",
+    "brand_names": ["Lipitor"],
+    "synonyms": ["lipitor", "atorva", "atorvastain", "atorvastat"],
+    "drug_class": "Statin",
+    "dosage_forms": ["Tablet"],
+    "typical_strengths": ["10mg", "20mg", "40mg", "80mg"],
+    "description": "Cholesterol lowering medication"
+  },
+  {
+    "name": "lisinopril",
+    "generic": "lisinopril",
+    "brand_names": ["Prinivil", "Zestril"],
+    "synonyms": ["prinivil", "zestril", "lisinpril", "lisnopril"],
+    "drug_class": "ACE Inhibitor",
+    "dosage_forms": ["Tablet"],
+    "typical_strengths": ["5mg", "10mg", "20mg", "40mg"],
+    "description": "Blood pressure medication"
+  },
+  {
+    "name": "sertraline",
+    "generic": "sertraline",
+    "brand_names": ["Zoloft"],
+    "synonyms": ["zoloft", "sertralene", "sertalin"],
+    "drug_class": "SSRI",
+    "dosage_forms": ["Tablet"],
+    "typical_strengths": ["25mg", "50mg", "100mg", "200mg"],
+    "description": "Antidepressant medication"
+  }
+]

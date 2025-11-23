@@ -1,57 +1,152 @@
-# 🚀 MEDTRACK DEPLOYMENT STATUS
+# MedTrack Vercel Deployment Status
 
-## ✅ Completed Automatically
+## ✅ Completed Steps
 
-1. **JWT_SECRET Generated:** `baf0cf2081523f3dc2fdaf1eb1b5fcd4b9b1ed3f3881345a64fc97365dfb8de9`
-2. **Prisma Schema Updated:** Changed from SQLite to PostgreSQL
-3. **Backend Files Prepared:** Copied to `supabase/functions/backend-express/backend/`
-4. **Prisma Client Generated:** Ready for PostgreSQL connection
+### Step 1: Install All Dependencies ✓
+- **API dependencies**: Installed successfully (154 packages)
+- **Frontend dependencies**: Installed successfully (518 packages)
+- **Root dependencies**: `concurrently` available for dev scripts
+- **Status**: All dependencies ready
 
-## ⚠️ Manual Steps Required
+### Step 2: Generate Prisma Client ✓
+- **Prisma Client**: Generated successfully (v5.22.0)
+- **Location**: `api/node_modules/@prisma/client`
+- **Schema**: Loaded from `api/prisma/schema.prisma`
+- **Status**: Ready for database operations
 
-### Step 1: Install Supabase CLI
+## 📋 Next Steps
+
+### Step 3: Test Locally
+
+**Option A: Run both together**
 ```bash
-brew install supabase/tap/supabase
+npm run dev
+```
+This starts:
+- Frontend (Vite) on `http://localhost:5173`
+- API (Vercel Dev) on `http://localhost:3000`
+
+**Option B: Run separately**
+```bash
+# Terminal 1: Frontend
+npm run dev:frontend
+
+# Terminal 2: API
+npm run dev:api
 ```
 
-### Step 2: Link & Set Secrets
+**Test Endpoints:**
+- Frontend: `http://localhost:5173`
+- API Health: `http://localhost:3000/api/health`
+- API Test: `http://localhost:3000/api/test-public`
+- API Auth: `http://localhost:3000/api/auth/login`
+
+### Step 4: Deploy to Vercel
+
+**Prerequisites:**
+1. Vercel CLI installed: `npm install -g vercel` ✓
+2. Login to Vercel: `vercel login` (if not already logged in)
+3. Environment variables set in Vercel dashboard:
+   - `DATABASE_URL` - PostgreSQL connection string
+   - `SUPABASE_URL` - (if using Supabase)
+   - `SUPABASE_ANON_KEY` - (if using Supabase)
+   - `JWT_SECRET` - Secret for JWT tokens
+   - Any other backend secrets
+
+**Deploy Command:**
 ```bash
-supabase link --project-ref ydfksxcktsjhadiotlrc
-supabase secrets set DATABASE_URL="postgresql://postgres.ydfksxcktsjhadiotlrc:fibbu6-foqJop-qydron@db.ydfksxcktsjhadiotlrc.supabase.co:5432/postgres"
-supabase secrets set JWT_SECRET="baf0cf2081523f3dc2fdaf1eb1b5fcd4b9b1ed3f3881345a64fc97365dfb8de9"
-supabase secrets set FRONTEND_URL="https://medtrack.vercel.app"
-supabase secrets set CORS_ORIGIN="https://medtrack.vercel.app"
-supabase secrets set NODE_ENV="production"
+vercel --prod
 ```
 
-### Step 3: Deploy Backend Function
+Or use npx:
 ```bash
-cd supabase/functions/backend-express
-supabase functions deploy backend-express --no-verify-jwt
+npx vercel --prod
 ```
 
-### Step 4: Run Prisma Migrations
-```bash
-cd ../../backend
-export DATABASE_URL="postgresql://postgres.ydfksxcktsjhadiotlrc:fibbu6-foqJop-qydron@db.ydfksxcktsjhadiotlrc.supabase.co:5432/postgres"
-npx prisma migrate deploy
+**What Vercel Will Do:**
+1. Detect monorepo structure (frontend + api)
+2. Build frontend using `@vercel/static-build`
+3. Deploy API functions using `@vercel/node`
+4. Configure routing from `vercel.json`
+5. Provide live URLs
+
+### Step 5: Convert Remaining Routes
+
+**Routes Still to Convert:**
+
+From `backend/simple-server.js`:
+- `/api/doctor/parse-history` - Complex medical history parsing
+- `/api/doctor/intelligent-parse` - AI-powered parsing
+- `/api/auth/survey-status` - Survey completion status
+- `/api/auth/survey-data` - Save survey data
+- `/api/auth/complete-survey` - Mark survey complete
+- `/api/doctor/patients/:patientId` - Update patient
+- `/api/doctor/audit-logs/*` - Audit log endpoints
+- `/api/metrics/patient/:patientId` - Patient metrics
+- `/api/lab-results/patient/:patientId` - Lab results
+- `/api/vital-signs/patient/:patientId` - Vital signs
+- `/api/ai/*` - AI endpoints
+
+From `backend/src/routes/`:
+- All route files need conversion to individual serverless functions
+
+**Conversion Pattern:**
+1. Create file in appropriate `/api` subdirectory
+2. Export default handler function
+3. Use shared utilities from `/api/lib`
+4. Test locally before committing
+
+## 🐛 Known Issues
+
+1. **Root npm install**: May fail with "Cannot read properties of null" error
+   - **Workaround**: Install dependencies in subdirectories separately
+   - **Status**: Not critical - subdirectories work fine
+
+2. **Vercel Dev**: May need to use `npx vercel dev` instead of `vercel dev`
+   - **Fix Applied**: Updated `package.json` to use `npx vercel dev`
+
+## 📊 Project Structure
+
+```
+medtrack/
+├── frontend/          # Vite + React (ready for deployment)
+├── api/              # Serverless functions (15+ routes converted)
+│   ├── lib/          # Shared utilities (Prisma, auth)
+│   ├── auth/         # Auth endpoints (3 routes)
+│   ├── doctor/       # Clinician endpoints (1 route)
+│   ├── medications/  # Medication endpoints (1 route)
+│   ├── meds/         # User medications (3 routes)
+│   └── prisma/       # Database schema
+├── package.json      # Root scripts
+├── vercel.json       # Vercel configuration
+└── README.md         # Full documentation
 ```
 
-### Step 5: Deploy Frontend to Vercel
+## 🎯 Current Status
+
+- ✅ **Dependencies**: Installed
+- ✅ **Prisma**: Generated
+- ⏳ **Local Testing**: Ready to test
+- ⏳ **Deployment**: Ready to deploy
+- ⏳ **Route Conversion**: 15+ routes done, ~30+ remaining
+
+## 🚀 Quick Commands
+
 ```bash
-cd ../frontend
-vercel login
-vercel --prod --yes
+# Install all dependencies
+cd api && npm install && cd ../frontend && npm install
+
+# Generate Prisma client
+cd api && npm run prisma:generate
+
+# Test locally
+npm run dev
+
+# Deploy to Vercel
+vercel --prod
 ```
 
-Then add environment variables in Vercel Dashboard:
-- `VITE_API_URL` = `https://ydfksxcktsjhadiotlrc.supabase.co/functions/v1/backend-express`
-- `VITE_SUPABASE_URL` = `https://ydfksxcktsjhadiotlrc.supabase.co`
-- `VITE_SUPABASE_ANON_KEY` = `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlkZmtzeGNrdHNqaGFkaW90bHJjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM0NDUxMDAsImV4cCI6MjA3OTAyMTEwMH0.0ijYSj2crCIa3KDrWab6uqaiwpR_q-V7vpjILyzFTfA`
+---
 
-## 🎯 Final URLs (After Deployment)
-
-- **Backend:** `https://ydfksxcktsjhadiotlrc.supabase.co/functions/v1/backend-express`
-- **Frontend:** (Your Vercel URL after deployment)
-- **JWT_SECRET:** `baf0cf2081523f3dc2fdaf1eb1b5fcd4b9b1ed3f3881345a64fc97365dfb8de9`
-
+**Last Updated**: After Steps 1-2 completion
+**Next Action**: Test locally (Step 3) or deploy (Step 4)

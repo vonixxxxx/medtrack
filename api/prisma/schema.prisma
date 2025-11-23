@@ -1,0 +1,1262 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "darwin-arm64"]
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  password     String
+  name         String?
+  role         String   @default("patient") // 'patient' | 'clinician'
+  hospitalCode String // required field to link patients to clinicians
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Password reset fields
+  resetToken       String?
+  resetTokenExpiry DateTime?
+
+  // 2FA fields
+  is2FAEnabled Boolean @default(false)
+  twoFASecret  String?
+
+  // Survey completion status
+  surveyCompleted Boolean @default(false)
+
+  // Relations
+  patientProfile   Patient?
+  clinicianProfile Clinician?
+  medications      Medication[]
+  metrics          Metric[]
+  cycles           MedicationCycle[]
+  notifications    Notification[]
+  surveyData       UserSurveyData?
+  encounters       Encounter[]
+  patientProfiles  PatientProfile[]
+  diaryEntries     DiaryEntry[]
+  customAttributes CustomAttribute[]
+  reminderChains   ReminderChain[]
+  pillRecognitions PillRecognition[]
+  healthReports    HealthReport[]
+  dataExports      DataExport[]
+  Appointment      Appointment[]
+
+  @@index([hospitalCode])
+  @@map("users")
+}
+
+model Patient {
+  id     String @id @default(cuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id])
+
+  // App-generated fields
+  patient_audit_id String? @unique
+  imd_decile       Int?
+
+  // Basic demographics
+  dob          DateTime?
+  sex          String?
+  ethnicity    String?
+  ethnic_group String?
+  location     String?
+  postcode     String?
+  nhs_number   String?   @unique
+  mrn          String?   @unique
+
+  // Clinical dates and measurements
+  start_date           DateTime?
+  height               Float?
+  baseline_weight      Float?
+  baseline_bmi         Float?
+  baseline_weight_date DateTime?
+
+  // Cardiovascular risk factors
+  ascvd                   Boolean?
+  htn                     Boolean?
+  hypertension            Boolean?
+  dyslipidaemia           Boolean?
+  ischaemic_heart_disease Boolean?
+  heart_failure           Boolean?
+  cerebrovascular_disease Boolean?
+  pulmonary_hypertension  Boolean?
+  dvt                     Boolean?
+  pe                      Boolean?
+
+  // Sleep and respiratory
+  osa           Boolean?
+  sleep_studies Boolean?
+  cpap          Boolean?
+  asthma        Boolean?
+
+  // Diabetes
+  t2dm                     Boolean?
+  prediabetes              Boolean?
+  diabetes_type            String?
+  hba1c_percent            Float?
+  hba1c_mmol               Float?
+  baseline_hba1c           Float?
+  baseline_hba1c_date      DateTime?
+  baseline_fasting_glucose Float?
+  random_glucose           Float?
+
+  // Lipid profile
+  baseline_tc              Float?
+  baseline_hdl             Float?
+  baseline_ldl             Float?
+  baseline_tg              Float?
+  baseline_lipid_date      DateTime?
+  lipid_lowering_treatment String?
+
+  // Medications
+  antihypertensive_medications String?
+  all_medications_from_scr     String?
+
+  // Gastrointestinal
+  gord Boolean?
+
+  // Renal
+  ckd           Boolean?
+  kidney_stones Boolean?
+
+  // Metabolic
+  masld Boolean?
+
+  // Reproductive
+  infertility Boolean?
+  pcos        Boolean?
+
+  // Mental health
+  anxiety                  Boolean?
+  depression               Boolean?
+  bipolar_disorder         Boolean?
+  emotional_eating         Boolean?
+  schizoaffective_disorder Boolean?
+
+  // Musculoskeletal
+  oa_knee          Boolean?
+  oa_hip           Boolean?
+  limited_mobility Boolean?
+  lymphoedema      Boolean?
+
+  // Endocrine
+  thyroid_disorder Boolean?
+
+  // Neurological
+  iih                              Boolean?
+  epilepsy                         Boolean?
+  functional_neurological_disorder Boolean?
+
+  // Oncology
+  cancer Boolean?
+
+  // Bariatric surgery
+  bariatric_gastric_band Boolean?
+  bariatric_sleeve       Boolean?
+  bariatric_bypass       Boolean?
+  bariatric_balloon      Boolean?
+
+  // Clinical data
+  diagnoses_coded_in_scr         String?
+  total_qualifying_comorbidities Int?
+  mes                            Float?
+
+  // Notes and criteria
+  notes               String?
+  criteria_for_wegovy String?
+
+  // Relationships
+  conditions    Condition[]
+  ai_audit_logs AiAuditLog[]
+  medical_notes MedicalNote[]
+  lab_results   LabResult[]
+  vital_signs   VitalSign[]
+  medications   PatientMedication[]
+  metric_trends MetricTrend[]
+  appointments  Appointment[]
+  encounters    Encounter[]
+  allergies     Allergy[]
+  immunizations Immunization[]
+  problems      Problem[]
+  documents     Document[]
+  prescriptions Prescription[]
+  charges       Charge[]
+  payments      Payment[]
+  insurance     PatientInsurance[]
+  profiles      PatientProfile[] // Profiles that reference this patient
+
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+  Medication Medication[]
+  Claim      Claim[]
+
+  @@index([nhs_number])
+  @@index([mrn])
+  @@index([postcode])
+  @@index([ethnic_group])
+  @@map("patients")
+}
+
+model Clinician {
+  id           String   @id @default(cuid())
+  userId       String   @unique
+  user         User     @relation(fields: [userId], references: [id])
+  hospitalCode String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@map("clinicians")
+}
+
+model Condition {
+  id         String   @id @default(cuid())
+  patientId  String
+  patient    Patient  @relation(fields: [patientId], references: [id])
+  name       String
+  normalized String
+  createdAt  DateTime @default(now())
+
+  @@map("conditions")
+}
+
+model AiAuditLog {
+  id                 String   @id @default(cuid())
+  patientId          String
+  patient            Patient  @relation(fields: [patientId], references: [id])
+  field_name         String
+  old_value          String?
+  new_value          String?
+  ai_confidence      Float?
+  ai_suggestion      String?
+  clinician_approved Boolean  @default(false)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@index([patientId])
+  @@index([createdAt])
+  @@map("ai_audit_log")
+}
+
+model Medication {
+  id              String    @id @default(cuid())
+  userId          String
+  patientId       String? // Support multiple patients per user
+  name            String
+  genericName     String?
+  brandName       String?
+  startDate       DateTime
+  endDate         DateTime?
+  dosage          String
+  unit            String?
+  frequency       String
+  customFrequency String? // For custom schedules
+  route           String? // oral, injection, etc.
+  strength        String?
+  drugClass       String?
+  ndcCode         String?
+  rxnormCode      String?
+
+  // Reminder settings
+  reminderEnabled Boolean @default(true)
+  reminderTimes   String? // JSON array of times
+  reminderDays    String? // JSON array of days (0-6)
+  intervalHours   Int? // For interval-based reminders
+  reminderChainId String? // For chained reminders
+
+  // Stock tracking
+  stockQuantity     Float?
+  stockUnit         String?
+  lowStockThreshold Float?
+  outOfStock        Boolean @default(false)
+
+  // Weekend mode
+  weekendMode      Boolean @default(false)
+  weekendDelayDays String? // JSON array of days to delay
+
+  // Notes and side effects
+  notes               String?
+  specialInstructions String?
+
+  // Status
+  status  String    @default("active") // active, paused, discontinued
+  taken   Boolean   @default(false)
+  takenAt DateTime?
+
+  logs          MedicationLog[]
+  sideEffects   MedicationSideEffect[]
+  adherenceLogs MedicationAdherenceLog[]
+  user          User                     @relation(fields: [userId], references: [id])
+  patient       Patient?                 @relation(fields: [patientId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([patientId])
+  @@index([status])
+}
+
+model MedicationLog {
+  id           String     @id @default(cuid())
+  medicationId String
+  date         DateTime
+  time         DateTime?
+  dosage       String
+  taken        Boolean    @default(false)
+  skipped      Boolean    @default(false)
+  notes        String?
+  medication   Medication @relation(fields: [medicationId], references: [id])
+
+  @@index([medicationId, date])
+  @@map("medication_logs")
+}
+
+// Side Effects Tracking
+model MedicationSideEffect {
+  id           String     @id @default(cuid())
+  medicationId String
+  medication   Medication @relation(fields: [medicationId], references: [id], onDelete: Cascade)
+  symptom      String
+  severity     String? // mild, moderate, severe
+  onsetDate    DateTime
+  resolvedDate DateTime?
+  notes        String?
+  createdAt    DateTime   @default(now())
+
+  @@index([medicationId])
+  @@map("medication_side_effects")
+}
+
+// Adherence Tracking
+model MedicationAdherenceLog {
+  id            String     @id @default(cuid())
+  medicationId  String
+  medication    Medication @relation(fields: [medicationId], references: [id], onDelete: Cascade)
+  date          DateTime
+  scheduledTime DateTime?
+  takenTime     DateTime?
+  status        String // taken, missed, skipped, delayed
+  delayMinutes  Int?
+  notes         String?
+  createdAt     DateTime   @default(now())
+
+  @@unique([medicationId, date])
+  @@index([medicationId])
+  @@index([date])
+  @@map("medication_adherence_logs")
+}
+
+// Reminder Chains (take A, then after X hours take B)
+model ReminderChain {
+  id                 String   @id @default(cuid())
+  userId             String
+  name               String?
+  firstMedicationId  String
+  secondMedicationId String
+  delayHours         Int
+  active             Boolean  @default(true)
+  createdAt          DateTime @default(now())
+  User               User     @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@map("reminder_chains")
+}
+
+// Multiple Patients Support (Family Members)
+model PatientProfile {
+  id           String   @id @default(cuid())
+  userId       String // User who manages this profile
+  patientId    String // Link to Patient record
+  name         String
+  relationship String? // self, spouse, child, parent, other
+  isPrimary    Boolean  @default(false)
+  color        String? // For UI differentiation
+  avatar       String?
+  notes        String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  User         User     @relation(fields: [userId], references: [id])
+  patient      Patient  @relation(fields: [patientId], references: [id])
+
+  @@unique([userId, patientId])
+  @@index([userId])
+  @@map("patient_profiles")
+}
+
+// Diary/Custom Attribute Tracking
+model DiaryEntry {
+  id         String   @id @default(cuid())
+  userId     String
+  patientId  String?
+  date       DateTime
+  entryType  String // mood, symptom, note, custom
+  title      String?
+  content    String?
+  attributes String? // JSON object for custom attributes
+  tags       String? // JSON array
+  notebookId String? // For multiple notebooks
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  User       User     @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([patientId])
+  @@index([date])
+  @@index([entryType])
+  @@map("diary_entries")
+}
+
+// Custom Attributes Definition
+model CustomAttribute {
+  id        String   @id @default(cuid())
+  userId    String
+  name      String
+  type      String // text, number, boolean, select, date
+  options   String? // JSON array for select type
+  unit      String? // For number type
+  color     String?
+  icon      String?
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  User      User     @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@map("custom_attributes")
+}
+
+// Drug Interactions
+model DrugInteraction {
+  id                   String   @id @default(cuid())
+  medication1Id        String
+  medication2Id        String
+  interactionType      String // major, moderate, minor
+  severity             String // severe, moderate, mild
+  description          String
+  clinicalSignificance String?
+  management           String?
+  source               String? // Database source
+  verified             Boolean  @default(false)
+  createdAt            DateTime @default(now())
+
+  @@unique([medication1Id, medication2Id])
+  @@index([medication1Id])
+  @@index([medication2Id])
+  @@map("drug_interactions")
+}
+
+// Pill Recognition
+model PillRecognition {
+  id             String   @id @default(cuid())
+  userId         String
+  patientId      String?
+  imagePath      String
+  imageUrl       String?
+  recognized     Boolean  @default(false)
+  confidence     Float?
+  medicationName String?
+  imprint        String?
+  shape          String?
+  color          String?
+  size           String?
+  mlModel        String?
+  rawResult      String? // JSON
+  verified       Boolean  @default(false)
+  createdAt      DateTime @default(now())
+  User           User     @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([patientId])
+  @@map("pill_recognitions")
+}
+
+// Health Reports
+model HealthReport {
+  id          String   @id @default(cuid())
+  userId      String
+  patientId   String?
+  reportType  String // adherence, side_effects, trends, comprehensive
+  periodStart DateTime
+  periodEnd   DateTime
+  data        String // JSON object with report data
+  charts      String? // JSON array of chart configurations
+  insights    String?
+  generatedAt DateTime @default(now())
+  User        User     @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([patientId])
+  @@index([generatedAt])
+  @@map("health_reports")
+}
+
+// Export/Backup
+model DataExport {
+  id         String    @id @default(cuid())
+  userId     String
+  exportType String // medications, adherence, diary, full
+  format     String // json, csv, pdf
+  filePath   String?
+  fileUrl    String?
+  expiresAt  DateTime?
+  createdAt  DateTime  @default(now())
+  User       User      @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@map("data_exports")
+}
+
+model Metric {
+  id               String   @id @default(cuid())
+  userId           String
+  date             DateTime @default(now())
+  weight           Float
+  height           Float
+  bmi              Float
+  bloodPressure    String
+  hipCircumference Float?
+  user             User     @relation(fields: [userId], references: [id])
+}
+
+/// NEW V2 MODELS ------------------------------------
+
+model MedicationCycle {
+  id               String    @id @default(cuid())
+  userId           String
+  name             String
+  dosage           String
+  startDate        DateTime
+  endDate          DateTime?
+  frequencyDays    Int // e.g., 1 = daily, 7 = weekly
+  dosesPerDay      Int       @default(1)
+  metricsToMonitor String? // JSON string of metrics and their frequencies
+
+  metricLogs    MetricLog[]
+  doseLogs      DoseLog[]
+  notifications Notification[]
+
+  user User @relation(fields: [userId], references: [id])
+}
+
+model MetricLog {
+  id         String   @id @default(cuid())
+  cycleId    String
+  date       DateTime @default(now())
+  kind       String // e.g., WEIGHT, BLOOD_PRESSURE
+  valueFloat Float?
+  valueText  String?
+  notes      String?
+
+  cycle MedicationCycle @relation(fields: [cycleId], references: [id])
+}
+
+model DoseLog {
+  id      String   @id @default(cuid())
+  cycleId String
+  date    DateTime
+  taken   Boolean  @default(false)
+
+  cycle MedicationCycle @relation(fields: [cycleId], references: [id])
+
+  @@unique([cycleId, date])
+}
+
+model Notification {
+  id      String   @id @default(cuid())
+  userId  String
+  cycleId String?
+  date    DateTime
+  message String
+  sent    Boolean  @default(false)
+
+  user  User             @relation(fields: [userId], references: [id])
+  cycle MedicationCycle? @relation(fields: [cycleId], references: [id])
+}
+
+/// END V2 MODELS ------------------------------------
+
+model UserSurveyData {
+  id     String @id @default(cuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id])
+
+  // Step 1: Basic Demographics & Account Info
+  dateOfBirth   DateTime?
+  biologicalSex String? // Male/Female/Other
+  ethnicity     String? // ONS categories
+
+  // Step 2: Female-Specific Questions
+  hasMenses              Boolean?
+  ageAtMenarche          Int?
+  menstrualRegularity    String?
+  lastMenstrualPeriod    DateTime?
+  cycleLength            Int?
+  periodDuration         Int?
+  usesContraception      Boolean?
+  contraceptionType      String?
+  hasPreviousPregnancies Boolean?
+  isPerimenopausal       Boolean?
+  isPostmenopausal       Boolean?
+  ageAtMenopause         Int?
+  menopauseType          String? // natural/surgical
+  isOnHRT                Boolean?
+  hrtType                String?
+
+  // Step 3: Male-Specific Questions
+  iiefScore               Int? // IIEF-5 Score
+  lowTestosteroneSymptoms String? // JSON array of symptoms
+  redFlagQuestions        String? // JSON array of red flags
+
+  // Step 4: Lifestyle Assessment
+  auditScore       Int? // AUDIT Questionnaire score
+  smokingStatus    String?
+  smokingStartAge  Int?
+  cigarettesPerDay Int?
+  vapingDevice     String?
+  nicotineMg       Float?
+  pgVgRatio        String?
+  usagePattern     String?
+  psecdiScore      Int?
+  readinessToQuit  Int?
+  ipaqScore        Int? // International Physical Activity Questionnaire
+
+  // Step 5: Anthropometrics & Vitals
+  weight             Float?
+  height             Float?
+  waistCircumference Float?
+  hipCircumference   Float?
+  neckCircumference  Float?
+  systolicBP         Int?
+  diastolicBP        Int?
+
+  // Metadata
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("user_survey_data")
+}
+
+// Medical Notes and AI Processing Models
+model MedicalNote {
+  id        String  @id @default(cuid())
+  patientId String
+  patient   Patient @relation(fields: [patientId], references: [id])
+
+  // Raw note data
+  raw_text  String
+  note_type String? // "consultation", "discharge", "lab_report", etc.
+  source    String? // "manual_entry", "ai_parsed", "imported"
+
+  // AI Processing
+  ai_processed      Boolean @default(false)
+  ai_confidence     Float?
+  ai_model_used     String?
+  processing_errors String? // JSON array of any processing errors
+
+  // Extracted structured data
+  extracted_data String? // JSON string of all extracted fields
+  patient_name   String? // Extracted patient name for matching
+  age            Int?
+  sex            String?
+  conditions     String? // JSON array of conditions
+  medications    String? // JSON array of medications
+  allergies      String? // JSON array of allergies
+  lab_results    String? // JSON array of lab results
+  vital_signs    String? // JSON array of vital signs
+  impression     String?
+  plan           String?
+
+  // Metadata
+  created_by String? // User ID who created/processed this note
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  @@index([patientId])
+  @@index([created_at])
+  @@index([ai_processed])
+  @@map("medical_notes")
+}
+
+model LabResult {
+  id        String  @id @default(cuid())
+  patientId String
+  patient   Patient @relation(fields: [patientId], references: [id])
+
+  metric_name     String // e.g., "HbA1c", "LDL", "HDL", "eGFR"
+  value           Float
+  unit            String // e.g., "%", "mg/dL", "mL/min/1.73m²"
+  date            DateTime
+  reference_range String? // e.g., "4.0-6.0%"
+  status          String? // "normal", "high", "low", "critical"
+
+  // Source tracking
+  source_note_id   String? // Link to MedicalNote if extracted from note
+  manually_entered Boolean @default(false)
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  @@index([patientId])
+  @@index([metric_name])
+  @@index([date])
+  @@map("lab_results")
+}
+
+model VitalSign {
+  id          String     @id @default(cuid())
+  patientId   String
+  patient     Patient    @relation(fields: [patientId], references: [id])
+  encounterId String? // Link to encounter if recorded during visit
+  encounter   Encounter? @relation(fields: [encounterId], references: [id])
+
+  vital_type String // e.g., "blood_pressure", "heart_rate", "temperature", "weight", "height"
+  value      Float
+  unit       String // e.g., "mmHg", "bpm", "°C", "kg", "cm"
+  date       DateTime
+
+  // For blood pressure, store both values
+  value_secondary Float? // For diastolic BP when vital_type is "blood_pressure"
+
+  // Source tracking
+  source_note_id   String? // Link to MedicalNote if extracted from note
+  manually_entered Boolean @default(false)
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  @@index([patientId])
+  @@index([encounterId])
+  @@index([vital_type])
+  @@index([date])
+  @@map("vital_signs")
+}
+
+model PatientMedication {
+  id        String  @id @default(cuid())
+  patientId String
+  patient   Patient @relation(fields: [patientId], references: [id])
+
+  name       String
+  dosage     String
+  frequency  String
+  route      String? // e.g., "oral", "injection", "topical"
+  start_date DateTime
+  end_date   DateTime?
+  status     String    @default("active") // "active", "discontinued", "on_hold"
+
+  // Source tracking
+  source_note_id   String? // Link to MedicalNote if extracted from note
+  manually_entered Boolean @default(false)
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  @@index([patientId])
+  @@index([status])
+  @@index([start_date])
+  @@map("patient_medications")
+}
+
+model MetricTrend {
+  id        String  @id @default(cuid())
+  patientId String
+  patient   Patient @relation(fields: [patientId], references: [id])
+
+  metric_name String // e.g., "HbA1c", "BMI", "Weight", "Blood Pressure"
+  value       Float
+  unit        String
+  date        DateTime
+
+  // Trend analysis
+  change_from_previous Float? // Change from previous measurement
+  change_percentage    Float? // Percentage change
+  trend_direction      String? // "improving", "worsening", "stable"
+
+  // Source tracking
+  source_type String // "lab_result", "vital_sign", "manual_entry"
+  source_id   String? // ID of the source record
+
+  created_at DateTime @default(now())
+
+  @@index([patientId])
+  @@index([metric_name])
+  @@index([date])
+  @@map("metric_trends")
+}
+
+// AI Processing Configuration
+model AIProcessingConfig {
+  id             String  @id @default(cuid())
+  model_name     String // e.g., "llama3.2:latest", "mistral-7b-instruct"
+  model_provider String // "ollama", "huggingface", "openai"
+  system_prompt  String // The system prompt for medical note parsing
+  max_tokens     Int     @default(2048)
+  temperature    Float   @default(0.1)
+  is_active      Boolean @default(true)
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  @@map("ai_processing_config")
+}
+
+// ============================================
+// OPENEMR FEATURES - NEW MODELS
+// ============================================
+
+// Appointments
+model Appointment {
+  id              String    @id @default(cuid())
+  patientId       String
+  patient         Patient   @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  providerId      String? // User ID of provider
+  provider        User?     @relation(fields: [providerId], references: [id])
+  facilityId      String? // Facility ID if needed
+  appointmentDate DateTime
+  appointmentTime DateTime
+  duration        Int       @default(30) // minutes
+  appointmentType String? // routine, follow-up, urgent, etc.
+  status          String    @default("scheduled") // scheduled, confirmed, checked-in, in-progress, completed, cancelled, no-show
+  reason          String?
+  notes           String?
+  reminderSent    Boolean   @default(false)
+  reminderSentAt  DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  createdBy       String? // User ID
+
+  @@index([patientId])
+  @@index([providerId])
+  @@index([appointmentDate])
+  @@index([status])
+  @@map("appointments")
+}
+
+// Encounters/Visits
+model Encounter {
+  id                String    @id @default(cuid())
+  patientId         String
+  patient           Patient   @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  providerId        String? // User ID of provider
+  provider          User?     @relation(fields: [providerId], references: [id])
+  facilityId        String?
+  encounterDate     DateTime
+  encounterTime     DateTime?
+  encounterType     String? // office, inpatient, outpatient, emergency
+  reason            String?
+  status            String    @default("finished") // planned, arrived, triaged, in-progress, finished, cancelled
+  priority          String?
+  billingFacilityId String?
+  classCode         String?
+  classDisplay      String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  createdBy         String?
+  updatedBy         String?
+
+  // Relations
+  soapNotes SoapNote[]
+  vitals    VitalSign[]
+  documents Document[]
+  charges   Charge[]
+  problems  Problem[]
+
+  @@index([patientId])
+  @@index([providerId])
+  @@index([encounterDate])
+  @@index([status])
+  @@map("encounters")
+}
+
+// SOAP Notes
+model SoapNote {
+  id          String    @id @default(cuid())
+  encounterId String
+  encounter   Encounter @relation(fields: [encounterId], references: [id], onDelete: Cascade)
+  subjective  String?
+  objective   String?
+  assessment  String?
+  plan        String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  createdBy   String?
+  updatedBy   String?
+
+  @@index([encounterId])
+  @@map("soap_notes")
+}
+
+// Problems/Conditions (Enhanced)
+model Problem {
+  id          String     @id @default(cuid())
+  patientId   String
+  patient     Patient    @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  encounterId String?
+  title       String
+  code        String? // ICD-10 code
+  codeType    String     @default("ICD10")
+  beginDate   DateTime?
+  endDate     DateTime?
+  status      String     @default("active") // active, resolved, inactive
+  severity    String?
+  notes       String?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  createdBy   String?
+  Encounter   Encounter? @relation(fields: [encounterId], references: [id])
+
+  @@index([patientId])
+  @@index([status])
+  @@index([code])
+  @@map("problems")
+}
+
+// Allergies
+model Allergy {
+  id           String    @id @default(cuid())
+  patientId    String
+  patient      Patient   @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  allergen     String
+  allergenType String? // drug, food, environmental, other
+  reaction     String?
+  severity     String? // mild, moderate, severe
+  onsetDate    DateTime?
+  status       String    @default("active") // active, resolved, inactive
+  notes        String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  createdBy    String?
+
+  @@index([patientId])
+  @@index([status])
+  @@map("allergies")
+}
+
+// Immunizations
+model Immunization {
+  id                 String   @id @default(cuid())
+  patientId          String
+  patient            Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  vaccineName        String
+  vaccineCode        String? // CVX code
+  administrationDate DateTime
+  lotNumber          String?
+  manufacturer       String?
+  route              String? // IM, SC, oral, etc.
+  site               String? // Left arm, Right arm, etc.
+  dose               String?
+  provider           String? // Provider name
+  notes              String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  createdBy          String?
+
+  @@index([patientId])
+  @@index([administrationDate])
+  @@map("immunizations")
+}
+
+// Documents
+model Document {
+  id           String     @id @default(cuid())
+  patientId    String
+  patient      Patient    @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  encounterId  String?
+  encounter    Encounter? @relation(fields: [encounterId], references: [id])
+  documentType String? // lab_result, imaging, letter, etc.
+  category     String?
+  title        String
+  filePath     String // Storage path
+  fileName     String
+  fileSize     BigInt?
+  mimeType     String?
+  date         DateTime?
+  status       String     @default("active")
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  createdBy    String?
+
+  @@index([patientId])
+  @@index([encounterId])
+  @@index([documentType])
+  @@map("documents")
+}
+
+// Prescriptions
+model Prescription {
+  id             String    @id @default(cuid())
+  patientId      String
+  patient        Patient   @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  encounterId    String?
+  providerId     String?
+  medicationName String
+  ndcCode        String?
+  rxnormCode     String?
+  dosage         String?
+  unit           String?
+  route          String? // oral, topical, injection, etc.
+  frequency      String?
+  quantity       Float?
+  refills        Int       @default(0)
+  startDate      DateTime
+  endDate        DateTime?
+  status         String    @default("active") // active, filled, cancelled, expired
+  instructions   String?
+  pharmacyId     String?
+  datePrescribed DateTime  @default(now())
+  dateFilled     DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  createdBy      String?
+
+  @@index([patientId])
+  @@index([status])
+  @@index([datePrescribed])
+  @@map("prescriptions")
+}
+
+// Pharmacies
+model Pharmacy {
+  id        String   @id @default(cuid())
+  name      String
+  npi       String?
+  address   String?
+  phone     String?
+  fax       String?
+  createdAt DateTime @default(now())
+
+  @@map("pharmacies")
+}
+
+// Charges
+model Charge {
+  id            String     @id @default(cuid())
+  encounterId   String?
+  encounter     Encounter? @relation(fields: [encounterId], references: [id])
+  patientId     String
+  patient       Patient    @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  code          String // CPT/HCPCS code
+  codeType      String     @default("CPT")
+  description   String?
+  units         Float      @default(1)
+  fee           Float
+  dateOfService DateTime
+  providerId    String?
+  status        String     @default("pending") // pending, billed, paid, denied, cancelled
+  createdAt     DateTime   @default(now())
+  createdBy     String?
+
+  // Relations
+  paymentAllocations PaymentAllocation[]
+
+  @@index([patientId])
+  @@index([encounterId])
+  @@index([status])
+  @@index([dateOfService])
+  @@map("charges")
+}
+
+// Payments
+model Payment {
+  id              String   @id @default(cuid())
+  patientId       String
+  patient         Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  encounterId     String?
+  amount          Float
+  paymentMethod   String? // cash, check, credit_card, insurance
+  paymentDate     DateTime
+  checkNumber     String?
+  creditCardLast4 String?
+  notes           String?
+  createdAt       DateTime @default(now())
+  createdBy       String?
+
+  // Relations
+  allocations PaymentAllocation[]
+
+  @@index([patientId])
+  @@index([paymentDate])
+  @@map("payments")
+}
+
+// Payment Allocations
+model PaymentAllocation {
+  id        String   @id @default(cuid())
+  paymentId String
+  payment   Payment  @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+  chargeId  String
+  charge    Charge   @relation(fields: [chargeId], references: [id], onDelete: Cascade)
+  amount    Float
+  createdAt DateTime @default(now())
+
+  @@index([paymentId])
+  @@index([chargeId])
+  @@map("payment_allocations")
+}
+
+// Insurance Claims
+model Claim {
+  id            String    @id @default(cuid())
+  patientId     String
+  patient       Patient   @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  insuranceId   String?
+  claimNumber   String?   @unique
+  totalCharges  Float?
+  totalPaid     Float?
+  status        String    @default("pending") // pending, submitted, paid, denied, rejected
+  submittedDate DateTime?
+  paidDate      DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relations
+  claimLines ClaimLine[]
+
+  @@index([patientId])
+  @@index([status])
+  @@index([claimNumber])
+  @@map("claims")
+}
+
+// Claim Lines
+model ClaimLine {
+  id         String   @id @default(cuid())
+  claimId    String
+  claim      Claim    @relation(fields: [claimId], references: [id], onDelete: Cascade)
+  chargeId   String?
+  lineNumber Int?
+  code       String?
+  units      Float?
+  fee        Float?
+  createdAt  DateTime @default(now())
+
+  @@index([claimId])
+  @@map("claim_lines")
+}
+
+// Patient Insurance
+model PatientInsurance {
+  id                 String    @id @default(cuid())
+  patientId          String
+  patient            Patient   @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  insuranceType      String // primary, secondary, tertiary
+  insuranceCompanyId String?
+  policyNumber       String?
+  groupNumber        String?
+  subscriberName     String?
+  subscriberSsn      String? // Encrypted
+  subscriberDob      DateTime?
+  copayAmount        Float?
+  effectiveDate      DateTime?
+  expirationDate     DateTime?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  @@index([patientId])
+  @@map("patient_insurance")
+}
+
+// Insurance Companies
+model InsuranceCompany {
+  id        String   @id @default(cuid())
+  name      String
+  payerId   String? // CMS Payer ID
+  address   String?
+  phone     String?
+  createdAt DateTime @default(now())
+
+  @@map("insurance_companies")
+}
+
+// Secure Messaging - REMOVED (feature removed from app)
+// model Message {
+//   id          String   @id @default(cuid())
+//   fromUserId  String
+//   fromUser    User     @relation("MessageSender", fields: [fromUserId], references: [id])
+//   toUserId    String
+//   toUser      User     @relation(fields: [toUserId], references: [id])
+//   patientId   String?
+//   subject     String?
+//   message     String   
+//   priority    String   @default("normal") // low, normal, high, urgent
+//   status      String   @default("unread") // unread, read, archived
+//   createdAt   DateTime @default(now())
+//   readAt      DateTime?
+//   
+//   // Relations
+//   attachments MessageAttachment[]
+//   
+//   @@index([fromUserId])
+//   @@index([toUserId])
+//   @@index([patientId])
+//   @@index([status])
+//   @@map("messages")
+// }
+
+// Message Attachments - REMOVED
+// model MessageAttachment {
+//   id        String   @id @default(cuid())
+//   messageId String
+//   message   Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
+//   filePath  String
+//   fileName  String
+//   fileSize  BigInt?
+//   mimeType  String?
+//   createdAt DateTime @default(now())
+//   
+//   @@index([messageId])
+//   @@map("message_attachments")
+// }
+
+// Facilities
+model Facility {
+  id        String   @id @default(cuid())
+  name      String
+  address   String?
+  city      String?
+  state     String?
+  zipCode   String?
+  phone     String?
+  email     String?
+  npi       String? // National Provider Identifier
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("facilities")
+}
+
+// Appointment Categories
+model AppointmentCategory {
+  id         String   @id @default(cuid())
+  name       String
+  duration   Int      @default(30) // minutes
+  color      String?
+  facilityId String?
+  createdAt  DateTime @default(now())
+
+  @@map("appointment_categories")
+}
+
+// Recurring Appointments
+model RecurringAppointment {
+  id              String    @id @default(cuid())
+  patientId       String
+  providerId      String?
+  facilityId      String?
+  startDate       DateTime
+  endDate         DateTime?
+  frequency       String? // daily, weekly, monthly
+  dayOfWeek       Int? // 0-6 (Sunday-Saturday)
+  dayOfMonth      Int? // 1-31
+  appointmentType String?
+  duration        Int       @default(30)
+  createdAt       DateTime  @default(now())
+
+  @@index([patientId])
+  @@map("recurring_appointments")
+}
