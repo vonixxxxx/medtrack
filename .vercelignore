@@ -94,9 +94,10 @@ tmp/
 *.tmp
 *.cache
 
-# Shell scripts (except deployment scripts)
+# Shell scripts (except deployment scripts and build script)
 *.sh
 !DEPLOY*.sh
+!build.sh
 
 # Large data files
 *.json.bak
