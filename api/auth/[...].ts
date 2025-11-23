@@ -10,8 +10,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   // Debug logging (remove in production)
   console.log('Auth route handler:', { path, method, route, routePath });
 
+  // Handle OPTIONS preflight requests
+  if (method === 'OPTIONS') {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    return res.status(200).end();
+  }
+
   // Route: /api/auth/login
-  if ((routePath === 'login' || path.includes('/auth/login')) && method === 'POST') {
+  if ((routePath === 'login' || path.includes('/auth/login') || path.endsWith('/login')) && method === 'POST') {
     try {
       const { email, password } = req.body;
 
@@ -49,7 +57,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   // Route: /api/auth/signup
-  if ((routePath === 'signup' || path.includes('/auth/signup')) && method === 'POST') {
+  if ((routePath === 'signup' || path.includes('/auth/signup') || path.endsWith('/signup')) && method === 'POST') {
     try {
       const { email, password, role, hospitalCode, patientData } = req.body;
 
