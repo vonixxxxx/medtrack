@@ -6,7 +6,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const method = req.method;
 
   // Route: /api/auth/login
-  if (path.endsWith('/auth/login') && method === 'POST') {
+  if ((path.includes('/auth/login') || path.endsWith('/auth/login')) && method === 'POST') {
     try {
       const { email, password } = req.body;
 
@@ -44,7 +44,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   // Route: /api/auth/signup
-  if (path.endsWith('/auth/signup') && method === 'POST') {
+  if ((path.includes('/auth/signup') || path.endsWith('/auth/signup')) && method === 'POST') {
     try {
       const { email, password, name, role, hospitalCode } = req.body;
 
@@ -103,7 +103,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   // Route: /api/auth/me
-  if (path.endsWith('/auth/me') && method === 'GET') {
+  if ((path.includes('/auth/me') || path.endsWith('/auth/me')) && method === 'GET') {
     try {
       const authHeader = req.headers.authorization;
       if (!authHeader) {

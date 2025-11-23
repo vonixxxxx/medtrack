@@ -73,7 +73,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   // Route: /api/meds/schedule
-  if (path.endsWith('/meds/schedule') && method === 'GET') {
+  if ((path.includes('/meds/schedule') || path.endsWith('/meds/schedule')) && method === 'GET') {
     try {
       const authHeader = req.headers.authorization;
       if (!authHeader) {
@@ -107,7 +107,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   // Route: /api/meds/cycles
-  if (path.endsWith('/meds/cycles') && method === 'GET') {
+  if ((path.includes('/meds/cycles') || path.endsWith('/meds/cycles')) && method === 'GET') {
     try {
       const authHeader = req.headers.authorization;
       if (!authHeader) {
