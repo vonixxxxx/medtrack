@@ -1,11 +1,11 @@
 import React from 'react';
-import LandingHeader from '../components/landing/LandingHeader.jsx';
-import LandingHero from '../components/landing/LandingHero.jsx';
-import LandingFeatures from '../components/landing/LandingFeatures.jsx';
-import LandingCollaboration from '../components/landing/LandingCollaboration.jsx';
-import LandingAISecurity from '../components/landing/LandingAISecurity.jsx';
-import LandingCTA from '../components/landing/LandingCTA.jsx';
-import LandingFooter from '../components/landing/LandingFooter.jsx';
+import LandingHeader from '../components/landing/LandingHeader';
+import LandingHero from '../components/landing/LandingHero';
+import LandingFeatures from '../components/landing/LandingFeatures';
+import LandingCollaboration from '../components/landing/LandingCollaboration';
+import LandingAISecurity from '../components/landing/LandingAISecurity';
+import LandingCTA from '../components/landing/LandingCTA';
+import LandingFooter from '../components/landing/LandingFooter';
 
 export default function LandingPage() {
   return (
