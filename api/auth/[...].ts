@@ -6,6 +6,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const method = req.method;
   const route = req.query.route as string[] | string | undefined;
   const routePath = Array.isArray(route) ? route.join('/') : route || '';
+  
+  // Debug logging (remove in production)
+  console.log('Auth route handler:', { path, method, route, routePath });
 
   // Route: /api/auth/login
   if ((routePath === 'login' || path.includes('/auth/login')) && method === 'POST') {
@@ -179,7 +182,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   // Route: /api/auth/survey-status
-  if ((routePath === 'survey-status' || path.includes('/auth/survey-status')) && method === 'GET') {
+  if ((routePath === 'survey-status' || path.includes('/auth/survey-status') || path.endsWith('/survey-status')) && method === 'GET') {
     try {
       const authHeader = req.headers.authorization;
       if (!authHeader) {
@@ -226,7 +229,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   // Route: /api/auth/survey-data
-  if ((routePath === 'survey-data' || path.includes('/auth/survey-data')) && method === 'POST') {
+  if ((routePath === 'survey-data' || path.includes('/auth/survey-data') || path.endsWith('/survey-data')) && method === 'POST') {
     try {
       const authHeader = req.headers.authorization;
       if (!authHeader) {
@@ -320,7 +323,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   // Route: /api/auth/complete-survey
-  if ((routePath === 'complete-survey' || path.includes('/auth/complete-survey')) && method === 'PUT') {
+  if ((routePath === 'complete-survey' || path.includes('/auth/complete-survey') || path.endsWith('/complete-survey')) && method === 'PUT') {
     try {
       const authHeader = req.headers.authorization;
       if (!authHeader) {
