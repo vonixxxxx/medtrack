@@ -1,12 +1,14 @@
 import { VercelRequest, VercelResponse } from '@vercel/node';
-import { prisma } from './lib/prisma';
+import { prisma } from '../lib/prisma';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   const path = req.url?.split('?')[0] || '';
   const method = req.method;
+  const route = req.query.route as string[] | string | undefined;
+  const routePath = Array.isArray(route) ? route.join('/') : route || '';
 
   // Route: /api/auth/login
-  if ((path.includes('/auth/login') || path.endsWith('/auth/login')) && method === 'POST') {
+  if ((routePath === 'login' || path.includes('/auth/login')) && method === 'POST') {
     try {
       const { email, password } = req.body;
 
@@ -44,66 +46,72 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   // Route: /api/auth/signup
-  if ((path.includes('/auth/signup') || path.endsWith('/auth/signup')) && method === 'POST') {
+  if ((routePath === 'signup' || path.includes('/auth/signup')) && method === 'POST') {
     try {
-      const { email, password, name, role, hospitalCode } = req.body;
-
-      if (!email || !password || !name) {
-        return res.status(400).json({ error: 'Email, password, and name are required' });
-      }
+      const { email, password, role, hospitalCode, patientData } = req.body;
 
       const existingUser = await prisma.user.findUnique({
         where: { email },
       });
 
       if (existingUser) {
-        return res.status(400).json({ error: 'User already exists' });
+        return res.status(400).json({
+          error: 'User already exists',
+          details: 'An account with this email already exists. Please login instead.',
+        });
       }
 
       const user = await prisma.user.create({
         data: {
           email,
-          password, // In production, hash this
-          name,
+          password,
           role: role || 'patient',
-          hospitalCode: hospitalCode || null,
+          hospitalCode: hospitalCode || '123456789',
+          name: patientData?.name || null,
+          surveyCompleted: false,
         },
       });
 
-      // Create patient record if role is patient
-      if (user.role === 'patient') {
+      if (role === 'patient') {
+        const { name, ...patientFields } = patientData || {};
+        if (patientFields.dob) patientFields.dob = new Date(patientFields.dob);
+        if (patientFields.baseline_weight_date) patientFields.baseline_weight_date = new Date(patientFields.baseline_weight_date);
+        if (patientFields.baseline_hba1c_date) patientFields.baseline_hba1c_date = new Date(patientFields.baseline_hba1c_date);
+        if (patientFields.baseline_lipid_date) patientFields.baseline_lipid_date = new Date(patientFields.baseline_lipid_date);
+
         await prisma.patient.create({
           data: {
             userId: user.id,
-            name: user.name,
-            email: user.email,
+            patient_audit_id: `PAT-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+            imd_decile: Math.floor(Math.random() * 10) + 1,
+            ...patientFields,
           },
         });
       }
 
-      const token = `demo-token-${user.id}-${Date.now()}`;
+      if (role === 'clinician') {
+        await prisma.clinician.create({
+          data: {
+            userId: user.id,
+            hospitalCode: hospitalCode || '123456789',
+          },
+        });
+      }
 
-      res.status(201).json({
+      res.json({
         success: true,
-        message: 'Signup successful',
-        token: token,
-        user: {
-          id: user.id,
-          email: user.email,
-          name: user.name,
-          role: user.role,
-          hospitalCode: user.hospitalCode,
-        },
+        user,
+        token: 'mock-jwt-token-' + Date.now(),
       });
     } catch (error: any) {
       console.error('Signup error:', error);
-      res.status(500).json({ error: 'Failed to signup' });
+      res.status(500).json({ error: 'Signup failed', details: error.message });
     }
     return;
   }
 
   // Route: /api/auth/me
-  if ((path.includes('/auth/me') || path.endsWith('/auth/me')) && method === 'GET') {
+  if ((routePath === 'me' || path.includes('/auth/me')) && method === 'GET') {
     try {
       const authHeader = req.headers.authorization;
       if (!authHeader) {
@@ -111,7 +119,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
 
       const token = authHeader.replace('Bearer ', '');
-      // Simplified token parsing - in production, verify JWT
       const userId = token.split('-')[2];
       
       if (!userId) {
