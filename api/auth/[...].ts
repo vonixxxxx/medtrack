@@ -7,15 +7,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const route = req.query.route as string[] | string | undefined;
   const routePath = Array.isArray(route) ? route.join('/') : route || '';
   
-  // Debug logging (remove in production)
+  // Debug logging - ALWAYS log to help debug
+  console.log('=== AUTH ROUTE HANDLER CALLED ===');
   console.log('Auth route handler:', { 
     path, 
     method, 
     route, 
     routePath,
     query: req.query,
-    url: req.url
+    url: req.url,
+    headers: {
+      'content-type': req.headers['content-type'],
+      'authorization': req.headers.authorization ? 'present' : 'missing'
+    }
   });
+  console.log('=== END AUTH ROUTE HANDLER LOG ===');
 
   // Handle OPTIONS preflight requests
   if (method === 'OPTIONS') {

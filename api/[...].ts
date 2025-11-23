@@ -328,5 +328,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
   }
 
-  return res.status(404).json({ error: 'Route not found', path });
+  // If route contains /auth/, it should go to api/auth/[...].ts
+  // If we're here, it means the route wasn't handled
+  // Return 404 with helpful message
+  console.log('Main catch-all: Route not found', { path, method, routePath });
+  return res.status(404).json({ 
+    error: 'Route not found', 
+    path,
+    method,
+    hint: 'If this is an auth route (/api/auth/*), ensure api/auth/[...].ts exists'
+  });
 }
