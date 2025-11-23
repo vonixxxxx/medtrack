@@ -8,7 +8,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const routePath = Array.isArray(route) ? route.join('/') : route || '';
   
   // Debug logging (remove in production)
-  console.log('Auth route handler:', { path, method, route, routePath });
+  console.log('Auth route handler:', { 
+    path, 
+    method, 
+    route, 
+    routePath,
+    query: req.query,
+    url: req.url
+  });
 
   // Handle OPTIONS preflight requests
   if (method === 'OPTIONS') {
