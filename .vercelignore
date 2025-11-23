@@ -7,7 +7,6 @@ openemr-analysis/
 ai-backend/
 hospital_medication_search/
 ollama/
-landing/
 packages/
 supabase/
 scripts/
