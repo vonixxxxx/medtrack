@@ -178,5 +178,125 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return;
   }
 
+  // Route: /api/auth/survey-status
+  if ((routePath === 'survey-status' || path.includes('/auth/survey-status')) && method === 'GET') {
+    try {
+      const authHeader = req.headers.authorization;
+      if (!authHeader) {
+        return res.status(401).json({ error: 'No authorization header' });
+      }
+
+      const token = authHeader.replace('Bearer ', '');
+      let userId = req.query.userId as string | undefined;
+      
+      if (!userId) {
+        // Try to extract from token
+        const tokenParts = token.split('-');
+        if (tokenParts.length >= 3) {
+          userId = tokenParts[2];
+        }
+      }
+
+      if (!userId) {
+        // Get most recent user as fallback
+        const latestUser = await prisma.user.findFirst({
+          orderBy: { createdAt: 'desc' },
+        });
+        if (!latestUser) {
+          return res.json({ surveyCompleted: false });
+        }
+        userId = latestUser.id;
+      }
+
+      const user = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { surveyCompleted: true },
+      });
+
+      if (!user) {
+        return res.json({ surveyCompleted: false });
+      }
+
+      res.json({ surveyCompleted: user.surveyCompleted || false });
+    } catch (error: any) {
+      console.error('Get survey status error:', error);
+      res.status(500).json({ error: 'Failed to get survey status' });
+    }
+    return;
+  }
+
+  // Route: /api/auth/survey-data
+  if ((routePath === 'survey-data' || path.includes('/auth/survey-data')) && method === 'POST') {
+    try {
+      const authHeader = req.headers.authorization;
+      if (!authHeader) {
+        return res.status(401).json({ error: 'No authorization header' });
+      }
+
+      const token = authHeader.replace('Bearer ', '');
+      const tokenParts = token.split('-');
+      const userId = tokenParts[2];
+      
+      if (!userId) {
+        return res.status(401).json({ error: 'Invalid token' });
+      }
+
+      const surveyData = req.body;
+
+      // Upsert survey data
+      await prisma.userSurveyData.upsert({
+        where: { userId },
+        update: surveyData,
+        create: {
+          userId,
+          ...surveyData,
+        },
+      });
+
+      res.json({ success: true, message: 'Survey data saved' });
+    } catch (error: any) {
+      console.error('Save survey data error:', error);
+      res.status(500).json({ error: 'Failed to save survey data', details: error.message });
+    }
+    return;
+  }
+
+  // Route: /api/auth/complete-survey
+  if ((routePath === 'complete-survey' || path.includes('/auth/complete-survey')) && method === 'PUT') {
+    try {
+      const authHeader = req.headers.authorization;
+      if (!authHeader) {
+        return res.status(401).json({ error: 'No authorization header' });
+      }
+
+      const token = authHeader.replace('Bearer ', '');
+      const { userId } = req.body;
+      
+      let targetUserId = userId;
+      if (!targetUserId) {
+        const tokenParts = token.split('-');
+        if (tokenParts.length >= 3) {
+          targetUserId = tokenParts[2];
+        }
+      }
+
+      if (!targetUserId) {
+        return res.status(400).json({ error: 'User ID is required' });
+      }
+
+      // Mark survey as completed
+      await prisma.user.update({
+        where: { id: targetUserId },
+        data: { surveyCompleted: true },
+      });
+
+      res.json({ success: true, message: 'Survey marked as completed' });
+    } catch (error: any) {
+      console.error('Complete survey error:', error);
+      res.status(500).json({ error: 'Failed to complete survey', details: error.message });
+    }
+    return;
+  }
+
   res.status(404).json({ error: 'Route not found' });
 }
