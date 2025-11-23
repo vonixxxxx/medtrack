@@ -10,7 +10,8 @@ cd ..
 
 echo "🏗️  Step 2: Building frontend..."
 cd frontend
-npm run build
+# Use local vite from node_modules/.bin
+./node_modules/.bin/vite build || npx --yes vite build
 cd ..
 
 echo "✅ Build completed successfully!"
