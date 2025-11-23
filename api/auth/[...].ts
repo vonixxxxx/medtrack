@@ -26,7 +26,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   // Route: /api/auth/login
-  if ((routePath === 'login' || path.includes('/auth/login') || path.endsWith('/login')) && method === 'POST') {
+  // Check multiple ways the route might be represented
+  const isLogin = method === 'POST' && (
+    routePath === 'login' || 
+    path.includes('/auth/login') || 
+    path.endsWith('/login') ||
+    path === '/api/auth/login' ||
+    (Array.isArray(route) && route.length > 0 && route[0] === 'login')
+  );
+  
+  if (isLogin) {
     try {
       const { email, password } = req.body;
 
