@@ -283,7 +283,7 @@ const Dashboard = () => {
         {/* Dashboard Grid - True masonry layout with 2 columns */}
         <MasonryGrid
           columns={2}
-          gap={24}
+          gap={16}
           className="w-full"
         >
           <motion.div variants={itemVariants} initial="hidden" animate="visible">
