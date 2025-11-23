@@ -127,7 +127,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       res.json({
         success: true,
         user,
-        token: 'mock-jwt-token-' + Date.now(),
+        token: `demo-token-${user.id}-${Date.now()}`,
       });
     } catch (error: any) {
       console.error('Signup error:', error);
