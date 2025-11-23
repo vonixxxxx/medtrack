@@ -227,18 +227,18 @@ const Dashboard = () => {
         userName={user?.name || user?.email}
       />
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 lg:py-12">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 sm:pt-24 lg:pt-28 pb-8 lg:pb-12">
         {/* Welcome Section - Apple-grade typography */}
         <motion.div
           variants={itemVariants}
           initial="hidden"
           animate="visible"
-          className="mb-12"
+          className="mb-8 sm:mb-12"
         >
-          <h1 className="text-4xl sm:text-5xl font-semibold text-neutral-900 mb-3 tracking-tight">
+          <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-semibold text-neutral-900 mb-2 sm:mb-3 tracking-tight">
             Welcome back{user?.name ? `, ${user.name.split(' ')[0]}` : ''}
           </h1>
-          <p className="text-lg text-neutral-600 font-normal leading-relaxed">
+          <p className="text-sm sm:text-base lg:text-lg text-neutral-600 font-normal leading-relaxed">
             Track your medications, health metrics, and stay on top of your wellness journey
           </p>
         </motion.div>
@@ -248,7 +248,7 @@ const Dashboard = () => {
           variants={containerVariants}
           initial="hidden"
           animate="visible"
-          className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-12"
+          className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 mb-8 sm:mb-12"
         >
           <StatCard
             icon={Pill}
