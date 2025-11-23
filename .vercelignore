@@ -12,6 +12,9 @@ packages/
 supabase/
 scripts/
 
+# Temporary/copied files with conflicting .js/.ts versions
+api/src-temp/
+
 # Node modules (installed during build)
 node_modules/
 **/node_modules/
