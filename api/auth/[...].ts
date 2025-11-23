@@ -73,20 +73,46 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       });
 
       if (role === 'patient') {
-        const { name, ...patientFields } = patientData || {};
-        if (patientFields.dob) patientFields.dob = new Date(patientFields.dob);
-        if (patientFields.baseline_weight_date) patientFields.baseline_weight_date = new Date(patientFields.baseline_weight_date);
-        if (patientFields.baseline_hba1c_date) patientFields.baseline_hba1c_date = new Date(patientFields.baseline_hba1c_date);
-        if (patientFields.baseline_lipid_date) patientFields.baseline_lipid_date = new Date(patientFields.baseline_lipid_date);
-
-        await prisma.patient.create({
-          data: {
+        try {
+          const { name, ...patientFields } = patientData || {};
+          
+          // Only include valid date fields if they exist
+          const patientDataToCreate: any = {
             userId: user.id,
             patient_audit_id: `PAT-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
             imd_decile: Math.floor(Math.random() * 10) + 1,
-            ...patientFields,
-          },
-        });
+          };
+
+          // Only add date fields if they exist and are valid
+          if (patientFields?.dob) {
+            patientDataToCreate.dob = new Date(patientFields.dob);
+          }
+          if (patientFields?.baseline_weight_date) {
+            patientDataToCreate.baseline_weight_date = new Date(patientFields.baseline_weight_date);
+          }
+          if (patientFields?.baseline_hba1c_date) {
+            patientDataToCreate.baseline_hba1c_date = new Date(patientFields.baseline_hba1c_date);
+          }
+          if (patientFields?.baseline_lipid_date) {
+            patientDataToCreate.baseline_lipid_date = new Date(patientFields.baseline_lipid_date);
+          }
+
+          // Add other optional fields if they exist
+          const optionalFields = ['sex', 'ethnicity', 'ethnic_group', 'location', 'postcode', 'nhs_number', 'mrn'];
+          optionalFields.forEach(field => {
+            if (patientFields?.[field] !== undefined && patientFields[field] !== null) {
+              patientDataToCreate[field] = patientFields[field];
+            }
+          });
+
+          await prisma.patient.create({
+            data: patientDataToCreate,
+          });
+        } catch (patientError: any) {
+          console.error('Error creating patient record:', patientError);
+          // Don't fail signup if patient creation fails - user is already created
+          // Just log the error
+        }
       }
 
       if (role === 'clinician') {
@@ -105,7 +131,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       });
     } catch (error: any) {
       console.error('Signup error:', error);
-      res.status(500).json({ error: 'Signup failed', details: error.message });
+      console.error('Error stack:', error.stack);
+      res.status(500).json({ 
+        error: 'Signup failed', 
+        details: error.message,
+        code: error.code,
+      });
     }
     return;
   }
