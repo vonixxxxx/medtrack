@@ -1,9 +1,18 @@
 import axios from 'axios';
 
 // Use relative paths for Vercel deployment (same domain)
-// Fallback to env var for local development with separate backend
+// Never use external URLs in production
+const getBaseURL = () => {
+  // In production/Vercel, always use relative path
+  if (import.meta.env.PROD || window.location.hostname.includes('vercel.app')) {
+    return '/api';
+  }
+  // In local development, use env var if set, otherwise relative
+  return import.meta.env.VITE_API_URL || '/api';
+};
+
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || '/api',
+  baseURL: getBaseURL(),
   timeout: 10000, // 10 seconds - reduced timeout
 });
 
