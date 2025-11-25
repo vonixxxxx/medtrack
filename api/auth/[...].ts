@@ -32,20 +32,32 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   // Route: /api/auth/login
-  // Check multiple ways the route might be represented
+  // Vercel catch-all: /api/auth/[...] matches /api/auth/login
+  // The route param will be ['login'] or 'login'
   const isLogin = method === 'POST' && (
     routePath === 'login' || 
     path.includes('/auth/login') || 
     path.endsWith('/login') ||
     path === '/api/auth/login' ||
     path.includes('login') ||
-    (Array.isArray(route) && route.length > 0 && route[0] === 'login')
+    (Array.isArray(route) && route.length > 0 && route[0] === 'login') ||
+    (typeof route === 'string' && route === 'login')
   );
   
-  console.log('Login route check:', { isLogin, method, routePath, path, route });
+  console.log('=== LOGIN ROUTE CHECK ===');
+  console.log('Login route check:', { 
+    isLogin, 
+    method, 
+    routePath, 
+    path, 
+    route,
+    routeType: typeof route,
+    isArray: Array.isArray(route)
+  });
+  console.log('=== END LOGIN CHECK ===');
   
   if (isLogin) {
-    console.log('Processing login request...');
+    console.log('✅ Processing login request...');
     try {
       const { email, password } = req.body;
 
@@ -394,12 +406,33 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   // If no route matched, return 404 for unknown routes
-  console.log('Auth route not matched:', { path, method, routePath });
+  console.log('❌ Auth route not matched:', { 
+    path, 
+    method, 
+    routePath,
+    route,
+    routeType: typeof route,
+    isArray: Array.isArray(route),
+    url: req.url,
+    query: req.query
+  });
+  
+  // Return 405 if method is wrong, 404 if route is wrong
+  if (method === 'POST' && (path.includes('login') || routePath === 'login' || route === 'login')) {
+    return res.status(405).json({ 
+      error: 'Method not allowed for login route', 
+      path, 
+      method, 
+      routePath,
+      hint: 'Login requires POST method. Check route matching logic.'
+    });
+  }
+  
   return res.status(404).json({ 
     error: 'Auth route not found', 
     path, 
     method, 
     routePath,
-    hint: 'Available routes: /api/auth/login, /api/auth/signup, /api/auth/me, etc.'
+    hint: 'Available routes: /api/auth/login (POST), /api/auth/signup (POST), /api/auth/me (GET), etc.'
   });
 }
