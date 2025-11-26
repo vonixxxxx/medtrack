@@ -217,7 +217,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   // Route: /api/auth/me
-  if ((routePath === 'me' || path.includes('/auth/me')) && method === 'GET') {
+  const isMe = method === 'GET' && (
+    routePath === 'me' || 
+    routePath.includes('me') ||
+    path.includes('/auth/me') || 
+    path.endsWith('/me') ||
+    path === '/api/auth/me' ||
+    (Array.isArray(route) && route.length > 0 && route[0] === 'me') ||
+    (typeof route === 'string' && route === 'me') ||
+    (typeof route === 'string' && route.includes('me'))
+  );
+  
+  if (isMe) {
+    console.log('✅ MATCHED ME ROUTE');
     try {
       const authHeader = req.headers.authorization;
       if (!authHeader) {
