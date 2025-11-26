@@ -34,14 +34,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   // Route: /api/auth/login
   // Vercel catch-all: /api/auth/[...] matches /api/auth/login
   // The route param will be ['login'] or 'login'
+  // Make matching VERY permissive - if path contains login and method is POST, it's login
   const isLogin = method === 'POST' && (
     routePath === 'login' || 
+    routePath.includes('login') ||
     path.includes('/auth/login') || 
     path.endsWith('/login') ||
     path === '/api/auth/login' ||
     path.includes('login') ||
     (Array.isArray(route) && route.length > 0 && route[0] === 'login') ||
-    (typeof route === 'string' && route === 'login')
+    (typeof route === 'string' && route === 'login') ||
+    (typeof route === 'string' && route.includes('login'))
   );
   
   console.log('=== LOGIN ROUTE CHECK ===');
@@ -52,12 +55,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     path, 
     route,
     routeType: typeof route,
-    isArray: Array.isArray(route)
+    isArray: Array.isArray(route),
+    url: req.url,
+    fullQuery: req.query
   });
   console.log('=== END LOGIN CHECK ===');
   
   if (isLogin) {
-    console.log('✅ Processing login request...');
+    console.log('✅ MATCHED LOGIN ROUTE - Processing login request...');
     try {
       const { email, password } = req.body;
 
@@ -75,7 +80,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
       const token = `demo-token-${user.id}-${Date.now()}`;
 
-      res.json({
+      console.log('✅ Login successful, returning response');
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+      res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+      
+      return res.json({
         success: true,
         message: 'Login successful',
         token: token,
