@@ -325,7 +325,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   // Route: /api/auth/survey-data
-  if ((routePath === 'survey-data' || path.includes('/auth/survey-data') || path.endsWith('/survey-data')) && method === 'POST') {
+  const isSurveyData = method === 'POST' && (
+    routePath === 'survey-data' || 
+    routePath.includes('survey-data') ||
+    path.includes('/auth/survey-data') || 
+    path.endsWith('/survey-data') ||
+    (Array.isArray(route) && route.length > 0 && route[0] === 'survey-data') ||
+    (typeof route === 'string' && route === 'survey-data') ||
+    (typeof route === 'string' && route.includes('survey-data'))
+  );
+  
+  if (isSurveyData) {
+    console.log('✅ MATCHED SURVEY-DATA ROUTE');
     try {
       const authHeader = req.headers.authorization;
       if (!authHeader) {
@@ -468,43 +479,36 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     allQueryKeys: Object.keys(req.query)
   });
   
-  // Set CORS headers even for errors
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  // Check if this looks like an auth route but method is wrong
+  const looksLikeAuthRoute = path.includes('/auth/') || path.includes('/api/auth');
   
-  // Return 405 if method is wrong, 404 if route is wrong
-  if (method === 'POST' && (path.includes('login') || routePath.includes('login') || (typeof route === 'string' && route.includes('login')))) {
-    console.log('⚠️ Login route detected but not matching - returning 405');
-    return res.status(405).json({ 
-      error: 'Method not allowed for login route', 
+  if (looksLikeAuthRoute) {
+    // This is definitely an auth route, but we didn't match it
+    // Return 404 with helpful message
+    return res.status(404).json({ 
+      error: 'Auth route not found or method not supported', 
       path, 
       method, 
       routePath,
       route,
-      hint: 'Login requires POST method. Check route matching logic.',
+      hint: 'Available routes: /api/auth/login (POST), /api/auth/signup (POST), /api/auth/me (GET), /api/auth/survey-status (GET), /api/auth/survey-data (POST), /api/auth/complete-survey (PUT)',
       debug: {
-        pathIncludesLogin: path.includes('login'),
-        routePathIncludesLogin: routePath.includes('login'),
-        routeIsString: typeof route === 'string',
-        routeIncludesLogin: typeof route === 'string' && route.includes('login')
+        path,
+        method,
+        routePath,
+        route,
+        query: req.query,
+        looksLikeAuthRoute: true
       }
     });
   }
   
+  // Not an auth route at all - this shouldn't happen if routing is correct
   return res.status(404).json({ 
-    error: 'Auth route not found', 
+    error: 'Route not found', 
     path, 
     method, 
     routePath,
-    route,
-    hint: 'Available routes: /api/auth/login (POST), /api/auth/signup (POST), /api/auth/me (GET), etc.',
-    debug: {
-      path,
-      method,
-      routePath,
-      route,
-      query: req.query
-    }
+    hint: 'This handler is for /api/auth/* routes only'
   });
 }
