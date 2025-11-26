@@ -67,6 +67,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const { email, password } = req.body;
 
       if (!email || !password) {
+        res.setHeader('Access-Control-Allow-Origin', '*');
         return res.status(400).json({ error: 'Email and password are required' });
       }
 
@@ -75,6 +76,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       });
 
       if (!user || user.password !== password) {
+        res.setHeader('Access-Control-Allow-Origin', '*');
         return res.status(401).json({ error: 'Invalid credentials' });
       }
 
