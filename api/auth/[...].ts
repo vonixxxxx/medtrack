@@ -424,17 +424,31 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     routeType: typeof route,
     isArray: Array.isArray(route),
     url: req.url,
-    query: req.query
+    query: req.query,
+    allQueryKeys: Object.keys(req.query)
   });
   
+  // Set CORS headers even for errors
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  
   // Return 405 if method is wrong, 404 if route is wrong
-  if (method === 'POST' && (path.includes('login') || routePath === 'login' || route === 'login')) {
+  if (method === 'POST' && (path.includes('login') || routePath.includes('login') || (typeof route === 'string' && route.includes('login')))) {
+    console.log('⚠️ Login route detected but not matching - returning 405');
     return res.status(405).json({ 
       error: 'Method not allowed for login route', 
       path, 
       method, 
       routePath,
-      hint: 'Login requires POST method. Check route matching logic.'
+      route,
+      hint: 'Login requires POST method. Check route matching logic.',
+      debug: {
+        pathIncludesLogin: path.includes('login'),
+        routePathIncludesLogin: routePath.includes('login'),
+        routeIsString: typeof route === 'string',
+        routeIncludesLogin: typeof route === 'string' && route.includes('login')
+      }
     });
   }
   
@@ -443,6 +457,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     path, 
     method, 
     routePath,
-    hint: 'Available routes: /api/auth/login (POST), /api/auth/signup (POST), /api/auth/me (GET), etc.'
+    route,
+    hint: 'Available routes: /api/auth/login (POST), /api/auth/signup (POST), /api/auth/me (GET), etc.',
+    debug: {
+      path,
+      method,
+      routePath,
+      route,
+      query: req.query
+    }
   });
 }
