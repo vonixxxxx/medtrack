@@ -8,6 +8,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const route = req.query.route as string[] | string | undefined;
   const routePath = Array.isArray(route) ? route.join('/') : route || '';
 
+  // CRITICAL: If this is an auth route, DO NOT handle it here
+  // Let api/auth/[...].ts handle it instead
+  // Vercel should route /api/auth/* to api/auth/[...].ts, but if we're here,
+  // it means the route didn't match. Return 404 so Vercel can try the auth handler.
+  if (path.includes('/auth/') || path.startsWith('/api/auth')) {
+    console.log('Main catch-all: Auth route detected, should be handled by api/auth/[...].ts', { path, method });
+    return res.status(404).json({ 
+      error: 'Auth route should be handled by api/auth/[...].ts', 
+      path,
+      method,
+      hint: 'This route should be handled by the auth handler, not the main catch-all'
+    });
+  }
+
   // Route: /api/hello
   if (path.includes('/hello') || routePath === 'hello') {
     return res.status(200).json({ message: 'Backend running on Vercel' });
