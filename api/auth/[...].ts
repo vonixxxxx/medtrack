@@ -240,33 +240,51 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   // Route: /api/auth/survey-status
-  if ((routePath === 'survey-status' || path.includes('/auth/survey-status') || path.endsWith('/survey-status')) && method === 'GET') {
+  const isSurveyStatus = method === 'GET' && (
+    routePath === 'survey-status' || 
+    routePath.includes('survey-status') ||
+    path.includes('/auth/survey-status') || 
+    path.endsWith('/survey-status')
+  );
+  
+  if (isSurveyStatus) {
+    console.log('✅ Survey status route matched:', { path, method, routePath });
     try {
       const authHeader = req.headers.authorization;
       if (!authHeader) {
-        return res.status(401).json({ error: 'No authorization header' });
+        console.log('⚠️ No auth header for survey-status, returning false');
+        res.setHeader('Access-Control-Allow-Origin', '*');
+        // Return false instead of 401 so survey can still show
+        return res.json({ surveyCompleted: false });
       }
 
       const token = authHeader.replace('Bearer ', '');
       let userId = req.query.userId as string | undefined;
+      
+      console.log('Survey status check:', { userId, hasToken: !!token });
       
       if (!userId) {
         // Try to extract from token
         const tokenParts = token.split('-');
         if (tokenParts.length >= 3) {
           userId = tokenParts[2];
+          console.log('Extracted userId from token:', userId);
         }
       }
 
       if (!userId) {
         // Get most recent user as fallback
+        console.log('No userId found, using latest user as fallback');
         const latestUser = await prisma.user.findFirst({
           orderBy: { createdAt: 'desc' },
         });
         if (!latestUser) {
+          console.log('No users found, returning surveyCompleted: false');
+          res.setHeader('Access-Control-Allow-Origin', '*');
           return res.json({ surveyCompleted: false });
         }
         userId = latestUser.id;
+        console.log('Using latest user:', userId);
       }
 
       const user = await prisma.user.findUnique({
@@ -275,13 +293,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       });
 
       if (!user) {
+        console.log('User not found:', userId);
+        res.setHeader('Access-Control-Allow-Origin', '*');
         return res.json({ surveyCompleted: false });
       }
 
+      console.log('Survey status for user:', userId, 'completed:', user.surveyCompleted);
+      res.setHeader('Access-Control-Allow-Origin', '*');
       res.json({ surveyCompleted: user.surveyCompleted || false });
     } catch (error: any) {
-      console.error('Get survey status error:', error);
-      res.status(500).json({ error: 'Failed to get survey status' });
+      console.error('❌ Get survey status error:', error);
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      // Return false on error so survey can still show
+      res.status(500).json({ surveyCompleted: false, error: 'Failed to get survey status' });
     }
     return;
   }

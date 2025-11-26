@@ -149,8 +149,14 @@ const Dashboard = () => {
       }
     } catch (error) {
       console.error('Error checking survey status:', error);
-      // On error, don't show survey to avoid blocking user
-      setShowSurvey(false);
+      console.error('Error details:', error.response?.data || error.message);
+      // On error, show survey anyway (safer - user can complete it)
+      // The backend returns surveyCompleted: false on error
+      if (error.response?.data?.surveyCompleted === false || !error.response) {
+        setShowSurvey(true);
+      } else {
+        setShowSurvey(false);
+      }
     } finally {
       setIsLoading(false);
     }
