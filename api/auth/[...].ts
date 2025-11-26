@@ -2,6 +2,11 @@ import { VercelRequest, VercelResponse } from '@vercel/node';
 import { prisma } from '../lib/prisma';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  // ALWAYS set CORS headers first
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  
   const path = req.url?.split('?')[0] || '';
   const method = req.method;
   const route = req.query.route as string[] | string | undefined;
@@ -25,9 +30,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   // Handle OPTIONS preflight requests
   if (method === 'OPTIONS') {
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
     return res.status(200).end();
   }
 
@@ -107,7 +109,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   // Route: /api/auth/signup
-  if ((routePath === 'signup' || path.includes('/auth/signup') || path.endsWith('/signup')) && method === 'POST') {
+  const isSignup = method === 'POST' && (
+    routePath === 'signup' || 
+    routePath.includes('signup') ||
+    path.includes('/auth/signup') || 
+    path.endsWith('/signup') ||
+    path === '/api/auth/signup' ||
+    (Array.isArray(route) && route.length > 0 && route[0] === 'signup') ||
+    (typeof route === 'string' && route === 'signup') ||
+    (typeof route === 'string' && route.includes('signup'))
+  );
+  
+  if (isSignup) {
+    console.log('✅ MATCHED SIGNUP ROUTE');
     try {
       const { email, password, role, hospitalCode, patientData } = req.body;
 
