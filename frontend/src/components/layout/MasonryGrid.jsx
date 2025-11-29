@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { useResizeObserver } from '../hooks/useResizeObserver';
+import { useResizeObserver } from '../../hooks/useResizeObserver';
 
 /**
  * MasonryGrid Component
