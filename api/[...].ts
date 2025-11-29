@@ -9,16 +9,22 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const routePath = Array.isArray(route) ? route.join('/') : route || '';
 
   // CRITICAL: If this is an auth route, DO NOT handle it here
-  // Let api/auth/[...].ts handle it instead
-  // Vercel should route /api/auth/* to api/auth/[...].ts, but if we're here,
-  // it means the route didn't match. Return 404 so Vercel can try the auth handler.
+  // Vercel should route /api/auth/* to api/auth/[...].ts automatically
+  // If we're here, something is wrong with routing, but don't return error
+  // Just let it fall through to 404 naturally
   if (path.includes('/auth/') || path.startsWith('/api/auth')) {
-    console.log('Main catch-all: Auth route detected, should be handled by api/auth/[...].ts', { path, method });
+    console.log('⚠️ Main catch-all: Auth route detected - this should not happen!', { path, method });
+    console.log('⚠️ Vercel should route /api/auth/* to api/auth/[...].ts automatically');
+    // Don't return anything - let it fall through to show routing issue
+    // But set CORS headers first
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
     return res.status(404).json({ 
-      error: 'Auth route should be handled by api/auth/[...].ts', 
+      error: 'Auth route routing issue - should be handled by api/auth/[...].ts', 
       path,
       method,
-      hint: 'This route should be handled by the auth handler, not the main catch-all'
+      hint: 'Check Vercel routing configuration'
     });
   }
 

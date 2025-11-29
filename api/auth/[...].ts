@@ -35,18 +35,24 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   // Route: /api/auth/login
   // Vercel catch-all: /api/auth/[...] matches /api/auth/login
-  // The route param will be ['login'] or 'login'
-  // Make matching VERY permissive - if path contains login and method is POST, it's login
+  // The route param will be ['login'] or 'login' in req.query.route
+  // Make matching EXTREMELY permissive - match ANY variation
   const isLogin = method === 'POST' && (
+    // Exact matches
     routePath === 'login' || 
+    path === '/api/auth/login' ||
+    path.endsWith('/login') ||
+    // Includes checks
     routePath.includes('login') ||
     path.includes('/auth/login') || 
-    path.endsWith('/login') ||
-    path === '/api/auth/login' ||
     path.includes('login') ||
+    // Array route checks
     (Array.isArray(route) && route.length > 0 && route[0] === 'login') ||
+    // String route checks
     (typeof route === 'string' && route === 'login') ||
-    (typeof route === 'string' && route.includes('login'))
+    (typeof route === 'string' && route.includes('login')) ||
+    // Fallback: if path has /auth/ and POST, assume login if nothing else matches
+    (path.includes('/auth/') && method === 'POST' && !path.includes('signup') && !path.includes('survey'))
   );
   
   console.log('=== LOGIN ROUTE CHECK ===');
