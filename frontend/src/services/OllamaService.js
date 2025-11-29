@@ -17,7 +17,12 @@ class OllamaService {
   async checkStatus() {
     try {
       // First try backend AI status endpoint
-      const response = await axios.get('http://localhost:4000/api/ai/status');
+      // Don't call localhost in production
+      if (window.location.hostname === 'localhost') {
+        const response = await axios.get('http://localhost:4000/api/ai/status');
+      } else {
+        return { available: false, error: 'AI service not available in production' };
+      }
       this.isAvailable = response.data.available;
       return { 
         available: this.isAvailable, 
