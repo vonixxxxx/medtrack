@@ -1,13 +1,17 @@
 import axios from 'axios';
 
-const OLLAMA_BASE_URL = 'http://localhost:11434/api';
+// Only use localhost in development
+const isLocalhost = typeof window !== 'undefined' && window.location.hostname === 'localhost';
+const OLLAMA_BASE_URL = isLocalhost ? 'http://localhost:11434/api' : null;
 const DEFAULT_MODEL = 'llama3.1:8b';
 
 class OllamaService {
   constructor() {
     this.isAvailable = false;
     this.model = DEFAULT_MODEL;
-    this.initialize();
+    if (isLocalhost) {
+      this.initialize();
+    }
   }
 
   async initialize() {
@@ -15,14 +19,15 @@ class OllamaService {
   }
 
   async checkStatus() {
+    // Don't check status in production
+    if (!isLocalhost) {
+      this.isAvailable = false;
+      return { available: false, error: 'AI service not available in production' };
+    }
+    
     try {
       // First try backend AI status endpoint
-      // Don't call localhost in production
-      if (window.location.hostname === 'localhost') {
-        const response = await axios.get('http://localhost:4000/api/ai/status');
-      } else {
-        return { available: false, error: 'AI service not available in production' };
-      }
+      const response = await axios.get('http://localhost:4000/api/ai/status');
       this.isAvailable = response.data.available;
       return { 
         available: this.isAvailable, 
@@ -31,6 +36,10 @@ class OllamaService {
       };
     } catch (error) {
       // Fallback to direct Ollama check if backend is not available
+      if (!OLLAMA_BASE_URL) {
+        this.isAvailable = false;
+        return { available: false, message: 'Ollama not available in production' };
+      }
       try {
         await axios.get(`${OLLAMA_BASE_URL}/tags`);
         this.isAvailable = true;
@@ -51,7 +60,7 @@ class OllamaService {
   }
 
   async generateHealthReport(userData) {
-    if (!this.isAvailable) {
+    if (!isLocalhost || !this.isAvailable) {
       return {
         adherence: '95%',
         trend: 'Improving',
@@ -62,6 +71,13 @@ class OllamaService {
       };
     }
 
+    if (!OLLAMA_BASE_URL) {
+      return {
+        adherence: '95%',
+        trend: 'Improving',
+        insights: ['AI service not available in production']
+      };
+    }
     try {
       const response = await axios.post(`${OLLAMA_BASE_URL}/generate`, {
         model: this.model,
@@ -92,7 +108,7 @@ class OllamaService {
   }
 
   async chatWithAssistant(message, context = {}) {
-    if (!this.isAvailable) {
+    if (!isLocalhost || !this.isAvailable) {
       return {
         response: 'AI is currently offline. Please try again later.'
       };
@@ -117,7 +133,7 @@ class OllamaService {
   }
 
   async chatWithMedicationAssistant(message, context = '', systemPrompt = '') {
-    if (!this.isAvailable) {
+    if (!isLocalhost || !this.isAvailable) {
       return {
         response: 'AI is currently offline. Please try again later.'
       };
@@ -143,7 +159,7 @@ class OllamaService {
   }
 
   async streamChatWithMedicationAssistant(message, context = '', systemPrompt = '') {
-    if (!this.isAvailable) {
+    if (!isLocalhost || !OLLAMA_BASE_URL || !this.isAvailable) {
       return {
         response: 'AI is currently offline. Please try again later.'
       };

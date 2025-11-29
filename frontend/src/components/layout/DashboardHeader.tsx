@@ -28,7 +28,8 @@ export const DashboardHeader = ({
     if (window.confirm("Are you sure you want to sign out?")) {
       localStorage.removeItem("token");
       localStorage.removeItem("user");
-      window.location.href = "http://localhost:3000";
+      // Redirect to home page (works in both dev and production)
+      window.location.href = "/";
     }
   };
 
