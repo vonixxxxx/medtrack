@@ -66,3 +66,4 @@ After updating root directory in dashboard:
 ---
 
 **Quick Link**: https://vercel.com/vonixs-projects/medtrack/settings
+
