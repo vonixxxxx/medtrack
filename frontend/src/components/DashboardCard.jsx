@@ -25,8 +25,16 @@ export default function DashboardCard({
         ${variant === "patient" ? "hover:border-primary-300" : ""}
         ${variant === "clinician" ? "hover:border-primary-300" : ""}
         p-6 lg:p-8
+        w-full
+        min-h-[200px]
+        flex flex-col
         ${className}
       `}
+      style={{
+        // Ensure card can expand vertically
+        height: 'auto',
+        minHeight: '200px',
+      }}
     >
       {(title || icon) && (
         <div className="flex items-center justify-between mb-6">
@@ -49,7 +57,7 @@ export default function DashboardCard({
           )}
         </div>
       )}
-      <div className="text-neutral-700">
+      <div className="text-neutral-700 flex-1 overflow-auto">
         {children}
       </div>
     </motion.div>
