@@ -60,3 +60,9 @@ After running migrations, verify in Supabase:
 
 The fastest way is to use Supabase SQL Editor and run the migration SQL directly.
 
+
+
+
+
+
+

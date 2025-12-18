@@ -54,3 +54,9 @@ The CORS_ORIGIN variable tells your API which frontend domain is allowed to make
 
 **Quick Add:** https://vercel.com/vonixs-projects/medtrack/settings/environment-variables
 
+
+
+
+
+
+

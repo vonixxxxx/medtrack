@@ -28,7 +28,8 @@
   { "canonical": "tadalafil", "aliases": ["cialis"] },
   { "canonical": "finasteride", "aliases": ["propecia", "proscar"] },
   { "canonical": "tamsulosin", "aliases": ["flomax"] },
-  { "canonical": "dutasteride", "aliases": ["avodart"] }
+  { "canonical": "dutasteride", "aliases": ["avodart"] },
+  { "canonical": "propranolol", "aliases": ["inderal", "hemangeol", "innopran"] }
 ]
 
 

@@ -45,9 +45,12 @@ exports.signup = async (req, res) => {
     return res.status(400).json({ error: 'Hospital code is required.' });
   }
 
+  // Trim whitespace from hospital code
+  const trimmedHospitalCode = String(hospitalCode).trim();
+
   // Validate hospital code format (must be exactly 123456789 for now)
   const VALID_HOSPITAL_CODE = '123456789';
-  if (hospitalCode !== VALID_HOSPITAL_CODE) {
+  if (trimmedHospitalCode !== VALID_HOSPITAL_CODE) {
     return res.status(400).json({ error: 'Invalid hospital code. Please contact your institution.' });
   }
 
@@ -70,7 +73,7 @@ exports.signup = async (req, res) => {
       email, 
       password: hashedPassword, 
       role,
-      hospitalCode: hospitalCode
+      hospitalCode: trimmedHospitalCode
     };
     console.log('User data to create:', userData);
     

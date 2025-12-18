@@ -1,6 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const { PrismaClient } = require('@prisma/client');
+const jwt = require('jsonwebtoken');
 require('dotenv').config();
 
 // Import intelligent medical parser
@@ -48,7 +49,23 @@ const billingRoutes = require('./src/routes/billing');
 // Import new feature routes
 const drugInteractionRoutes = require('./src/routes/drug-interactions');
 const sideEffectRoutes = require('./src/routes/side-effects');
-const adherenceRoutes = require('./src/routes/adherence');
+// Handle adherence routes - it's a TypeScript file that needs compilation or a function
+let adherenceRoutes;
+try {
+  const adherenceModule = require('./src/routes/adherence');
+  if (typeof adherenceModule === 'function') {
+    adherenceRoutes = adherenceModule(prisma);
+  } else if (typeof adherenceModule.default === 'function') {
+    adherenceRoutes = adherenceModule.default(prisma);
+  } else {
+    adherenceRoutes = adherenceModule;
+  }
+} catch (e) {
+  // If TypeScript route doesn't work, create a minimal router
+  const express = require('express');
+  adherenceRoutes = express.Router();
+  console.warn('Adherence routes not available, using minimal router');
+}
 const patientProfileRoutes = require('./src/routes/patient-profiles');
 const diaryRoutes = require('./src/routes/diary');
 const pillRecognitionRoutes = require('./src/routes/pill-recognition');
@@ -64,10 +81,176 @@ app.use('/api/billing', billingRoutes);
 // New feature routes
 app.use('/api/drug-interactions', drugInteractionRoutes);
 app.use('/api/side-effects', sideEffectRoutes);
+
+// Health Engines API routes - load authMiddleware first
+const authMiddleware = require('./src/middleware/authMiddleware');
+
+// Adherence calendar route - must be BEFORE app.use('/api/adherence') to take precedence
+app.get('/api/adherence/calendar', authMiddleware, async (req, res) => {
+  try {
+    const userId = req.user?.id || req.user?.userId;
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+    
+    const year = parseInt(req.query.year) || new Date().getFullYear();
+    const month = parseInt(req.query.month) || new Date().getMonth() + 1;
+    const patientId = req.query.patientId || userId;
+    
+    // Return simple calendar structure
+    const daysInMonth = new Date(year, month, 0).getDate();
+    const days = [];
+    for (let i = 1; i <= daysInMonth; i++) {
+      days.push({
+        date: i,
+        adherence: null,
+        dosesTaken: 0,
+        dosesExpected: 0
+      });
+    }
+    
+    res.json({
+      success: true,
+      calendar: {},
+      statistics: null,
+      data: {
+        year,
+        month,
+        days
+      }
+    });
+  } catch (error) {
+    console.error('Calendar error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to fetch calendar data'
+    });
+  }
+});
+
 app.use('/api/adherence', adherenceRoutes);
 app.use('/api/patient-profiles', patientProfileRoutes);
 app.use('/api/diary', diaryRoutes);
 app.use('/api/pill-recognition', pillRecognitionRoutes);
+
+// Health Engines API routes (new adherence engine, trends, wellness, health-report)
+// Note: These use TypeScript modules, so they need to be compiled first
+// For now, we'll add basic route handlers that will work after TypeScript compilation
+const HealthReportService = require('./src/services/healthReportService');
+const healthReportService = new HealthReportService(prisma);
+
+// New Adherence Engine Routes (different from existing /api/adherence)
+// These use the new adherence engine with streaks and patterns
+// Will work after TypeScript compilation: npm run dev:build
+app.get('/api/adherence-engine', authMiddleware, async (req, res) => {
+  try {
+    const { AdherenceController } = require('./dist/controllers/adherenceController');
+    const controller = new AdherenceController(prisma);
+    await controller.getAll(req, res);
+  } catch (error) {
+    console.error('Adherence route error:', error);
+    res.status(500).json({ error: 'Adherence engine not available. Please compile TypeScript first (npm run dev:build).' });
+  }
+});
+
+app.get('/api/adherence-engine/:medicationId', authMiddleware, async (req, res) => {
+  try {
+    const { AdherenceController } = require('./dist/controllers/adherenceController');
+    const controller = new AdherenceController(prisma);
+    await controller.getOne(req, res);
+  } catch (error) {
+    console.error('Adherence route error:', error);
+    res.status(500).json({ error: 'Adherence engine not available.' });
+  }
+});
+
+// Metrics Trends Routes
+app.get('/api/metrics/trends', authMiddleware, async (req, res) => {
+  try {
+    const { TrendsController } = require('./dist/controllers/trendsController');
+    const controller = new TrendsController(prisma);
+    await controller.getAll(req, res);
+  } catch (error) {
+    console.error('Trends route error:', error);
+    res.status(500).json({ error: 'Trends engine not available. Please compile TypeScript first (npm run dev:build).' });
+  }
+});
+
+// Wellness Routes
+app.get('/api/wellness', authMiddleware, async (req, res) => {
+  try {
+    const { WellnessController } = require('./dist/controllers/wellnessController');
+    const controller = new WellnessController(prisma);
+    await controller.getScore(req, res);
+  } catch (error) {
+    console.error('Wellness route error:', error);
+    res.status(500).json({ error: 'Wellness engine not available. Please compile TypeScript first (npm run dev:build).' });
+  }
+});
+
+// Enhanced Health Report Route with LLaMA (must be before GET /api/health-report)
+app.post('/api/health-report/generate', authMiddleware, async (req, res) => {
+  try {
+    const userId = req.user?.id || req.user?.userId;
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    const { startDate, endDate, timeframe } = req.body;
+    
+    // Parse date range
+    let start, end;
+    if (startDate && endDate) {
+      start = new Date(startDate);
+      end = new Date(endDate);
+    } else if (timeframe) {
+      const days = timeframe === '7d' ? 7 : timeframe === '30d' ? 30 : timeframe === '90d' ? 90 : 30;
+      end = new Date();
+      start = new Date();
+      start.setDate(start.getDate() - days);
+    } else {
+      // Default to last 30 days
+      end = new Date();
+      start = new Date();
+      start.setDate(start.getDate() - 30);
+    }
+
+    // Set to start/end of day
+    start.setHours(0, 0, 0, 0);
+    end.setHours(23, 59, 59, 999);
+
+    const result = await healthReportService.generateAIHealthReport(userId, start, end);
+    
+    if (!result.success) {
+      return res.status(400).json(result);
+    }
+
+    res.json({
+      success: true,
+      data: result.data,
+      generatedAt: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('Enhanced health report error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to generate health report',
+      message: error.message
+    });
+  }
+});
+
+// Health Report Routes (TypeScript version - fallback)
+app.get('/api/health-report', authMiddleware, async (req, res) => {
+  try {
+    const { HealthReportController } = require('./dist/controllers/healthReportController');
+    const controller = new HealthReportController(prisma);
+    await controller.generate(req, res);
+  } catch (error) {
+    console.error('Health report route error:', error);
+    res.status(500).json({ error: 'Health report generator not available. Please compile TypeScript first (npm run dev:build).' });
+  }
+});
 
 // Confir-Med API routes
 const monopharmacyRoutes = require('./src/routes/monopharmacy');
@@ -113,14 +296,15 @@ app.post('/api/medications/validateMedication', async (req, res) => {
         success: true,
         found: true,
         data: {
-          generic_name: result.name,
+          generic_name: result.generic_name || result.name,
           name: result.name,
-          brand_names: [],
+          brand_names: result.brand_names || [],
           drug_class: result.bio?.drug_class || 'Unknown',
-          dosage_forms: ['tablet'],
-          typical_strengths: [],
+          dosage_forms: result.dosage_forms || ['tablet', 'capsule'],
+          typical_strengths: result.typical_strengths || [],
+          description: result.description || null,
           confidence: result.score,
-          alternatives: [],
+          alternatives: result.alternatives || [],
           original_input: medication,
           source: result.source,
           rxcui: result.rxcui || null,
@@ -291,8 +475,18 @@ app.post('/api/auth/login', async (req, res) => {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
-    // Generate JWT token (simplified for demo)
-    const token = `demo-token-${user.id}-${Date.now()}`;
+    // Generate proper JWT token
+    const JWT_SECRET = process.env.JWT_SECRET || 'supersecret';
+    const token = jwt.sign(
+      {
+        id: user.id,
+        email: user.email,
+        role: user.role,
+        hospitalCode: user.hospitalCode
+      },
+      JWT_SECRET,
+      { expiresIn: '7d' }
+    );
 
     res.json({ 
       success: true, 

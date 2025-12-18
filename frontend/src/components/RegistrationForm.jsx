@@ -18,6 +18,7 @@ const RegistrationForm = ({ onComplete }) => {
     email: '',
     password: '',
     confirmPassword: '',
+    hospitalCode: '',
     
     // Step 2: Personal Info
     firstName: '',
@@ -60,8 +61,12 @@ const RegistrationForm = ({ onComplete }) => {
   const validateStep = (step) => {
     switch (step) {
       case 1:
-        if (!formData.email || !formData.password || !formData.confirmPassword) {
+        if (!formData.email || !formData.password || !formData.confirmPassword || !formData.hospitalCode) {
           setError('All fields are required');
+          return false;
+        }
+        if (formData.hospitalCode !== '123456789') {
+          setError('Invalid hospital code');
           return false;
         }
         if (formData.password !== formData.confirmPassword) {
@@ -110,6 +115,17 @@ const RegistrationForm = ({ onComplete }) => {
   };
 
   const handleSubmit = async () => {
+    // Validate hospital code FIRST
+    if (!formData.hospitalCode || formData.hospitalCode.trim() === '') {
+      setError('Hospital code is required');
+      return;
+    }
+
+    if (formData.hospitalCode.trim() !== '123456789') {
+      setError('Invalid hospital code');
+      return;
+    }
+
     if (!validateStep(currentStep)) return;
     
     setIsLoading(true);
@@ -119,7 +135,9 @@ const RegistrationForm = ({ onComplete }) => {
       // Create user account
       const { data: authData } = await api.post('auth/signup', {
         email: formData.email,
-        password: formData.password
+        password: formData.password,
+        hospitalCode: formData.hospitalCode.trim(),
+        role: 'patient'
       });
 
       // Store token
@@ -227,6 +245,25 @@ const RegistrationForm = ({ onComplete }) => {
                   {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                 </button>
               </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-white mb-2">
+                Hospital Code *
+              </label>
+              <div className="relative">
+                <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <Input
+                  type="text"
+                  placeholder="Enter your hospital code"
+                  value={formData.hospitalCode}
+                  onChange={(e) => handleInputChange('hospitalCode', e.target.value)}
+                  className="pl-10 bg-gray-900 border-gray-800 text-white placeholder-gray-400 focus:border-white focus:ring-1 focus:ring-white"
+                />
+              </div>
+              <p className="text-xs text-gray-400 mt-1">
+                Required for all accounts. Contact your institution if you don't have a code.
+              </p>
             </div>
           </div>
         );

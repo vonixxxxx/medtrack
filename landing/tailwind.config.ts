@@ -44,6 +44,12 @@ const config: Config = {
         "slide-up": "slideUp 0.6s ease-out",
         "gradient": "gradient 8s linear infinite",
       },
+      backdropBlur: {
+        xs: "2px",
+      },
+      boxShadow: {
+        "glass": "0 8px 32px 0 rgba(31, 38, 135, 0.37)",
+      },
       keyframes: {
         fadeIn: {
           "0%": { opacity: "0" },

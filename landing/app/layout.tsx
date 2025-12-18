@@ -9,19 +9,19 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "MedTrack - Redefining Connected Healthcare",
-  description: "MedTrack empowers patients, doctors, and institutions to collaborate seamlessly through intelligent health data management.",
-  keywords: ["healthcare", "medication tracking", "patient management", "health data", "medical records"],
+  title: "MedTrack — Enterprise-grade medication & clinical intelligence",
+  description: "Privacy-first AI to improve adherence, power research, and streamline clinical workflows.",
+  keywords: ["healthcare", "medication tracking", "patient management", "health data", "medical records", "enterprise healthcare", "HIPAA compliant", "clinical intelligence"],
   authors: [{ name: "MedTrack" }],
   openGraph: {
-    title: "MedTrack - Redefining Connected Healthcare",
-    description: "Empowering patients, doctors, and institutions through intelligent health data management.",
+    title: "MedTrack — Enterprise-grade medication & clinical intelligence",
+    description: "Privacy-first AI to improve adherence, power research, and streamline clinical workflows.",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "MedTrack - Redefining Connected Healthcare",
-    description: "Empowering patients, doctors, and institutions through intelligent health data management.",
+    title: "MedTrack — Enterprise-grade medication & clinical intelligence",
+    description: "Privacy-first AI to improve adherence, power research, and streamline clinical workflows.",
   },
 };
 

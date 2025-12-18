@@ -13,7 +13,7 @@ const EnhancedPatientSignup = () => {
     // Basic account info
     email: '',
     password: '',
-    hospitalCode: '123456789',
+    hospitalCode: '',
     role: 'patient',
     
     // Basic demographics
@@ -137,6 +137,18 @@ const EnhancedPatientSignup = () => {
   };
 
   const handleSubmit = async () => {
+    // Validate hospital code FIRST - before any other validation
+    if (!formData.hospitalCode || formData.hospitalCode.trim() === '') {
+      setError('Hospital code is required');
+      return;
+    }
+
+    if (formData.hospitalCode.trim() !== '123456789') {
+      setError('Invalid hospital code');
+      setIsLoading(false);
+      return;
+    }
+
     if (!validateStep(currentStep)) {
       setError('Please fill in all required fields');
       return;
@@ -227,7 +239,7 @@ const EnhancedPatientSignup = () => {
         email: formData.email,
         password: formData.password,
         role: formData.role,
-        hospitalCode: formData.hospitalCode,
+        hospitalCode: formData.hospitalCode.trim(),
         patientData: patientData
       });
 

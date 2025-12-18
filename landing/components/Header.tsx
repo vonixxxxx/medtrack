@@ -34,7 +34,19 @@ export default function Header() {
             </motion.div>
 
             {/* Desktop Navigation */}
-            <div className="hidden md:flex items-center gap-8">
+            <div className="hidden md:flex items-center gap-6">
+              <a href="/features" className="text-gray-700 hover:text-primary-600 transition-colors font-medium">
+                Features
+              </a>
+              <a href="/about" className="text-gray-700 hover:text-primary-600 transition-colors font-medium">
+                About
+              </a>
+              <a href="/enterprise" className="text-gray-700 hover:text-primary-600 transition-colors font-medium">
+                Enterprise
+              </a>
+              <a href="/contact" className="text-gray-700 hover:text-primary-600 transition-colors font-medium">
+                Contact
+              </a>
               <button
                 onClick={() => openAuth("login")}
                 className="text-gray-700 hover:text-primary-600 transition-colors font-medium"
@@ -77,6 +89,34 @@ export default function Header() {
                 exit={{ opacity: 0, height: 0 }}
                 className="md:hidden pb-4 space-y-3"
               >
+                <a
+                  href="/features"
+                  onClick={() => setIsMenuOpen(false)}
+                  className="block w-full text-left px-4 py-2 text-gray-700 hover:text-primary-600 transition-colors"
+                >
+                  Features
+                </a>
+                <a
+                  href="/about"
+                  onClick={() => setIsMenuOpen(false)}
+                  className="block w-full text-left px-4 py-2 text-gray-700 hover:text-primary-600 transition-colors"
+                >
+                  About
+                </a>
+                <a
+                  href="/enterprise"
+                  onClick={() => setIsMenuOpen(false)}
+                  className="block w-full text-left px-4 py-2 text-gray-700 hover:text-primary-600 transition-colors"
+                >
+                  Enterprise
+                </a>
+                <a
+                  href="/contact"
+                  onClick={() => setIsMenuOpen(false)}
+                  className="block w-full text-left px-4 py-2 text-gray-700 hover:text-primary-600 transition-colors"
+                >
+                  Contact
+                </a>
                 <button
                   onClick={() => {
                     openAuth("login");

@@ -187,6 +187,123 @@ button:focus:not(:focus-visible) {
   input[type="text"], input[type="email"], input[type="password"], input[type="date"], input[type="number"], select, textarea {
     font-size: 16px;
   }
+  
+  /* Landing page mobile improvements */
+  .hero-headline {
+    font-size: 2rem;
+    line-height: 1.2;
+    max-width: 100%;
+  }
+  
+  .hero-subhead {
+    font-size: 1rem;
+    line-height: 1.6;
+  }
+  
+  .badge-stack {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  
+  .feature-card {
+    padding: 1.25rem;
+  }
+  
+  .flow-steps-mobile {
+    display: flex;
+    overflow-x: auto;
+    gap: 1rem;
+    padding-bottom: 1rem;
+    -webkit-overflow-scrolling: touch;
+    scroll-snap-type: x mandatory;
+  }
+  
+  .flow-steps-mobile > * {
+    flex: 0 0 85%;
+    scroll-snap-align: start;
+  }
+  
+  .cta-button {
+    width: 100%;
+    padding: 0.875rem 1.5rem;
+    font-size: 1rem;
+  }
+}
+
+/* Fortune 500 Design System - Typography */
+.hero-headline {
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  font-weight: 700;
+}
+
+.section-title {
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+  font-weight: 700;
+}
+
+.card-title {
+  line-height: 1.3;
+  font-weight: 600;
+}
+
+/* Fortune 500 - Generous Whitespace */
+.fortune-section {
+  padding-top: 100px;
+  padding-bottom: 100px;
+}
+
+@media (max-width: 768px) {
+  .fortune-section {
+    padding-top: 60px;
+    padding-bottom: 60px;
+  }
+}
+
+/* Fortune 500 - Visual Hierarchy */
+.fortune-heading-1 {
+  font-size: 3.5rem;
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: -0.03em;
+}
+
+.fortune-heading-2 {
+  font-size: 2.5rem;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+}
+
+.fortune-heading-3 {
+  font-size: 1.75rem;
+  font-weight: 600;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+}
+
+@media (max-width: 768px) {
+  .fortune-heading-1 {
+    font-size: 2.5rem;
+  }
+  .fortune-heading-2 {
+    font-size: 2rem;
+  }
+  .fortune-heading-3 {
+    font-size: 1.5rem;
+  }
+}
+
+@media (max-width: 640px) {
+  body {
+    font-size: 16px;
+    line-height: 1.6;
+  }
+  
+  p {
+    line-height: 1.7;
+  }
 }
 
 /* Legacy button focus/loading styles removed - Use Button component from ui/button.jsx instead */

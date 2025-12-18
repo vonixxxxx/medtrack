@@ -4,7 +4,7 @@ import { DashboardHeader } from "../components/layout/DashboardHeader";
 import { TodaysMedications } from "../components/TodaysMedications";
 import { MedicationSchedule } from "../components/MedicationSchedule";
 import { EnhancedMetricHistory } from "../components/EnhancedMetricHistory";
-import { AIHealthReport } from "../components/AIHealthReport";
+import { HealthReportTile } from "../components/HealthReportTile";
 import { FloatingAIButton } from "../components/FloatingAIButton";
 import ChatModal from "../components/ChatModal";
 import EnhancedMedicationChat from "../components/EnhancedMedicationChat";
@@ -328,7 +328,7 @@ const Dashboard = () => {
             <EnhancedMetricHistory onAddMetric={() => setIsAddMetricOpen(true)} />
           </motion.div>
           <motion.div variants={itemVariants} initial="hidden" animate="visible">
-            <AIHealthReport />
+            <HealthReportTile />
           </motion.div>
           <motion.div variants={itemVariants} initial="hidden" animate="visible">
             <HealthReports

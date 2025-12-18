@@ -35,6 +35,24 @@ export default function LandingHeader() {
             {/* Desktop Navigation */}
             <div className="hidden md:flex items-center gap-8">
               <button
+                onClick={() => navigate("/features")}
+                className="text-gray-700 hover:text-blue-600 transition-colors font-medium"
+              >
+                Features
+              </button>
+              <button
+                onClick={() => navigate("/about")}
+                className="text-gray-700 hover:text-blue-600 transition-colors font-medium"
+              >
+                About
+              </button>
+              <button
+                onClick={() => navigate("/contact")}
+                className="text-gray-700 hover:text-blue-600 transition-colors font-medium"
+              >
+                Contact
+              </button>
+              <button
                 onClick={() => openAuth("login")}
                 className="text-gray-700 hover:text-blue-600 transition-colors font-medium"
               >
@@ -76,6 +94,34 @@ export default function LandingHeader() {
                 exit={{ opacity: 0, height: 0 }}
                 className="md:hidden pb-4 space-y-3"
               >
+                <button
+                  onClick={() => {
+                    navigate("/features");
+                    setIsMenuOpen(false);
+                  }}
+                  className="block w-full text-left px-4 py-2 text-gray-700 hover:text-blue-600 transition-colors"
+                >
+                  Features
+                </button>
+                <button
+                  onClick={() => {
+                    navigate("/about");
+                    setIsMenuOpen(false);
+                  }}
+                  className="block w-full text-left px-4 py-2 text-gray-700 hover:text-blue-600 transition-colors"
+                >
+                  About
+                </button>
+                <button
+                  onClick={() => {
+                    navigate("/contact");
+                    setIsMenuOpen(false);
+                  }}
+                  className="block w-full text-left px-4 py-2 text-gray-700 hover:text-blue-600 transition-colors"
+                >
+                  Contact
+                </button>
+                <div className="border-t border-gray-200 my-2"></div>
                 <button
                   onClick={() => {
                     openAuth("login");

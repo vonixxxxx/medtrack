@@ -5,19 +5,21 @@ import { Heart } from "lucide-react";
 
 const footerLinks = {
   product: [
-    { name: "Features", href: "#features" },
+    { name: "Features", href: "/features" },
     { name: "Security", href: "#security" },
-    { name: "Pricing", href: "#" },
+    { name: "Enterprise", href: "/enterprise" },
+    { name: "Docs", href: "/docs" },
   ],
   company: [
-    { name: "About", href: "#" },
-    { name: "Contact", href: "#" },
+    { name: "About", href: "/about" },
+    { name: "Contact", href: "/contact" },
     { name: "Careers", href: "#" },
+    { name: "Blog", href: "/blog" },
   ],
   legal: [
-    { name: "Privacy", href: "#" },
-    { name: "Terms", href: "#" },
-    { name: "Cookie Policy", href: "#" },
+    { name: "Privacy", href: "/privacy" },
+    { name: "Terms", href: "/terms" },
+    { name: "Cookie Policy", href: "/cookies" },
   ],
 };
 

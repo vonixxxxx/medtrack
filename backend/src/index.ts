@@ -42,6 +42,10 @@ import medicationScheduleRoutes from './routes/medication-schedules';
 import authRoutes from './routes/auth';
 import aiModelRoutes from './routes/ai-models';
 import aiAssistantRoutes from './routes/ai-assistant';
+import createAdherenceRoutes from './routes/adherence';
+import createMetricsTrendsRoutes from './routes/metrics-trends';
+import createWellnessRoutes from './routes/wellness';
+import createHealthReportRoutes from './routes/health-report';
 
 // Import services
 import { ValidationService } from './services/validation.service';
@@ -297,6 +301,10 @@ app.use('/api/health-metrics', healthMetricsRoutes);
 app.use('/api/medication-schedules', medicationScheduleRoutes);
 app.use('/api/ai', aiModelRoutes);
 app.use('/api/ai-assistant', aiAssistantRoutes);
+app.use('/api/adherence', createAdherenceRoutes(prisma));
+app.use('/api/metrics/trends', createMetricsTrendsRoutes(prisma));
+app.use('/api/wellness', createWellnessRoutes(prisma));
+app.use('/api/health-report', createHealthReportRoutes(prisma));
 
 // Socket.IO connection handling
 io.on('connection', (socket) => {

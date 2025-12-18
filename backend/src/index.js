@@ -68,7 +68,7 @@ var node_cron_1 = require("node-cron");
 var winston_1 = require("winston");
 var ioredis_1 = require("ioredis");
 // Load environment variables
-require('dotenv').config();
+dotenv_1.default.config();
 var validation_middleware_1 = require("./middleware/validation.middleware");
 // Import security middleware (CommonJS)
 var securityMiddleware = require('./middleware/security');
@@ -80,15 +80,19 @@ var medication_schedules_1 = require("./routes/medication-schedules");
 var auth_1 = require("./routes/auth");
 var ai_models_1 = require("./routes/ai-models");
 var ai_assistant_1 = require("./routes/ai-assistant");
+var adherence_1 = require("./routes/adherence");
+var metrics_trends_1 = require("./routes/metrics-trends");
+var wellness_1 = require("./routes/wellness");
+var health_report_1 = require("./routes/health-report");
 // Initialize Prisma
 var prisma = new client_1.PrismaClient({
-  log: ['query', 'info', 'warn', 'error'],
+    log: ['query', 'info', 'warn', 'error'],
 });
 // Initialize Redis for caching and sessions (optional)
 var redis = process.env.REDIS_URL ? new ioredis_1.default(process.env.REDIS_URL, {
-  retryDelayOnFailover: 100,
-  maxRetriesPerRequest: 3,
-  lazyConnect: true
+    retryDelayOnFailover: 100,
+    maxRetriesPerRequest: 3,
+    lazyConnect: true
 }) : null;
 // Create Express app
 var app = (0, express_1.default)();
@@ -97,25 +101,25 @@ var server = (0, http_1.createServer)(app);
 exports.server = server;
 // Initialize Socket.IO for real-time features
 var io = new socket_io_1.Server(server, {
-  cors: {
-    origin: process.env.FRONTEND_URL || "http://localhost:3000",
-    methods: ["GET", "POST"],
-    credentials: true
-  }
+    cors: {
+        origin: process.env.FRONTEND_URL || "http://localhost:3000",
+        methods: ["GET", "POST"],
+        credentials: true
+    }
 });
 exports.io = io;
 // Configure Winston logger
 var winstonLogger = winston_1.default.createLogger({
     level: process.env.LOG_LEVEL || 'info',
     format: winston_1.default.format.combine(winston_1.default.format.timestamp(), winston_1.default.format.errors({ stack: true }), winston_1.default.format.json()),
-  defaultMeta: { service: 'medtrack-api' },
-  transports: [
+    defaultMeta: { service: 'medtrack-api' },
+    transports: [
         new winston_1.default.transports.File({ filename: 'logs/error.log', level: 'error' }),
         new winston_1.default.transports.File({ filename: 'logs/combined.log' }),
         new winston_1.default.transports.Console({
             format: winston_1.default.format.combine(winston_1.default.format.colorize(), winston_1.default.format.simple())
-    })
-  ]
+        })
+    ]
 });
 // Make logger available globally
 global.logger = winstonLogger;
@@ -125,35 +129,35 @@ app.use(express_1.default.json({ limit: '10mb' }));
 app.use(express_1.default.urlencoded({ extended: true, limit: '10mb' }));
 // CORS configuration
 var allowedOrigins = (process.env.CORS_ORIGIN || 'http://localhost:3000')
-  .split(',')
+    .split(',')
     .map(function (origin) { return origin.trim(); });
 var corsOptions = {
     origin: function (origin, callback) {
-    if (!origin || allowedOrigins.includes(origin)) {
-      callback(null, true);
+        if (!origin || allowedOrigins.includes(origin)) {
+            callback(null, true);
         }
         else {
-      callback(new Error('Not allowed by CORS'));
-    }
-  },
-  credentials: true,
-  optionsSuccessStatus: 200,
+            callback(new Error('Not allowed by CORS'));
+        }
+    },
+    credentials: true,
+    optionsSuccessStatus: 200,
 };
 app.use((0, cors_1.default)(corsOptions));
 // Request logging
 app.use((0, morgan_1.default)('combined', {
-  stream: {
+    stream: {
         write: function (message) { return winstonLogger.info(message.trim()); }
-  }
+    }
 }));
 // Input sanitization
 app.use(validation_middleware_1.sanitizeInput);
 // Make services available to routes
 app.use(function (req, res, next) {
-  req.prisma = prisma;
-  req.redis = redis;
-  req.io = io;
-  next();
+    req.prisma = prisma;
+    req.redis = redis;
+    req.io = io;
+    next();
 });
 // Health check endpoint
 app.get('/health', function (req, res) { return __awaiter(void 0, void 0, void 0, function () {
@@ -166,7 +170,7 @@ app.get('/health', function (req, res) { return __awaiter(void 0, void 0, void 0
                 // Check database connection
                 return [4 /*yield*/, prisma.$queryRaw(templateObject_1 || (templateObject_1 = __makeTemplateObject(["SELECT 1"], ["SELECT 1"])))];
             case 1:
-    // Check database connection
+                // Check database connection
                 _a.sent();
                 redisStatus = 'not configured';
                 if (!redis) return [3 /*break*/, 5];
@@ -176,11 +180,11 @@ app.get('/health', function (req, res) { return __awaiter(void 0, void 0, void 0
                 return [4 /*yield*/, redis.ping()];
             case 3:
                 _a.sent();
-        redisStatus = 'connected';
+                redisStatus = 'connected';
                 return [3 /*break*/, 5];
             case 4:
                 error_1 = _a.sent();
-        redisStatus = 'disconnected';
+                redisStatus = 'disconnected';
                 return [3 /*break*/, 5];
             case 5:
                 vectorSearchStatus = 'not configured';
@@ -228,11 +232,11 @@ app.get('/health', function (req, res) { return __awaiter(void 0, void 0, void 0
                 responseTime = Date.now() - startTime;
                 memoryUsage = process.memoryUsage();
                 healthResponse = {
-      status: 'healthy',
-      timestamp: new Date().toISOString(),
-      services: {
-        database: 'connected',
-        redis: redisStatus,
+                    status: 'healthy',
+                    timestamp: new Date().toISOString(),
+                    services: {
+                        database: 'connected',
+                        redis: redisStatus,
                         vectorSearch: vectorSearchStatus,
                         ollama: ollamaStatus,
                         qdrant: qdrantStatus
@@ -249,9 +253,9 @@ app.get('/health', function (req, res) { return __awaiter(void 0, void 0, void 0
             case 18:
                 error_5 = _a.sent();
                 winstonLogger.error('Health check failed', { error: error_5.message });
-    res.status(503).json({
-      status: 'unhealthy',
-      timestamp: new Date().toISOString(),
+                res.status(503).json({
+                    status: 'unhealthy',
+                    timestamp: new Date().toISOString(),
                     error: error_5.message
                 });
                 return [3 /*break*/, 19];
@@ -337,15 +341,19 @@ app.use('/api/health-metrics', health_metrics_1.default);
 app.use('/api/medication-schedules', medication_schedules_1.default);
 app.use('/api/ai', ai_models_1.default);
 app.use('/api/ai-assistant', ai_assistant_1.default);
+app.use('/api/adherence', (0, adherence_1.default)(prisma));
+app.use('/api/metrics/trends', (0, metrics_trends_1.default)(prisma));
+app.use('/api/wellness', (0, wellness_1.default)(prisma));
+app.use('/api/health-report', (0, health_report_1.default)(prisma));
 // Socket.IO connection handling
 io.on('connection', function (socket) {
-  winstonLogger.info('Client connected', { socketId: socket.id });
-  // Join user-specific room for notifications
+    winstonLogger.info('Client connected', { socketId: socket.id });
+    // Join user-specific room for notifications
     socket.on('join-user-room', function (userId) {
         socket.join("user-".concat(userId));
         winstonLogger.info('User joined room', { userId: userId, socketId: socket.id });
     });
-  // Handle medication reminders
+    // Handle medication reminders
     socket.on('medication-reminder-response', function (data) { return __awaiter(void 0, void 0, void 0, function () {
         var medicationId, response, userId, error_6;
         return __generator(this, function (_a) {
@@ -353,25 +361,25 @@ io.on('connection', function (socket) {
                 case 0:
                     _a.trys.push([0, 2, , 3]);
                     medicationId = data.medicationId, response = data.response, userId = data.userId;
-      // Log the response
+                    // Log the response
                     return [4 /*yield*/, prisma.medicationLog.create({
-        data: {
+                            data: {
                                 medicationId: medicationId,
                                 userId: userId,
-          takenAt: new Date(),
+                                takenAt: new Date(),
                                 notes: "Reminder response: ".concat(response),
-          verified: true
-        }
+                                verified: true
+                            }
                         })];
                 case 1:
                     // Log the response
                     _a.sent();
-      // Notify other connected devices
+                    // Notify other connected devices
                     socket.to("user-".concat(userId)).emit('medication-taken', {
                         medicationId: medicationId,
-        timestamp: new Date()
-      });
-      winstonLogger.info('Medication reminder response', { 
+                        timestamp: new Date()
+                    });
+                    winstonLogger.info('Medication reminder response', {
                         userId: userId,
                         medicationId: medicationId,
                         response: response
@@ -379,66 +387,66 @@ io.on('connection', function (socket) {
                     return [3 /*break*/, 3];
                 case 2:
                     error_6 = _a.sent();
-      winstonLogger.error('Error handling medication reminder response', { 
+                    winstonLogger.error('Error handling medication reminder response', {
                         error: error_6.message
-      });
+                    });
                     return [3 /*break*/, 3];
                 case 3: return [2 /*return*/];
-    }
-  });
+            }
+        });
     }); });
     socket.on('disconnect', function () {
-    winstonLogger.info('Client disconnected', { socketId: socket.id });
-  });
+        winstonLogger.info('Client disconnected', { socketId: socket.id });
+    });
 });
 // Error handling middleware
 app.use(function (error, req, res, next) {
-  winstonLogger.error('Unhandled error', {
-    error: error.message,
-    stack: error.stack,
-    url: req.url,
-    method: req.method,
-    ip: req.ip
-  });
+    winstonLogger.error('Unhandled error', {
+        error: error.message,
+        stack: error.stack,
+        url: req.url,
+        method: req.method,
+        ip: req.ip
+    });
     res.status(500).json(__assign(__assign({ success: false, error: process.env.NODE_ENV === 'production'
-      ? 'Internal server error' 
+            ? 'Internal server error'
             : error.message }, (process.env.NODE_ENV !== 'production' && { stack: error.stack })), { timestamp: new Date().toISOString() }));
 });
 // 404 handler
 app.use('*', function (req, res) {
-  res.status(404).json({
+    res.status(404).json({
         success: false,
-    error: 'Endpoint not found',
+        error: 'Endpoint not found',
         message: "The requested endpoint ".concat(req.method, " ").concat(req.originalUrl, " was not found"),
-    path: req.originalUrl,
+        path: req.originalUrl,
         method: req.method,
         timestamp: new Date().toISOString()
-  });
+    });
 });
 // Scheduled tasks
 node_cron_1.default.schedule('0 8 * * *', function () { return __awaiter(void 0, void 0, void 0, function () {
     return __generator(this, function (_a) {
-  // Daily medication reminders at 8 AM
-  try {
+        // Daily medication reminders at 8 AM
+        try {
             // Implementation for daily reminders
-    winstonLogger.info('Daily medication reminders sent');
+            winstonLogger.info('Daily medication reminders sent');
         }
         catch (error) {
-    winstonLogger.error('Error sending daily reminders', { error: error.message });
-  }
+            winstonLogger.error('Error sending daily reminders', { error: error.message });
+        }
         return [2 /*return*/];
-});
+    });
 }); });
 node_cron_1.default.schedule('0 0 * * 0', function () { return __awaiter(void 0, void 0, void 0, function () {
     return __generator(this, function (_a) {
-  // Weekly health metric reminders on Sundays
-  try {
+        // Weekly health metric reminders on Sundays
+        try {
             // Implementation for weekly reminders
-    winstonLogger.info('Weekly metric reminders sent');
+            winstonLogger.info('Weekly metric reminders sent');
         }
         catch (error) {
-    winstonLogger.error('Error sending weekly reminders', { error: error.message });
-  }
+            winstonLogger.error('Error sending weekly reminders', { error: error.message });
+        }
         return [2 /*return*/];
     });
 }); });
@@ -449,15 +457,15 @@ node_cron_1.default.schedule('0 2 * * *', function () { return __awaiter(void 0,
             case 0:
                 _a.trys.push([0, 2, , 3]);
                 return [4 /*yield*/, prisma.userSession.deleteMany({
-      where: {
-        expiresAt: {
-          lt: new Date()
-        }
-      }
+                        where: {
+                            expiresAt: {
+                                lt: new Date()
+                            }
+                        }
                     })];
             case 1:
                 result = _a.sent();
-    winstonLogger.info('Expired sessions cleaned up', { count: result.count });
+                winstonLogger.info('Expired sessions cleaned up', { count: result.count });
                 return [3 /*break*/, 3];
             case 2:
                 error_7 = _a.sent();
@@ -472,10 +480,10 @@ process.on('SIGTERM', function () { return __awaiter(void 0, void 0, void 0, fun
     return __generator(this, function (_a) {
         switch (_a.label) {
             case 0:
-  winstonLogger.info('SIGTERM received, shutting down gracefully');
+                winstonLogger.info('SIGTERM received, shutting down gracefully');
                 server.close(function () {
-    winstonLogger.info('HTTP server closed');
-  });
+                    winstonLogger.info('HTTP server closed');
+                });
                 return [4 /*yield*/, prisma.$disconnect()];
             case 1:
                 _a.sent();
@@ -485,7 +493,7 @@ process.on('SIGTERM', function () { return __awaiter(void 0, void 0, void 0, fun
                 _a.sent();
                 _a.label = 3;
             case 3:
-  process.exit(0);
+                process.exit(0);
                 return [2 /*return*/];
         }
     });
@@ -494,10 +502,10 @@ process.on('SIGINT', function () { return __awaiter(void 0, void 0, void 0, func
     return __generator(this, function (_a) {
         switch (_a.label) {
             case 0:
-  winstonLogger.info('SIGINT received, shutting down gracefully');
+                winstonLogger.info('SIGINT received, shutting down gracefully');
                 server.close(function () {
-    winstonLogger.info('HTTP server closed');
-  });
+                    winstonLogger.info('HTTP server closed');
+                });
                 return [4 /*yield*/, prisma.$disconnect()];
             case 1:
                 _a.sent();
@@ -507,10 +515,10 @@ process.on('SIGINT', function () { return __awaiter(void 0, void 0, void 0, func
                 _a.sent();
                 _a.label = 3;
             case 3:
-  process.exit(0);
+                process.exit(0);
                 return [2 /*return*/];
         }
-});
+    });
 }); });
 // Start server
 var PORT = process.env.PORT || 4000;

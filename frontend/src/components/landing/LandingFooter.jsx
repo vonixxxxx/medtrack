@@ -1,15 +1,16 @@
 import { motion } from "framer-motion";
 import { Heart } from "lucide-react";
+import { Link } from "react-router-dom";
 
 const footerLinks = {
   product: [
-    { name: "Features", href: "#features" },
+    { name: "Features", href: "/features" },
     { name: "Security", href: "#security" },
     { name: "Pricing", href: "#" },
   ],
   company: [
-    { name: "About", href: "#" },
-    { name: "Contact", href: "#" },
+    { name: "About", href: "/about" },
+    { name: "Contact", href: "/contact" },
     { name: "Careers", href: "#" },
   ],
   legal: [
@@ -26,12 +27,21 @@ export default function LandingFooter() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-12">
           {/* Brand */}
           <div className="col-span-2 md:col-span-1">
-            <h3 className="text-2xl font-bold bg-gradient-to-r from-blue-400 to-blue-400 bg-clip-text text-transparent mb-4">
+            <h3 className="text-2xl font-bold text-white mb-4">
               MedTrack
             </h3>
-            <p className="text-gray-400 text-sm leading-relaxed">
-              Redefining connected healthcare through intelligent data management.
+            <p className="text-gray-400 text-sm leading-relaxed mb-6">
+              Enterprise-grade medication & clinical intelligence.
             </p>
+            {/* Compliance Badges */}
+            <div className="flex flex-wrap gap-3">
+              <div className="px-3 py-1.5 bg-gray-800 rounded-md border border-gray-700">
+                <span className="text-xs font-semibold text-green-400">HIPAA Compliant</span>
+              </div>
+              <div className="px-3 py-1.5 bg-gray-800 rounded-md border border-gray-700">
+                <span className="text-xs font-semibold text-blue-400">GDPR Compliant</span>
+              </div>
+            </div>
           </div>
 
           {/* Product */}
@@ -40,12 +50,21 @@ export default function LandingFooter() {
             <ul className="space-y-2">
               {footerLinks.product.map((link) => (
                 <li key={link.name}>
-                  <a
-                    href={link.href}
-                    className="text-gray-400 hover:text-white transition-colors text-sm"
-                  >
-                    {link.name}
-                  </a>
+                  {link.href.startsWith('/') ? (
+                    <Link
+                      to={link.href}
+                      className="text-gray-400 hover:text-white transition-colors text-sm"
+                    >
+                      {link.name}
+                    </Link>
+                  ) : (
+                    <a
+                      href={link.href}
+                      className="text-gray-400 hover:text-white transition-colors text-sm"
+                    >
+                      {link.name}
+                    </a>
+                  )}
                 </li>
               ))}
             </ul>
@@ -57,12 +76,21 @@ export default function LandingFooter() {
             <ul className="space-y-2">
               {footerLinks.company.map((link) => (
                 <li key={link.name}>
-                  <a
-                    href={link.href}
-                    className="text-gray-400 hover:text-white transition-colors text-sm"
-                  >
-                    {link.name}
-                  </a>
+                  {link.href.startsWith('/') ? (
+                    <Link
+                      to={link.href}
+                      className="text-gray-400 hover:text-white transition-colors text-sm"
+                    >
+                      {link.name}
+                    </Link>
+                  ) : (
+                    <a
+                      href={link.href}
+                      className="text-gray-400 hover:text-white transition-colors text-sm"
+                    >
+                      {link.name}
+                    </a>
+                  )}
                 </li>
               ))}
             </ul>

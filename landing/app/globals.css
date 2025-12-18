@@ -5,6 +5,13 @@
 :root {
   --background: #ffffff;
   --foreground: #0a0a0a;
+  --brand: #0284c7;
+  --accent: #0ea5e9;
+  --muted: #64748b;
+  --font-sans: var(--font-inter, system-ui, sans-serif);
+  --bg-start: #ffffff;
+  --bg-end: #f0f9ff;
+  --bg-alt: #f8fafc;
 }
 
 * {

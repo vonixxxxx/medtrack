@@ -16,8 +16,21 @@ export default function SignUpPage() {
     setIsLoading(true);
     setError('');
     
+    // Validate hospital code - check for empty or invalid code
+    if (!hospitalCode || hospitalCode.trim() === '') {
+      setError('Hospital code is required');
+      setIsLoading(false);
+      return;
+    }
+
+    if (hospitalCode.trim() !== '123456789') {
+      setError('Invalid hospital code');
+      setIsLoading(false);
+      return;
+    }
+    
     try {
-      const signupData = { email, password, role, hospitalCode };
+      const signupData = { email, password, role, hospitalCode: hospitalCode.trim() };
       
       const { data } = await api.post('auth/signup', signupData);
       localStorage.setItem('token', data.token);

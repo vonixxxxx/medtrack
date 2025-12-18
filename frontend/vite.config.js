@@ -63,6 +63,13 @@ export default defineConfig({
   server: {
     port: 3000,
     cors: true,
+    proxy: {
+      '/api': {
+        target: 'http://localhost:4000',
+        changeOrigin: true,
+        secure: false,
+      },
+    },
     hmr: {
       protocol: 'ws',
       host: 'localhost',

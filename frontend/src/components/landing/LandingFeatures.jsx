@@ -1,3 +1,5 @@
+"use client";
+
 import { motion } from "framer-motion";
 import { Users, Stethoscope, Building2, Brain, Shield, BarChart3 } from "lucide-react";
 
@@ -12,7 +14,7 @@ const features = [
     icon: Stethoscope,
     title: "For Clinicians",
     description: "Access real-time patient data, secure communication channels, and accurate record-keeping tools. Make informed decisions faster.",
-    color: "from-blue-500 to-blue-500",
+    color: "from-blue-500 to-blue-600",
   },
   {
     icon: Building2,
@@ -117,5 +119,3 @@ export default function LandingFeatures() {
     </section>
   );
 }
-
-
